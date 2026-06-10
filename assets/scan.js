@@ -1,5 +1,5 @@
 /* ============================================================
-   PHANTOM FLASH — Free PFLASH scan (v4: living lore layer)
+   PHANTOM FLASH — Free PFLASH scan (v7: character-select creatures)
    Live BTC data: mempool.space (primary), blockchain.info (fallback)
    3D "solar system" explorer via 3d-force-graph (CDN).
    Locked outer-ring nodes are DECORATIVE ONLY — no real data
@@ -10,6 +10,13 @@
    Seeded from the wallet address hash, so the same wallet
    always gets the same planet. Canon: the largest-volume
    counterparty is always Planet Walker, home of a swift bunny.
+   v7: clicking a planet opens a video-game character-select
+   stage — the resident creature idle-animates (inline SVG +
+   CSS keyframes, transform/opacity only) on a glowing podium
+   with a rotating ring, spotlight and name plate. Each planet
+   also gets a deterministic "famous for" feature woven into
+   its lore. Locked worlds show a silhouetted creature with
+   glowing eyes — still zero real data client-side.
    ============================================================ */
 (function () {
   'use strict';
@@ -99,25 +106,259 @@
   var ROMAN = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
 
   var CREATURES = [
-    { glyph: '🦊', name: 'fox',       ruler: 'a silver fox who trades in whispers' },
-    { glyph: '🦉', name: 'owl',       ruler: 'an owl court that reads every ledger by moonlight' },
-    { glyph: '🦋', name: 'moth',      ruler: 'lantern moths drawn to bright money' },
-    { glyph: '🐍', name: 'serpent',   ruler: 'a coiled serpent that never forgets a debt' },
-    { glyph: '🗿', name: 'golem',     ruler: 'stone golems who count coin in silence' },
-    { glyph: '🪼', name: 'jellyfish', ruler: 'drifting jellyfish that glow when treasure passes' },
-    { glyph: '🐙', name: 'kraken',    ruler: 'a deep kraken with a tentacle in every port' },
-    { glyph: '🐺', name: 'wolf',      ruler: 'a wolf pack that runs the night convoys' },
-    { glyph: '🦅', name: 'raven',     ruler: 'sky ravens that watch the trade winds' },
-    { glyph: '🐢', name: 'tortoise',  ruler: 'an ancient tortoise that moves treasure slowly and surely' },
-    { glyph: '🦌', name: 'stag',      ruler: 'a pale stag that appears only when ships dock' },
-    { glyph: '🦂', name: 'scorpion',  ruler: 'scorpion brokers with a sting in every contract' }
+    { glyph: '🦊', name: 'fox',       epithet: 'THE SILVER FOX',      ruler: 'a silver fox who trades in whispers' },
+    { glyph: '🦉', name: 'owl',       epithet: 'THE MOONLIT OWL',     ruler: 'an owl court that reads every ledger by moonlight' },
+    { glyph: '🦋', name: 'moth',      epithet: 'THE LANTERN MOTH',    ruler: 'lantern moths drawn to bright money' },
+    { glyph: '🐍', name: 'serpent',   epithet: 'THE COILED SERPENT',  ruler: 'a coiled serpent that never forgets a debt' },
+    { glyph: '🗿', name: 'golem',     epithet: 'THE STONE GOLEM',     ruler: 'stone golems who count coin in silence' },
+    { glyph: '🪼', name: 'jellyfish', epithet: 'THE GLOW JELLY',      ruler: 'drifting jellyfish that glow when treasure passes' },
+    { glyph: '🐙', name: 'kraken',    epithet: 'THE DEEP KRAKEN',     ruler: 'a deep kraken with a tentacle in every port' },
+    { glyph: '🐺', name: 'wolf',      epithet: 'THE NIGHT WOLF',      ruler: 'a wolf pack that runs the night convoys' },
+    { glyph: '🦅', name: 'raven',     epithet: 'THE SKY RAVEN',       ruler: 'sky ravens that watch the trade winds' },
+    { glyph: '🐢', name: 'tortoise',  epithet: 'THE ANCIENT TORTOISE', ruler: 'an ancient tortoise that moves treasure slowly and surely' },
+    { glyph: '🦌', name: 'stag',      epithet: 'THE PALE STAG',       ruler: 'a pale stag that appears only when ships dock' },
+    { glyph: '🦂', name: 'scorpion',  epithet: 'THE STING BROKER',    ruler: 'scorpion brokers with a sting in every contract' }
   ];
   // CANON: the first major hop — the largest-volume counterparty —
   // is always Planet Walker, and it is inhabited by a swift bunny.
   var WALKER = {
-    glyph: '🐇', name: 'bunny',
+    glyph: '🐇', name: 'bunny', epithet: 'THE SWIFT BUNNY',
     ruler: 'a swift bunny — the fastest courier in the system, always one hop ahead'
   };
+
+  // ---------- v7: famous planet features (deterministic) ----------
+  var FEATURES = [
+    { icon: '🌋', label: 'volcano fields',     text: 'its fire-belching volcano fields' },
+    { icon: '❄️', label: 'ice rings',          text: 'the glittering ice rings that circle it' },
+    { icon: '🌪️', label: 'endless storms',     text: 'the endless storms that never touch its vaults' },
+    { icon: '💎', label: 'crystal canyons',    text: 'its canyons of living crystal' },
+    { icon: '🌕', label: 'twin moons',         text: 'its twin moons, said to rise on payday' },
+    { icon: '🌊', label: 'glowing seas',       text: 'seas that glow when treasure passes beneath' },
+    { icon: '🧲', label: 'magnetic mountains', text: 'magnetic mountains that pull ships off course' },
+    { icon: '🍄', label: 'mushroom forests',   text: 'its forests of lantern mushrooms' },
+    { icon: '⚡', label: 'storm spires',       text: 'spires that drink lightning from the sky' },
+    { icon: '🏜️', label: 'singing dunes',      text: 'dunes that sing when convoys land' },
+    { icon: '🕳️', label: 'bottomless vaults',  text: 'vaults rumored to reach the planet\u2019s core' },
+    { icon: '🌫️', label: 'silver mists',       text: 'the silver mists that hide its harbors' },
+    { icon: '🪐', label: 'a shattered ring',   text: 'the shattered ring of an older moon' },
+    { icon: '🌠', label: 'meteor showers',     text: 'its nightly meteor showers' },
+    { icon: '🧊', label: 'glacier ports',      text: 'harbors carved into ancient glaciers' },
+    { icon: '🌀', label: 'the great whirlpool', text: 'the great whirlpool at its southern pole' }
+  ];
+  function planetFeature(a) {
+    return FEATURES[(hashStr(a) >>> 3) % FEATURES.length];
+  }
+
+  // ---------- v7: animated character-select creatures ----------
+  // Inline SVG, parts grouped so CSS keyframes (style.css) can run
+  // transform-only idle loops. NEVER put a transform attribute on an
+  // element that gets a CSS animation class — CSS would override it.
+  var CREATURE_ART = (function () {
+    var B  = 'fill="#0b1d29" stroke="#27c4de" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+    var Bt = 'fill="#0b1d29" stroke="#27c4de" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+    var LN = 'fill="none" stroke="#27c4de" stroke-width="2.5" stroke-linecap="round"';
+    var L4 = 'fill="none" stroke="#27c4de" stroke-width="4" stroke-linecap="round"';
+    var EY = 'class="eye" fill="#ffd27a"';
+    return {
+      bunny:
+        '<g class="a-bounce">' +
+          '<g class="a-eartwitch"><ellipse cx="50" cy="34" rx="6" ry="17" ' + B + ' transform="rotate(-10 50 50)"/></g>' +
+          '<ellipse cx="68" cy="33" rx="6" ry="17" ' + B + ' transform="rotate(8 68 49)"/>' +
+          '<circle cx="83" cy="92" r="6.5" ' + Bt + '/>' +
+          '<ellipse cx="60" cy="88" rx="24" ry="20" ' + B + '/>' +
+          '<circle cx="59" cy="59" r="16.5" ' + B + '/>' +
+          '<circle cx="53" cy="57" r="2.8" ' + EY + '/>' +
+          '<circle cx="65" cy="57" r="2.8" ' + EY + '/>' +
+          '<ellipse cx="59" cy="64" rx="2.6" ry="1.8" fill="#f2a950"/>' +
+          '<ellipse cx="46" cy="106" rx="9" ry="4.5" ' + Bt + '/>' +
+          '<ellipse cx="73" cy="106" rx="9" ry="4.5" ' + Bt + '/>' +
+        '</g>' +
+        '<g class="a-speed">' +
+          '<path d="M8 56h15" ' + LN + '/>' +
+          '<path d="M3 72h21" ' + LN + '/>' +
+          '<path d="M9 88h13" ' + LN + '/>' +
+        '</g>',
+      fox:
+        '<g class="a-pace">' +
+          '<g class="a-tailswish"><path d="M82 86 Q108 84 112 60 Q100 76 80 74 Z" ' + B + '/></g>' +
+          '<ellipse cx="60" cy="90" rx="26" ry="17" ' + B + '/>' +
+          '<rect x="44" y="100" width="7" height="9" rx="3" ' + Bt + '/>' +
+          '<rect x="70" y="100" width="7" height="9" rx="3" ' + Bt + '/>' +
+          '<g class="a-headtilt">' +
+            '<path d="M30 50 L25 30 L42 42 Z" ' + B + '/>' +
+            '<path d="M53 48 L60 30 L42 40 Z" ' + B + '/>' +
+            '<circle cx="41" cy="60" r="15" ' + B + '/>' +
+            '<path d="M29 62 L14 70 L31 73 Z" ' + B + '/>' +
+            '<circle cx="37" cy="58" r="2.6" ' + EY + '/>' +
+            '<circle cx="48" cy="58" r="2.6" ' + EY + '/>' +
+          '</g>' +
+        '</g>',
+      owl:
+        '<g class="a-slowbob">' +
+          '<ellipse cx="60" cy="82" rx="22" ry="25" ' + B + '/>' +
+          '<path d="M42 70 q-6 14 2 24" ' + LN + '/>' +
+          '<path d="M78 70 q6 14 -2 24" ' + LN + '/>' +
+          '<ellipse cx="50" cy="108" rx="6" ry="3" ' + Bt + '/>' +
+          '<ellipse cx="70" cy="108" rx="6" ry="3" ' + Bt + '/>' +
+          '<g class="a-headtilt">' +
+            '<circle cx="60" cy="48" r="19" ' + B + '/>' +
+            '<path d="M46 34 l-3 -9 9 5 Z" ' + B + '/>' +
+            '<path d="M74 34 l3 -9 -9 5 Z" ' + B + '/>' +
+            '<g class="a-blink">' +
+              '<circle cx="52" cy="47" r="6.5" fill="#0b1d29" stroke="#27c4de" stroke-width="2"/>' +
+              '<circle cx="68" cy="47" r="6.5" fill="#0b1d29" stroke="#27c4de" stroke-width="2"/>' +
+              '<circle cx="52" cy="47" r="2.6" ' + EY + '/>' +
+              '<circle cx="68" cy="47" r="2.6" ' + EY + '/>' +
+            '</g>' +
+            '<path d="M57 54 L60 58 L63 54" ' + Bt + '/>' +
+          '</g>' +
+        '</g>',
+      kraken:
+        '<g class="a-float">' +
+          '<ellipse cx="60" cy="52" rx="21" ry="23" ' + B + '/>' +
+          '<circle cx="52" cy="50" r="3" ' + EY + '/>' +
+          '<circle cx="68" cy="50" r="3" ' + EY + '/>' +
+          '<g class="a-tdrift1"><path d="M44 72 Q38 88 26 94 Q36 92 46 82" ' + B + '/></g>' +
+          '<g class="a-tdrift2"><path d="M55 76 Q53 94 44 104 Q56 98 60 84" ' + B + '/></g>' +
+          '<g class="a-tdrift1"><path d="M66 76 Q68 94 76 104 Q66 98 62 84" ' + B + '/></g>' +
+          '<g class="a-tdrift2"><path d="M76 72 Q82 88 94 94 Q84 92 74 82" ' + B + '/></g>' +
+        '</g>',
+      golem:
+        '<g class="a-breathe">' +
+          '<rect x="36" y="52" width="48" height="42" rx="9" ' + B + '/>' +
+          '<rect x="46" y="30" width="28" height="26" rx="7" ' + B + '/>' +
+          '<rect x="24" y="56" width="12" height="30" rx="6" ' + B + '/>' +
+          '<rect x="84" y="56" width="12" height="30" rx="6" ' + B + '/>' +
+          '<g class="a-glowpulse">' +
+            '<rect x="52" y="40" width="7" height="4" rx="2" ' + EY + '/>' +
+            '<rect x="63" y="40" width="7" height="4" rx="2" ' + EY + '/>' +
+            '<circle cx="60" cy="72" r="5" fill="#27c4de" opacity=".8"/>' +
+          '</g>' +
+          '<path d="M44 64 h-6 M82 64 h-6" ' + Bt + '/>' +
+        '</g>' +
+        '<rect x="40" y="96" width="15" height="12" rx="4" ' + Bt + '/>' +
+        '<rect x="65" y="96" width="15" height="12" rx="4" ' + Bt + '/>',
+      raven:
+        '<g class="a-slowbob">' +
+          '<ellipse cx="60" cy="78" rx="19" ry="24" ' + B + '/>' +
+          '<g class="a-wingruffle"><path d="M44 64 Q26 72 22 92 Q38 86 48 76" ' + B + '/></g>' +
+          '<g class="a-wingruffle2"><path d="M76 64 Q94 72 98 92 Q82 86 72 76" ' + B + '/></g>' +
+          '<path d="M52 100 Q56 112 60 116 Q64 112 68 100" ' + B + '/>' +
+          '<g class="a-headtilt">' +
+            '<circle cx="60" cy="44" r="14" ' + B + '/>' +
+            '<path d="M72 42 L86 46 L72 50 Z" ' + B + '/>' +
+            '<circle cx="56" cy="42" r="2.6" ' + EY + '/>' +
+          '</g>' +
+        '</g>',
+      stag:
+        '<g class="a-breathe">' +
+          '<ellipse cx="62" cy="86" rx="26" ry="16" ' + B + '/>' +
+          '<rect x="44" y="96" width="6" height="14" rx="3" ' + Bt + '/>' +
+          '<rect x="58" y="98" width="6" height="12" rx="3" ' + Bt + '/>' +
+          '<rect x="74" y="96" width="6" height="14" rx="3" ' + Bt + '/>' +
+          '<g class="a-headraise">' +
+            '<path d="M38 78 L30 56 L42 64" ' + B + '/>' +
+            '<circle cx="36" cy="56" r="11" ' + B + '/>' +
+            '<path d="M30 47 Q22 36 14 34 M30 47 Q30 34 26 28 M34 46 Q38 32 34 24" ' + LN + '/>' +
+            '<circle cx="33" cy="54" r="2.4" ' + EY + '/>' +
+          '</g>' +
+        '</g>',
+      wolf:
+        '<g class="a-pace">' +
+          '<g class="a-tailswish"><path d="M84 80 Q100 74 104 58 Q96 70 82 72 Z" ' + B + '/></g>' +
+          '<ellipse cx="60" cy="88" rx="27" ry="16" ' + B + '/>' +
+          '<rect x="42" y="98" width="7" height="11" rx="3" ' + Bt + '/>' +
+          '<rect x="70" y="98" width="7" height="11" rx="3" ' + Bt + '/>' +
+          '<g class="a-headtilt">' +
+            '<path d="M32 50 L28 32 L43 42 Z" ' + B + '/>' +
+            '<path d="M54 48 L60 32 L44 40 Z" ' + B + '/>' +
+            '<circle cx="42" cy="60" r="15" ' + B + '/>' +
+            '<path d="M30 64 L16 70 L31 73 Z" ' + B + '/>' +
+            '<circle cx="38" cy="57" r="2.6" ' + EY + '/>' +
+            '<circle cx="49" cy="57" r="2.6" ' + EY + '/>' +
+          '</g>' +
+        '</g>',
+      serpent:
+        '<g class="a-sway">' +
+          '<path d="M30 104 Q44 110 58 102 Q72 94 64 84 Q56 76 64 68 Q74 60 66 48" fill="none" stroke="#27c4de" stroke-width="9" stroke-linecap="round"/>' +
+          '<path d="M30 104 Q44 110 58 102 Q72 94 64 84 Q56 76 64 68 Q74 60 66 48" fill="none" stroke="#0b1d29" stroke-width="5" stroke-linecap="round"/>' +
+          '<g class="a-headtilt">' +
+            '<ellipse cx="64" cy="42" rx="11" ry="9" ' + B + '/>' +
+            '<circle cx="61" cy="40" r="2.4" ' + EY + '/>' +
+            '<circle cx="69" cy="40" r="2.4" ' + EY + '/>' +
+            '<path class="a-flicker" d="M64 51 l0 7 m0 -2 l-3 4 m3 -4 l3 4" ' + Bt + '/>' +
+          '</g>' +
+        '</g>',
+      moth:
+        '<g class="a-float">' +
+          '<g class="a-flutterL"><path d="M54 60 Q30 40 22 56 Q18 72 50 74 Z" ' + B + '/><path d="M52 76 Q32 78 30 90 Q34 100 52 84 Z" ' + B + '/></g>' +
+          '<g class="a-flutterR"><path d="M66 60 Q90 40 98 56 Q102 72 70 74 Z" ' + B + '/><path d="M68 76 Q88 78 90 90 Q86 100 68 84 Z" ' + B + '/></g>' +
+          '<ellipse cx="60" cy="74" rx="7" ry="20" ' + B + '/>' +
+          '<circle cx="60" cy="52" r="7" ' + B + '/>' +
+          '<path d="M56 46 Q52 38 46 36 M64 46 Q68 38 74 36" ' + LN + '/>' +
+          '<circle cx="57" cy="51" r="2" ' + EY + '/>' +
+          '<circle cx="63" cy="51" r="2" ' + EY + '/>' +
+        '</g>',
+      jellyfish:
+        '<g class="a-float">' +
+          '<path d="M38 64 Q38 36 60 36 Q82 36 82 64 Q71 70 60 70 Q49 70 38 64 Z" ' + B + '/>' +
+          '<circle cx="53" cy="54" r="2.6" ' + EY + '/>' +
+          '<circle cx="67" cy="54" r="2.6" ' + EY + '/>' +
+          '<g class="a-tdrift1"><path d="M46 70 Q42 86 46 100" ' + LN + '/></g>' +
+          '<g class="a-tdrift2"><path d="M56 72 Q54 90 58 104" ' + LN + '/></g>' +
+          '<g class="a-tdrift1"><path d="M66 72 Q68 90 64 104" ' + LN + '/></g>' +
+          '<g class="a-tdrift2"><path d="M74 70 Q78 86 74 100" ' + LN + '/></g>' +
+        '</g>',
+      tortoise:
+        '<g class="a-breathe-slow">' +
+          '<path d="M30 88 Q30 60 60 60 Q90 60 90 88 Z" ' + B + '/>' +
+          '<path d="M44 70 v16 M60 64 v24 M76 70 v16 M36 80 h48" ' + Bt.replace('fill="#0b1d29" ', 'fill="none" ') + '/>' +
+          '<g class="a-headraise"><circle cx="22" cy="78" r="9" ' + B + '/><circle cx="20" cy="76" r="2.2" ' + EY + '/></g>' +
+          '<ellipse cx="42" cy="94" rx="7" ry="4" ' + Bt + '/>' +
+          '<ellipse cx="76" cy="94" rx="7" ry="4" ' + Bt + '/>' +
+        '</g>',
+      scorpion:
+        '<g class="a-pace">' +
+          '<ellipse cx="56" cy="86" rx="22" ry="12" ' + B + '/>' +
+          '<g class="a-stingraise"><path d="M76 82 Q94 76 96 58 Q97 48 90 44" fill="none" stroke="#27c4de" stroke-width="6" stroke-linecap="round"/><path d="M90 44 l-7 -2 m7 2 l-1 7" ' + Bt + '/></g>' +
+          '<path d="M40 80 L26 70 M44 90 L28 92 M52 96 L42 106 M64 96 L70 106" ' + LN + '/>' +
+          '<g class="a-headtilt">' +
+            '<circle cx="36" cy="80" r="9" ' + B + '/>' +
+            '<circle cx="33" cy="78" r="2.2" ' + EY + '/>' +
+            '<path d="M28 74 Q20 66 14 66 M30 86 Q22 92 16 92" ' + LN + '/>' +
+          '</g>' +
+        '</g>'
+    };
+  })();
+
+  // glyph-class → art key (every creature has bespoke art; fall back to glyph)
+  function creatureSvg(creature, locked) {
+    var art = CREATURE_ART[creature.name];
+    if (!art) return null;
+    return '<svg class="cs-svg' + (locked ? ' cs-shadow' : '') + '" viewBox="0 0 120 120" ' +
+      'role="img" aria-label="' + esc(creature.epithet || creature.name) + '">' + art + '</svg>';
+  }
+
+  // Build the full character-select stage HTML for the info card.
+  // creature: lore creature obj; planetNm: display name; feature: {icon,label} or null;
+  // locked: shrouded mystery treatment.
+  function selectStage(creature, planetNm, feature, locked) {
+    var svg = creatureSvg(creature, locked);
+    var inner = svg ||
+      ('<div class="cs-glyph' + (locked ? ' cs-shadow' : '') + '">' + creature.glyph + '</div>');
+    return '<div class="char-select' + (locked ? ' locked' : '') + '">' +
+      '<div class="cs-burst"></div>' +
+      '<div class="cs-spot"></div>' +
+      '<div class="cs-stage">' + inner + '</div>' +
+      '<div class="cs-ring"></div>' +
+      '<div class="cs-podium"></div>' +
+      '<div class="cs-plate">' +
+        '<span class="cs-epithet">' + esc(locked ? 'UNKNOWN RESIDENT' : (creature.epithet || creature.name.toUpperCase())) + '</span>' +
+        '<span class="cs-of">of</span> <span class="cs-world">' + esc(planetNm) + '</span>' +
+      '</div>' +
+      (feature && !locked ? '<div class="cs-feature" title="Famous for ' + esc(feature.label) + '">' + feature.icon + ' <span>famous for ' + esc(feature.label) + '</span></div>' : '') +
+      '</div>';
+  }
 
   function planetName(a, used) {
     var h = hashStr(a);
@@ -159,9 +400,16 @@
 
     var s1, s2, s3;
 
+    var feat = planetFeature(cp.addr);
+    var featLine = pick(rng, [
+      'Travelers know it for ' + feat.text + '.',
+      'It is famous across the system for ' + feat.text + '.',
+      'Star charts mark it for ' + feat.text + '.'
+    ]);
+
     if (idx === 0) {
       // ---- Planet Walker: first among worlds ----
-      s1 = 'Planet Walker is an influential planet over the others — first among the worlds of this system, home to ' + WALKER.ruler + '.';
+      s1 = 'Planet Walker is an influential planet over the others — first among the worlds of this system, home to ' + WALKER.ruler + '. It is famous for ' + feat.text + '.';
       var partners = n1 ? (n1 + (n2 ? ' and the ' + n2 + ' system' : '')) : null;
       s2 = (partners
         ? 'Primarily the ' + (tribute ? 'patron of your sun and a power behind ' + partners : 'funder of the ' + partners + (n2 ? '' : ' starship')) + ', it'
@@ -222,15 +470,15 @@
     } else {
       s3 = 'Phantom Flash keeps one eye on its harbor lights.';
     }
-    return s1 + ' ' + s2 + ' ' + s3;
+    return s1 + ' ' + featLine + ' ' + s2 + ' ' + s3;
   }
 
   // Build the full lore table for the rendered planets (sorted by volume).
   function buildSystemLore(planets, price) {
     var used = { 'Planet Walker': true };
     var entries = planets.map(function (cp, i) {
-      if (i === 0) return { name: 'Planet Walker', creature: WALKER };
-      return { name: planetName(cp.addr, used), creature: planetCreature(cp.addr) };
+      if (i === 0) return { name: 'Planet Walker', creature: WALKER, feature: planetFeature(cp.addr) };
+      return { name: planetName(cp.addr, used), creature: planetCreature(cp.addr), feature: planetFeature(cp.addr) };
     });
     var names = entries.map(function (e) { return e.name; });
     var maxTotal = planets.length ? planets[0].total : 0;
@@ -477,6 +725,7 @@
     var html =
       '<h4><span class="nc-glyph">' + (lore ? lore.creature.glyph : '🪐') + '</span> ' + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
       (lore ? '<div class="nc-sub">Inhabited world · first-hop wallet</div>' : '') +
+      (lore ? selectStage(lore.creature, lore.name, lore.feature, false) : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
@@ -491,9 +740,13 @@
 
   function showLockedCard(label) {
     nodeCard.className = 'node-card show locked';
+    // deterministic silhouette creature per locked label — decorative only,
+    // derived from the label string, never from real downstream data
+    var shadowCreature = CREATURES[hashStr(label) % CREATURES.length];
     $('ncBody').innerHTML =
       '<div class="lock-ico">🔒</div>' +
       '<h4>' + esc(label) + '</h4>' +
+      selectStage(shadowCreature, 'A SHROUDED WORLD', null, true) +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
       '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="checkout.html?addr=' +

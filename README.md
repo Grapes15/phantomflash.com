@@ -212,6 +212,41 @@ Screenshots: `_screenshots/v3-index.png`, `v3-scan.png`, `v3-checkout.png`.
 | `scan.html` | PFLASH results ("Wallet PFLASHED ⚡"): live stats (received/sent/tx count/counterparties/date range — all computed from fetched data, nothing fabricated), 3D system explorer, locked deep-trace findings, tx table. |
 | `checkout.html` | Lead-capture form (mailto fallback) + Stripe payment stub. |
 
+## v7 — Character-select creatures (animated)
+
+Clicking a planet now opens a **video-game character-select stage** inside the
+info card: the planet's resident creature is a bespoke inline-SVG character that
+idle-animates on a glowing podium — rotating dashed select-ring, breathing
+spotlight cone, slow-spinning halftone burst, and a cream comic name plate
+("THE SWIFT BUNNY of PLANET WALKER").
+
+- **12 + 1 bespoke SVG creatures** in `assets/scan.js` (`CREATURE_ART`): bunny
+  (canon Planet Walker resident — fast bounce + ear twitch + speed lines, the
+  showcase loop), fox & wolf (pace + tail swish), owl (slow blink + head tilt),
+  raven (wing ruffle), kraken & jellyfish (float + tentacle drift), golem
+  (heavy-breathing shoulder rise + core glow pulse), stag & tortoise (head
+  raise), serpent (sway + tongue flicker), moth (wing flutter), scorpion
+  (sting raise).
+- **Animations are CSS keyframes, transform/opacity only** (GPU-cheap, 1–3.4s
+  loops, no libraries, no GIFs) — classes `a-*` in `assets/style.css`.
+  `prefers-reduced-motion: reduce` kills all loops (static pose fallback).
+- **Famous planet features:** every planet gets a deterministic "famous for"
+  trait (volcano fields, ice rings, endless storms, crystal canyons, twin
+  moons, glowing seas, magnetic mountains… 16 total, seeded from the wallet
+  address hash like everything else) — woven into the lore text and shown as a
+  small amber badge on the select stage.
+- **Locked worlds** keep the shrouded treatment: a silhouetted creature
+  (ink-black fill, amber glowing eyes, `UNKNOWN RESIDENT` plate) on an
+  amber-lit podium with the paywall copy. Silhouette is derived from the lock
+  label string — still **zero real downstream data client-side**.
+- **Mobile:** stage compresses to 132px tall in the bottom-sheet card; audited
+  375/390/414 widths — no horizontal overflow (`docOverflow: null` on all
+  pages). Desktop node card now scrolls if taller than the 3D stage.
+
+Screenshots: `_screenshots/v7-system.png`, `v7-walker-card.png`,
+`v7-planet-card.png`, `v7-locked-card.png`, `v7-mobile-system.png`,
+`v7-mobile-walker-card.png`. Regenerate with `node _screenshots/shoot-v7.js`.
+
 ## Data pipeline (unchanged from v1, verified live)
 
 - Primary: `https://mempool.space/api/address/{addr}` + `/txs` (most recent ~50 txs)
@@ -241,14 +276,19 @@ python3 -m http.server 8742
 # http://localhost:8742  — test scan with any active BTC address
 ```
 
-Screenshots: `_screenshots/v6-*.png` (current — desktop 1440 + `v6-mobile-*` 390×844);
-`v5-mobile-*`, `v4-*` (lore layer), `v3-*`, `v2-*` and unprefixed v1 screenshots
-retained for history. Regenerate with `node _screenshots/shoot-v6.js` while the local
-server runs; `audit-mobile.js` re-checks overflow/touch targets.
+Screenshots: `_screenshots/v7-*.png` (current — character-select cards, desktop
+1440 + mobile 390×844); `v6-*` (comic-noir pass), `v5-mobile-*`, `v4-*` (lore
+layer), `v3-*`, `v2-*` and unprefixed v1 screenshots retained for history.
+Regenerate with `node _screenshots/shoot-v7.js` (cards) / `shoot-v6.js` (full
+pages) while the local server runs; `audit-mobile.js` re-checks overflow/touch
+targets.
 
 ## Assets
 
 - `assets/hero-desk-panel.jpg` — **canonical Phantom Flash desk panel** (1600px, ~360 KB): comic-noir, Phantom Flash on the corded phone, Ravens Edge Register "HOUSE OF BONES" front page on the monitor. Hero backdrop (CSS, darkened overlay), About-panel portrait, and og:image on all three pages.
 - `assets/favicon.svg` / `favicon-32.png` / `apple-touch-icon.png` — lightning-bolt mark (v5).
-- `assets/style.css` — comic-noir design system + mobile breakpoint (≤880px).
-- `assets/scan.js` — scan pipeline + 3D explorer (mobile node cap + touch handling).
+- `assets/style.css` — comic-noir design system + mobile breakpoint (≤880px) +
+  v7 character-select stage & creature idle-animation keyframes.
+- `assets/scan.js` — scan pipeline + 3D explorer (mobile node cap + touch
+  handling) + v7 `CREATURE_ART` SVG library, famous-feature generator, and
+  select-stage card renderer.

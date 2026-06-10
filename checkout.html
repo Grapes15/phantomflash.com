@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Get Your Report — Phantom Flash Unchained Investigation</title>
+<meta name="description" content="Put the Phantom on the trail: order the Full Unchained Report — a complete multi-hop blockchain trace of your funds, with an evidence package and consult call.">
+<meta name="theme-color" content="#04070d">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Get Your Report — Phantom Flash Unchained Investigation">
+<meta property="og:description" content="Order the Full Unchained Report — a complete multi-hop blockchain trace of your funds, with an evidence package and consult call.">
+<meta property="og:image" content="assets/hero-noir.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="logo" href="index.html"><span class="bolt">⚡</span> Phantom Flash <span class="sub">// UNCHAINED</span></a>
+    <nav class="nav-links">
+      <a href="index.html" class="hide-m">Home</a>
+      <a href="index.html#scan" class="hide-m">Free PFLASH</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="scan-head" style="padding-top:44px">
+    <div class="eyebrow">⚡ Full Unchained Report</div>
+    <h1>Put the Phantom on the trail</h1>
+    <p class="section-sub" style="margin-top:10px">
+      Tell us where to reach you and which wallet to trace. Then complete payment, and the
+      Phantom gets to work — every hop, every wallet, the whole truth. Most reports are
+      delivered within 5–7 business days.
+    </p>
+  </section>
+
+  <div class="checkout-grid">
+    <!-- LEFT: lead capture form -->
+    <div class="card">
+      <h3 style="margin-bottom:18px">Step 1 — Your information</h3>
+
+      <!--
+        TODO(v3): replace `action` with a real Formspree endpoint, e.g.
+          action="https://formspree.io/f/XXXXXXXX" method="POST"
+        and remove the JS mailto fallback below.
+      -->
+      <form class="lead" id="leadForm" action="#" method="POST">
+        <div>
+          <label for="fName">Full name</label>
+          <input id="fName" name="name" type="text" required autocomplete="name" placeholder="Jane Smith">
+        </div>
+        <div>
+          <label for="fEmail">Email</label>
+          <input id="fEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div>
+          <label for="fPhone">Phone</label>
+          <input id="fPhone" name="phone" type="tel" required autocomplete="tel" placeholder="(555) 555-5555">
+        </div>
+        <div>
+          <label for="fWallet">Wallet address to trace</label>
+          <input id="fWallet" name="wallet" type="text" class="mono-input" required spellcheck="false" placeholder="bc1q… / 1A1z… / 3J98…">
+        </div>
+        <div>
+          <label for="fNotes">Tell us the story (optional)</label>
+          <textarea id="fNotes" name="notes" rows="4" placeholder="Brief summary — what platform, how you found it, roughly how much you've sent, anything that's felt off…"></textarea>
+        </div>
+        <button class="btn primary big" type="submit">Continue to payment →</button>
+        <div class="success-note" id="successNote">
+          ✓ Information captured. Complete payment in Step 2 and the Phantom is on the trail.
+          If your email app opened, hit send — that delivers your intake to our team (fallback).
+        </div>
+      </form>
+    </div>
+
+    <!-- RIGHT: order summary + payment -->
+    <div>
+      <div class="price-card" style="text-align:left;padding:28px">
+        <div class="label">Order summary</div>
+        <h3 style="margin:10px 0 4px">Full Unchained Report</h3>
+        <div class="price" style="font-size:44px;margin:4px 0 14px">$2,717.17</div>
+        <ul style="margin:0 0 22px">
+          <li>Complete multi-hop trace of your funds</li>
+          <li>Interactive web report + tracing board</li>
+          <li>Exchange &amp; service identification — named</li>
+          <li>Evidence package, law-enforcement-ready if you ever need it</li>
+          <li>Consult call to walk through the findings</li>
+        </ul>
+
+        <h3 style="margin:0 0 12px">Step 2 — Payment</h3>
+
+        <!--
+          ════════════════════════════════════════════════════════
+          TODO(STRIPE): Replace the href below with the real Stripe
+          Payment Link for the $2,717.17 report product, e.g.:
+            https://buy.stripe.com/XXXXXXXXXXXX
+          Created in Stripe Dashboard → Payment Links.
+          Optionally append ?client_reference_id={wallet} for tracking.
+          ════════════════════════════════════════════════════════
+        -->
+        <a class="btn primary big" id="stripeBtn" style="width:100%;text-align:center"
+           href="#TODO-STRIPE-PAYMENT-LINK"
+           onclick="return confirmStripeStub(event)">
+          Pay $2,717.17 securely (Stripe) →
+        </a>
+        <div class="todo-banner" style="margin-top:14px">
+          [DEV STUB] Stripe Payment Link not yet connected.<br>
+          Replace href="#TODO-STRIPE-PAYMENT-LINK" in checkout.html.
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:18px">
+        <strong>What happens after payment:</strong> you'll receive a confirmation email,
+        an engagement summary, and a short intake call gets scheduled. The Phantom starts tracing
+        immediately; reports are typically delivered in 5–7 business days. Rush handling is
+        available when time is critical — mention it in your notes.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap legal">
+    <p>
+      The Phantom Flash Unchained Report is an investigative blockchain analysis provided for
+      informational purposes only. It is not a guarantee or commitment of any kind. Phantom Flash
+      and its operators are not responsible for any incorrect, incomplete, or outdated tracing
+      information in any report or free scan. Results are not guaranteed, and recovery of funds
+      is not promised or implied. Nothing on this site is legal, financial, or investment advice.
+      Phantom Flash is an independent investigation service and is not affiliated with any
+      cryptocurrency wallet, exchange, or software product.
+    </p>
+    <p>© 2026 Phantom Flash. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  // Prefill wallet from ?addr= (carried from scan page)
+  var params = new URLSearchParams(window.location.search);
+  var addr = (params.get('addr') || '').trim();
+  if (addr) document.getElementById('fWallet').value = addr;
+
+  // fallback: lead capture via mailto until Formspree/Stripe webhook exists.
+  // TODO(v3): point the form at Formspree (see comment in the form markup) and delete this handler.
+  document.getElementById('leadForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target;
+    var body =
+      'PHANTOM FLASH — NEW REPORT INTAKE\n\n' +
+      'Name: ' + f.name.value + '\n' +
+      'Email: ' + f.email.value + '\n' +
+      'Phone: ' + f.phone.value + '\n' +
+      'Wallet: ' + f.wallet.value + '\n\n' +
+      'Notes:\n' + f.notes.value;
+    // TODO: confirm intake destination address with Dan before launch.
+    var mailto = 'mailto:irwin@irwinlawmn.com' +
+      '?subject=' + encodeURIComponent('Phantom Flash intake — ' + f.name.value) +
+      '&body=' + encodeURIComponent(body);
+    document.getElementById('successNote').style.display = 'block';
+    window.location.href = mailto;
+  });
+})();
+
+function confirmStripeStub(e) {
+  var btn = document.getElementById('stripeBtn');
+  if (btn.getAttribute('href').indexOf('TODO') !== -1) {
+    e.preventDefault();
+    alert('Payment is not live yet — this is a development build.\n\nThe Stripe Payment Link will be connected before launch.');
+    return false;
+  }
+  return true;
+}
+</script>
+</body>
+</html>

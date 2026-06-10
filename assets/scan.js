@@ -206,7 +206,7 @@
     if (silent) {
       s3 = pick(rng, [
         'Now it is a silent world — no ship has left its harbor in over a year, but its vaults remember.',
-        'The harbor lights have gone dark; a silent world for more than a year. The Phantom still watches.'
+        'The harbor lights have gone dark; a silent world for more than a year. Phantom Flash still watches.'
       ]);
     } else if (busy && isPort) {
       s3 = pick(rng, [
@@ -217,10 +217,10 @@
       s3 = pick(rng, [
         'Its convoys run the same lanes as ' + n1 + (n2 ? ' and ' + n2 : '') + '.',
         'It trades in the shadow of ' + n1 + (n2 ? ', within signal range of ' + n2 : '') + '.',
-        'The Phantom keeps one eye on its harbor lights' + (n1 ? ' — and the lane it shares with ' + n1 : '') + '.'
+        'Phantom Flash keeps one eye on its harbor lights' + (n1 ? ' — and the lane it shares with ' + n1 : '') + '.'
       ]);
     } else {
-      s3 = 'The Phantom keeps one eye on its harbor lights.';
+      s3 = 'Phantom Flash keeps one eye on its harbor lights.';
     }
     return s1 + ' ' + s2 + ' ' + s3;
   }
@@ -469,7 +469,7 @@
       '<div class="r"><span class="k">Transactions</span><span class="val">' + data.txCount.toLocaleString('en-US') + '</span></div>' +
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
-      '<p>Your sun — every planet in this system orbits your money. Every trade route below began or ended here, and the chain wrote it all down. The Phantom just reads it back.</p></div>';
+      '<p>Your sun — every planet in this system orbits your money. Every trade route below began or ended here, and the chain wrote it all down. Phantom Flash just reads it back.</p></div>';
   }
 
   function showPlanetCard(cp, price, lore) {
@@ -495,7 +495,7 @@
       '<div class="lock-ico">🔒</div>' +
       '<h4>' + esc(label) + '</h4>' +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
-      '<p>A shrouded world. The Phantom has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
+      '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="checkout.html?addr=' +
       encodeURIComponent(addr) + '">Unlock the Full Unchained Report — $2,717.17 →</a>';
   }
@@ -553,7 +553,7 @@
       'DEPOSIT CLUSTER — LOCKED',
       'PEEL CHAIN — LOCKED'
     ];
-    var lockedHover = '🔒 <b>A SHROUDED WORLD</b><br>charted by the Phantom · click to unlock its history';
+    var lockedHover = '🔒 <b>A SHROUDED WORLD</b><br>charted by Phantom Flash · click to unlock its history';
     // anchor locked nodes to outbound planets (deep trace follows money out);
     // fall back to any planet, then the sun.
     var outPlanetIdx = [];

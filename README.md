@@ -1,8 +1,43 @@
-# Phantom Flash — Unchained Investigation (v5)
+# Phantom Flash — Unchained Investigation (v6)
 
-Static lead-gen site: free live Bitcoin wallet scan ("PFLASH") → upsell to the **$2,500
+Static lead-gen site: free live Bitcoin wallet scan ("PFLASH") → upsell to the **$2,717.17
 Full Unchained Report** (investigative blockchain analysis). No backend — plain
 HTML/CSS/JS, live data fetched client-side.
+
+## v6 changes (2026-06-10) — canonical desk-panel theme pass
+
+Final visual-theme alignment to the canonical Phantom Flash desk artwork
+(`assets/hero-desk-panel.jpg` — comic-noir panel: Phantom Flash on a corded phone at
+his desk, the *Ravens Edge Register* "HOUSE OF BONES" front page on the monitor,
+halftone newsprint texture). No copy-voice, pricing, 3D-explorer-behavior, mobile-fix,
+or disclaimer changes.
+
+1. **New canonical hero art.** `assets/hero-desk-panel.jpg` (1600px, 361 KB — sips
+   q62 from the 2752px master). Replaces `hero-noir.jpg` (which had baked-in
+   "…HAVEN'T GOTTEN TO YOU YET" text) as the index hero background AND replaces the
+   off-model `phantom-office.jpg` in the About panel (portrait widened to 420px /
+   16:9-ish crop so the desk scene reads). Both old images deleted; `og:image` on all
+   three pages now points at `hero-desk-panel.jpg`.
+2. **Palette extracted from the artwork** and applied via CSS variables: deep
+   teal-navy shadows (`--bg:#06131b`, panels `#0b202c`/`#0e2735`), cyan monitor glow
+   (kept `#00e5ff`), warm desk-lamp amber (`--amber:#f2a950`), newsprint cream
+   (`--paper:#ece1c8`), and a new ink-edge black (`--edge:#05090c`). Card/panel/CTA
+   shadows switched from cyan-tinted to hard ink-black comic offsets; subtle warm-amber
+   radial added to body + cta-band backgrounds; `theme-color` → `#06131b`.
+3. **Newsprint texture touches:** fixed-position 5px halftone grain over the whole
+   page (`body::after`, ~3% cream — no perf cost, pure CSS gradient), halftone dot
+   pattern inside the cream ticker strip, and a newspaper-masthead double rule (amber
+   3px+1px) under every `.section-title`. Cards/callouts get ink-edge borders
+   (`--edge`) with a thin teal keyline.
+4. **Brand sweep — zero standalone "Phantom".** Every bare "the Phantom" in shipped
+   UI text rewritten to "Phantom Flash" across index/scan/checkout HTML and all
+   scan.js lore strings (planet histories, locked-node card, hover labels, sun
+   record). Verified by grep: no `\bPhantom\b` remains outside "Phantom Flash".
+5. **Footer legal contrast bumped** (`--muted2` → `--muted`) after screenshot review.
+6. **Re-verified mobile:** `audit-mobile.js` — zero document overflow on all three
+   pages at 375/390/414 wide (fixed one regression: the About portrait needed
+   `height:240px` on mobile instead of `aspect-ratio`). Re-shot everything as
+   `v6-*.png` (desktop 1440) + `v6-mobile-*.png` (390×844) via `shoot-v6.js`.
 
 ## v5 changes (2026-06-10) — mobile optimization pass
 
@@ -34,8 +69,8 @@ emulation). No copy, pricing, branding, or 3D-lore changes.
    44×44 close button. Verified opaque (no text bleed-through) by screenshot review.
 5. **Legibility:** `.label` and table headers bumped 11px → 12px; small-screen stat
    values 18px with `overflow-wrap:anywhere` so BTC amounts never overflow their tile.
-6. **Meta/icons added to all three pages:** `theme-color` (#04070d), full
-   `og:title/description/image` (+`twitter:card`) using `assets/hero-noir.jpg`,
+6. **Meta/icons added to all three pages:** `theme-color` (#04070d; now #06131b in v6), full
+   `og:title/description/image` (+`twitter:card`) using `assets/hero-noir.jpg` (now `hero-desk-panel.jpg` in v6),
    SVG favicon + 32px PNG + 180px `apple-touch-icon` (new lightning-bolt mark:
    `assets/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`).
    *Note for deploy:* og:image is a relative path — some scrapers require absolute
@@ -43,6 +78,7 @@ emulation). No copy, pricing, branding, or 3D-lore changes.
 7. **Images audited, not recompressed:** `hero-noir.jpg` is 369 KB (under the 400 KB
    threshold; sips recompression at q68 came out *larger*, so the original is kept),
    `phantom-office.jpg` 164 KB. Both load lazily / via CSS background.
+   *(v6: both replaced by `hero-desk-panel.jpg`.)*
 
 ### Mixed-content / external-domain audit (for HTTPS deploy + CSP)
 
@@ -172,7 +208,7 @@ Screenshots: `_screenshots/v3-index.png`, `v3-scan.png`, `v3-checkout.png`.
 
 | File | Purpose |
 |---|---|
-| `index.html` | Landing: verification-first hero ("Is your investment real?") + PFLASH input, headline ticker, how-it-works, About-the-Phantom panel (incl. warning-signs callout), $2,500 report pitch, CTA. |
+| `index.html` | Landing: verification-first hero ("Is your investment real?") + PFLASH input, headline ticker, how-it-works, About-Phantom-Flash panel (incl. warning-signs callout), $2,717.17 report pitch, CTA. |
 | `scan.html` | PFLASH results ("Wallet PFLASHED ⚡"): live stats (received/sent/tx count/counterparties/date range — all computed from fetched data, nothing fabricated), 3D system explorer, locked deep-trace findings, tx table. |
 | `checkout.html` | Lead-capture form (mailto fallback) + Stripe payment stub. |
 
@@ -205,15 +241,14 @@ python3 -m http.server 8742
 # http://localhost:8742  — test scan with any active BTC address
 ```
 
-Screenshots: `_screenshots/v5-mobile-*.png` (current, mobile); `v4-*` (lore layer),
-`v3-*`, `v2-*` and unprefixed v1 screenshots retained for history. Regenerate with
-`node _screenshots/shoot-v4.js` (desktop lore) or `node _screenshots/shoot-v5-mobile.js`
-(mobile) while the local server runs.
+Screenshots: `_screenshots/v6-*.png` (current — desktop 1440 + `v6-mobile-*` 390×844);
+`v5-mobile-*`, `v4-*` (lore layer), `v3-*`, `v2-*` and unprefixed v1 screenshots
+retained for history. Regenerate with `node _screenshots/shoot-v6.js` while the local
+server runs; `audit-mobile.js` re-checks overflow/touch targets.
 
 ## Assets
 
-- `assets/hero-noir.jpg` — Phantom Flash comic cover (1400px, ~360 KB), darkened via CSS overlay as the hero backdrop; also the og:image.
-- `assets/phantom-office.jpg` — noir office panel (900px, ~160 KB), About-the-Phantom portrait.
+- `assets/hero-desk-panel.jpg` — **canonical Phantom Flash desk panel** (1600px, ~360 KB): comic-noir, Phantom Flash on the corded phone, Ravens Edge Register "HOUSE OF BONES" front page on the monitor. Hero backdrop (CSS, darkened overlay), About-panel portrait, and og:image on all three pages.
 - `assets/favicon.svg` / `favicon-32.png` / `apple-touch-icon.png` — lightning-bolt mark (v5).
 - `assets/style.css` — comic-noir design system + mobile breakpoint (≤880px).
 - `assets/scan.js` — scan pipeline + 3D explorer (mobile node cap + touch handling).

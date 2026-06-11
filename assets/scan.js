@@ -17,19 +17,27 @@
    also gets a deterministic "famous for" feature woven into
    its lore. Locked worlds show a silhouetted creature with
    glowing eyes — still zero real data client-side.
+   v10: (1) the renderer is reusable — index.html runs it in DEMO
+   mode with injected fictional data (wallet "DEMO"); (2) PAYWALL
+   WITH TEETH — only N = min(8, ceil(40% of counterparties)) real
+   first-hop worlds are charted. The rest render as browned locked
+   placeholders interspersed INTO ring one (positions deterministic
+   from the wallet hash). CRITICAL: the client render path receives
+   only a COUNT for locked counterparties — no address, amount, or
+   tx detail for them ever enters a node, label, card, or table row.
    ============================================================ */
 (function () {
   'use strict';
   var T = function(k){ return (window.PF_I18N_T ? window.PF_I18N_T(k) : k); };
 
   var SATS = 1e8;
-  var MAX_TX_TABLE = 25;
+  var MAX_TX_TABLE = 10; // v10: 10 most recent free; the rest are counted and locked
   // small screens get a lower node cap so the 3D system stays smooth on phones
   var IS_SMALL = Math.min(window.innerWidth, window.innerHeight) <= 600 ||
                  (window.matchMedia && window.matchMedia('(max-width:880px)').matches);
-  var MAX_PLANETS = IS_SMALL ? 24 : 44;      // real first-hop counterparties rendered
-  var LOCKED_PLANETS = IS_SMALL ? 8 : 14;    // decorative locked outer-ring nodes
-  // MAX_PLANETS + LOCKED_PLANETS + sun ≈ 60-node cap desktop / ≈33 mobile
+  var MAX_PLANETS = IS_SMALL ? 24 : 44;      // hard render cap (v10 paywall caps real planets at 8 anyway)
+  var LOCKED_PLANETS = IS_SMALL ? 8 : 14;    // decorative deep-trace outer-ring nodes
+  var LOCKED_RING = IS_SMALL ? 6 : 12;       // v10: locked REAL-counterparty placeholders in ring one (count only — zero real data)
 
   // ---------- DOM ----------
   var $ = function (id) { return document.getElementById(id); };
@@ -73,6 +81,12 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
   }
+
+  // ---------- v10: render context (set by runScan / runDemo) ----------
+  var curAddr = '';                          // wallet shown in cards ('DEMO' in demo mode)
+  var curCheckout = 'checkout.html';         // CTA target for locked cards
+  var curSunTitle = '\u2600 PFLASHED Wallet';
+  var curSunSub = 'The sun of this system';
 
   // ---------- living lore (v4) ----------
   // Everything below is DETERMINISTIC from the counterparty wallet
@@ -527,24 +541,8 @@
     return entries;
   }
 
-  // ---------- address from query ----------
-  var params = new URLSearchParams(window.location.search);
-  var addr = (params.get('addr') || '').trim();
-  $('addrChip').textContent = addr || T('noAddr');
-
-  if (!addr) {
-    showError(T('noAddr'), T('noAddrBody'));
-    return;
-  }
-  if (!/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr)) {
-    showError(T('invalid'),
-      'Bitcoin addresses start with 1, 3, or bc1. Double-check the address you were given \u2014 copy it exactly, character for character.');
-    return;
-  }
-
-  // carry the address through to checkout
-  var unlock2 = $('unlockBtn2');
-  if (unlock2) unlock2.href = 'checkout.html?addr=' + encodeURIComponent(addr);
+  // ---------- address (scan page only; assigned in runScan) ----------
+  var addr = '';
 
   // ---------- data fetchers ----------
   function fetchJson(url, timeoutMs) {
@@ -700,14 +698,14 @@
     cps.forEach(function (e) { e.lastSeen = seen[e.addr] || 0; });
   }
 
-  // ---------- render: stats ----------
-  function renderStats(data, cps, price) {
+  // ---------- render: stats (always FULL and honest — totals are the hook) ----------
+  function renderStats(data, totalCp, price) {
     $('statIn').textContent = fmtBtc(data.fundedSum);
     $('statOut').textContent = fmtBtc(data.spentSum);
     $('statTx').textContent = data.txCount.toLocaleString('en-US');
     $('statInUsd').textContent = fmtUsd(data.fundedSum, price);
     $('statOutUsd').textContent = fmtUsd(data.spentSum, price);
-    $('statCp').textContent = cps.length.toLocaleString('en-US') + (cps.length > MAX_PLANETS ? '+' : '');
+    $('statCp').textContent = totalCp.toLocaleString('en-US');
 
     var times = data.txs.map(function (t) { return t.time; }).filter(Boolean);
     if (times.length) {
@@ -721,12 +719,21 @@
   }
 
   // ---------- render: tx table ----------
-  function renderTable(data) {
+  // v10: 10 most recent rows, then a locked teaser row for the rest.
+  // Counterparty addresses are shown ONLY for unlocked counterparties;
+  // a locked counterparty's address never reaches the DOM.
+  function renderTable(data, unlockedSet) {
+    var shown = Math.min(data.txs.length, MAX_TX_TABLE);
     var rows = data.txs.slice(0, MAX_TX_TABLE).map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
-      var cp = t.counterparties.length
-        ? shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '')
-        : '(script / non-standard)';
+      var cp;
+      if (!t.counterparties.length) {
+        cp = '(script / non-standard)';
+      } else if (unlockedSet && !unlockedSet[t.counterparties[0].addr]) {
+        cp = '\uD83D\uDD12 ' + T('txCpLocked');
+      } else {
+        cp = shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '');
+      }
       return '<tr>' +
         '<td>' + fmtDate(t.time) + '</td>' +
         '<td class="dir-' + t.direction + '">' + (t.direction === 'in' ? '↓ IN' : '↑ OUT') + '</td>' +
@@ -735,21 +742,31 @@
         '<td>' + esc(t.txid.slice(0, 10)) + '…</td>' +
         '</tr>';
     }).join('');
+    var more = data.txCount - shown;
+    if (more > 0) {
+      rows += '<tr class="tx-locked-row"><td colspan="5">' +
+        '<a href="' + esc(curCheckout) + '">\uD83D\uDD12 ' +
+        esc(T('txMoreLocked').replace('{n}', more.toLocaleString('en-US'))) +
+        '</a></td></tr>';
+    }
     $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
   }
 
-  // ---------- node info card ----------
+  // ---------- node info card (exists on scan page AND inside the index demo stage) ----------
   var nodeCard = $('nodeCard');
-  $('ncClose').addEventListener('click', function () {
-    nodeCard.className = 'node-card';
-  });
+  if (nodeCard && $('ncClose')) {
+    $('ncClose').addEventListener('click', function () {
+      nodeCard.className = 'node-card';
+    });
+  }
 
   function showSunCard(data, price) {
+    if (!nodeCard) return;
     nodeCard.className = 'node-card show';
     $('ncBody').innerHTML =
-      '<h4>☀ PFLASHED Wallet</h4>' +
-      '<div class="nc-sub">The sun of this system</div>' +
-      '<div class="nc-addr">' + esc(addr) + '</div>' +
+      '<h4>' + curSunTitle + '</h4>' +
+      '<div class="nc-sub">' + esc(curSunSub) + '</div>' +
+      '<div class="nc-addr">' + esc(curAddr) + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Total received</span><span class="val green">' + esc(fmtBtc(data.fundedSum)) + (price ? ' · ' + esc(fmtUsd(data.fundedSum, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Total sent</span><span class="val red">' + esc(fmtBtc(data.spentSum)) + (price ? ' · ' + esc(fmtUsd(data.spentSum, price)) : '') + '</span></div>' +
@@ -760,6 +777,7 @@
   }
 
   function showPlanetCard(cp, price, lore) {
+    if (!nodeCard) return;
     nodeCard.className = 'node-card show';
     var html =
       '<h4><span class="nc-glyph">' + (lore ? lore.creature.glyph : '🪐') + '</span> ' + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
@@ -780,6 +798,7 @@
   }
 
   function showLockedCard(label) {
+    if (!nodeCard) return;
     nodeCard.className = 'node-card show locked';
     // deterministic silhouette creature per locked label — decorative only,
     // derived from the label string, never from real downstream data
@@ -792,17 +811,51 @@
       '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
       '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
-      '<a class="btn primary" style="width:100%;text-align:center;display:block" href="checkout.html?addr=' +
-      encodeURIComponent(addr) + '">' + T('payCta') + '</a>';
+      '<a class="btn primary" style="width:100%;text-align:center;display:block" href="' + esc(curCheckout) + '">' + T('payCta') + '</a>';
   }
 
   // ---------- 3D solar system ----------
-  function renderSystem(data, cps, price) {
+  // v10: reusable renderer. opts:
+  //   demo       — fictional injected data (index.html live demo)
+  //   autoOrbit  — slow auto-rotate camera (demo)
+  //   noPaywall  — skip the unlocked/locked split (demo supplies its own mix)
+  //   lockedExtra— explicit ring-one locked placeholder count (demo)
+  // ---- v10 paywall split — shared by the system renderer AND the tx table ----
+  // N = min(8, ceil(40% of counterparties)) fully unlocked (top by volume,
+  // so the Walker canon holds). Everything else becomes a COUNT — the
+  // locked counterparties' real data never enters a render object.
+  function paywallSplit(cps) {
+    var unlockedN = Math.min(8, Math.ceil(cps.length * 0.4));
+    var planets = cps.slice(0, Math.min(unlockedN, MAX_PLANETS));
+    var unlockedSet = {};
+    planets.forEach(function (c) { unlockedSet[c.addr] = true; });
+    return {
+      planets: planets,
+      unlockedSet: unlockedSet,
+      lockedCpCount: cps.length - planets.length
+    };
+  }
+
+  function renderSystem(data, cps, price, opts) {
+    opts = opts || {};
     var stage = $('graph3d');
     // touch orbit/pinch-zoom: make sure browser gestures don't intercept the canvas
     stage.style.touchAction = 'none';
-    var planets = cps.slice(0, MAX_PLANETS);
-    if (cps.length > MAX_PLANETS) $('capNote').style.display = 'inline';
+
+    var planets, unlockedSet, lockedCpCount;
+    if (opts.noPaywall) {
+      planets = cps.slice(0, MAX_PLANETS);
+      lockedCpCount = opts.lockedExtra || 0;
+      unlockedSet = {};
+      planets.forEach(function (c) { unlockedSet[c.addr] = true; });
+    } else {
+      var split = opts.split || paywallSplit(cps);
+      planets = split.planets;
+      unlockedSet = split.unlockedSet;
+      lockedCpCount = split.lockedCpCount;
+    }
+    var capNote = $('capNote');
+    if (capNote && lockedCpCount > 0 && !opts.demo) capNote.style.display = 'inline';
 
     // living lore: name + creature + history for every rendered planet
     var lore = buildSystemLore(planets, price);
@@ -825,14 +878,17 @@
 
     var nodes = [{
       id: 'sun', kind: 'sun', val: 26, color: '#00e5ff',
-      labelHtml: '<b>☀ YOUR SUN — SCANNED WALLET</b><br>' + esc(shortAddr(addr)) + '<br>every planet here orbits your money · click for details'
+      labelHtml: opts.demo
+        ? '<b>☀ THE SUN — DEMO WALLET</b><br>this is what YOUR wallet becomes · click for details'
+        : '<b>☀ YOUR SUN — SCANNED WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>every planet here orbits your money · click for details'
     }];
     var links = [];
+    var ringNodes = []; // ring one: real planets + locked placeholders, interspersed
 
     planets.forEach(function (cp, i) {
       var isIn = cp.inSats >= cp.outSats;
       var pl = lore[i];
-      nodes.push({
+      ringNodes.push({
         id: 'p' + i, kind: 'planet', cp: cp, lore: pl,
         val: planetSize(cp.total),
         color: isIn ? '#3ddc97' : '#ff4d5e',
@@ -842,15 +898,47 @@
           (cp.outSats ? '↑ out: ' + esc(fmtBtc(cp.outSats)) + '<br>' : '') +
           cp.txCount + ' tx · click to visit'
       });
-      if (cp.inSats) {
-        links.push({ source: 'p' + i, target: 'sun', color: 'rgba(61,220,151,.55)', w: cp.inSats, dir: 'in' });
-      }
-      if (cp.outSats) {
-        links.push({ source: 'sun', target: 'p' + i, color: 'rgba(255,77,94,.55)', w: cp.outSats, dir: 'out' });
+    });
+
+    // ---- v10: locked REAL counterparties — interspersed into ring one ----
+    // Synthetic placeholders. The ONLY real fact they carry is that a
+    // counterparty exists: a count. No address, no amounts, generic size.
+    // Positions/order are deterministic from the wallet hash so the same
+    // wallet always renders the same system.
+    var seedRng = mulberry32(hashStr(curAddr || 'pf') ^ 0x51ED5EED);
+    var ringLockedN = Math.min(lockedCpCount, opts.demo ? (opts.lockedExtra || 0) : LOCKED_RING);
+    var overflow = lockedCpCount - ringLockedN;
+    for (var R = 0; R < ringLockedN; R++) {
+      var isLast = (R === ringLockedN - 1) && overflow > 0;
+      var cpNum = planets.length + R + 1;
+      var lbl = isLast
+        ? '+' + overflow.toLocaleString('en-US') + ' ' + T('moreCpLocked')
+        : T('cpLockedLabel').replace('{n}', cpNum);
+      ringNodes.push({
+        id: 'rlock' + R, kind: 'ringlocked', lockLabel: lbl,
+        val: 3.5 + Math.floor(seedRng() * 3),  // generic size — reveals nothing
+        color: '#6b5a33',
+        labelHtml: '\uD83D\uDD12 <b>' + esc(lbl) + '</b><br>' + esc(T('cpLockedHover'))
+      });
+    }
+
+    // deterministic intersperse: shuffle ring one (real + locked) by wallet seed
+    for (var sh = ringNodes.length - 1; sh > 0; sh--) {
+      var sj = Math.floor(seedRng() * (sh + 1));
+      var tmp = ringNodes[sh]; ringNodes[sh] = ringNodes[sj]; ringNodes[sj] = tmp;
+    }
+    ringNodes.forEach(function (n) {
+      nodes.push(n);
+      if (n.kind === 'planet') {
+        if (n.cp.inSats) links.push({ source: n.id, target: 'sun', color: 'rgba(61,220,151,.55)', w: n.cp.inSats, dir: 'in' });
+        if (n.cp.outSats) links.push({ source: 'sun', target: n.id, color: 'rgba(255,77,94,.55)', w: n.cp.outSats, dir: 'out' });
+      } else {
+        // locked counterparty: linked to the sun like any first-hop world
+        links.push({ source: 'sun', target: n.id, color: 'rgba(120,100,60,.38)', w: 0, dir: 'locked' });
       }
     });
 
-    // ---- locked outer ring: DECORATIVE ONLY, zero real data ----
+    // ---- locked outer ring (deep trace): DECORATIVE ONLY, zero real data ----
     var lockedLabels = [
       'EXCHANGE IDENTIFIED — LOCKED',
       'RELAY WALLET — LOCKED',
@@ -867,7 +955,7 @@
     var anchorPool = outPlanetIdx.length ? outPlanetIdx
       : (planets.length ? planets.map(function (_, i) { return i; }) : null);
 
-    var lockedCount = planets.length ? LOCKED_PLANETS : 6;
+    var lockedCount = opts.demo ? Math.min(LOCKED_PLANETS, IS_SMALL ? 4 : 6) : (planets.length ? LOCKED_PLANETS : 6);
     for (var L = 0; L < lockedCount; L++) {
       var label = lockedLabels[L % lockedLabels.length];
       nodes.push({
@@ -912,7 +1000,7 @@
         else if (node.kind === 'planet') showPlanetCard(node.cp, price, node.lore);
         else showLockedCard(node.lockLabel);
       })
-      .onBackgroundClick(function () { nodeCard.className = 'node-card'; });
+      .onBackgroundClick(function () { if (nodeCard) nodeCard.className = 'node-card'; });
 
     // dev/demo hook (no extra data exposed — only what's already client-side)
     window.__pflash = {
@@ -986,6 +1074,38 @@
       graph.zoomToFit(900, 60);
     }, 1200);
 
+    // ---- v10: slow auto-orbit (demo mode) ----
+    // prefers-reduced-motion → static rendered demo, no orbit.
+    var reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (opts.autoOrbit && !reduceMotion) {
+      var lastTouch = 0;
+      ['pointerdown', 'wheel', 'touchstart'].forEach(function (ev) {
+        stage.addEventListener(ev, function () { lastTouch = Date.now(); }, { passive: true });
+      });
+      setTimeout(function () {
+        var pos = graph.cameraPosition();
+        var orbitDist = Math.max(220, Math.hypot(pos.x, pos.y, pos.z)) || 380;
+        var angle = Math.atan2(pos.x || 1, pos.z || 1);
+        setInterval(function () {
+          // pause while (and shortly after) the visitor drives the camera,
+          // then resume from wherever they left it
+          if (Date.now() - lastTouch < 8000) {
+            var p = graph.cameraPosition();
+            angle = Math.atan2(p.x || 1, p.z || 1);
+            orbitDist = Math.max(160, Math.hypot(p.x, p.y, p.z)) || orbitDist;
+            return;
+          }
+          angle += 0.0032;
+          graph.cameraPosition({
+            x: orbitDist * Math.sin(angle),
+            y: orbitDist * 0.18,
+            z: orbitDist * Math.cos(angle)
+          });
+        }, 33);
+      }, 2300); // after zoomToFit settles
+    }
+
     // keep canvas sized to container (orientation changes, browser-chrome show/hide)
     function fitGraph() {
       graph.width(stage.clientWidth).height(stage.clientHeight);
@@ -997,37 +1117,134 @@
     window.addEventListener('orientationchange', function () { setTimeout(fitGraph, 350); });
   }
 
-  // ---------- main ----------
-  Promise.all([loadData(), loadPrice()])
-    .then(function (res) {
-      var data = res[0], price = res[1];
-      if (data.txCount === 0) {
-        showError(T('noActivity'),
-          'This address exists in a valid format but has never sent or received Bitcoin. ' +
-          'Double-check the address — many platforms issue a fresh address for each deposit. ' +
-          'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
-        return;
-      }
-      var cps = aggregateCounterparties(data);
-      stampLastSeen(data, cps);
-      setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
-      $('results').style.display = 'block';
-      renderStats(data, cps, price);
-      renderTable(data);
-      try {
-        if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
-        renderSystem(data, cps, price);
-      } catch (e) {
-        $('stage3d').innerHTML = '<div style="padding:30px;color:#7e93b3">' + T('unavail') + '</div>';
-      }
-    })
-    .catch(function (err) {
-      if (String(err).indexOf('HTTP 400') !== -1 || String(err).indexOf('HTTP 404') !== -1) {
-        showError('That address isn\u2019t recognized by the Bitcoin network.',
-          'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.');
-      } else {
-        showError('Couldn\u2019t reach the blockchain data sources.',
-          'Both our primary and backup nodes are unreachable right now. This is usually temporary — wait a minute and refresh. (' + esc(String(err && err.message || err)) + ')');
-      }
-    });
+  // ============================================================
+  // v10 — DEMO MODE (index.html hero): a pre-populated fictional
+  // example system, auto-orbiting. ALL DATA BELOW IS FICTIONAL —
+  // "DEMO" wallet, invented amounts, no real addresses anywhere.
+  // ============================================================
+  function buildDemoData() {
+    var DAY = 86400, now = Math.floor(Date.now() / 1000);
+    // [fictional-id, inSats(they→sun), outSats(sun→them), txCount, daysAgo]
+    var rows = [
+      ['DEMO\u00b7W01', 62000000,        0, 14,   3],   // 0.62 BTC in — the whale (Planet Walker)
+      ['DEMO\u00b7W02',        0, 18000000,  6,   5],   // 0.18 BTC out ≈ $12,400
+      ['DEMO\u00b7W03', 12500000,        0,  9,   8],
+      ['DEMO\u00b7W04',  6200000,  3600000, 11,   2],   // port world
+      ['DEMO\u00b7W05',  7400000,        0,  4,  12],
+      ['DEMO\u00b7W06',        0,  5200000,  3,  16],
+      ['DEMO\u00b7W07',  4100000,        0,  5,  21],
+      ['DEMO\u00b7W08',  1900000,  1400000,  8,   6],   // busy port — smuggler's haven
+      ['DEMO\u00b7W09',        0,  2600000,  2,  30],
+      ['DEMO\u00b7W10',  1900000,        0,  3,  45],
+      ['DEMO\u00b7W11',  1200000,        0,  2, 400],   // silent world (>1y)
+      ['DEMO\u00b7W12',        0,   800000,  1,  60]
+    ];
+    if (!IS_SMALL) { // perf cap ~12 planets on phones; a couple more on desktop
+      rows.push(['DEMO\u00b7W13', 450000, 0, 2, 90]);
+      rows.push(['DEMO\u00b7W14', 0, 300000, 1, 120]);
+    }
+    var fundedSum = 0, spentSum = 0, txCount = 0;
+    var cps = rows.map(function (r) {
+      fundedSum += r[1]; spentSum += r[2]; txCount += r[3];
+      return { addr: r[0], inSats: r[1], outSats: r[2], txCount: r[3],
+               total: r[1] + r[2], lastSeen: now - r[4] * DAY };
+    }).sort(function (a, b) { return b.total - a.total; });
+    return {
+      data: { txCount: txCount, fundedSum: fundedSum, spentSum: spentSum, txs: [] },
+      cps: cps,
+      price: 69000 // fixed fictional rate so demo $ figures are stable
+    };
+  }
+
+  function runDemo() {
+    curAddr = 'DEMO';
+    curCheckout = 'checkout.html';
+    curSunTitle = '\u2600 THE DEMO SUN';
+    curSunSub = 'A fictional example — your wallet takes this seat';
+    var demo = buildDemoData();
+    try {
+      if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
+      renderSystem(demo.data, demo.cps, demo.price, {
+        demo: true,
+        noPaywall: true,
+        lockedExtra: IS_SMALL ? 3 : 4,
+        autoOrbit: true
+      });
+    } catch (e) {
+      var st = $('demoStage');
+      if (st) st.classList.add('demo-fallback');
+    }
+  }
+
+  // ============================================================
+  // SCAN MODE (scan.html): live data + v10 paywall-with-teeth
+  // ============================================================
+  function runScan() {
+    var params = new URLSearchParams(window.location.search);
+    addr = (params.get('addr') || '').trim();
+    $('addrChip').textContent = addr || T('noAddr');
+
+    if (!addr) {
+      showError(T('noAddr'), T('noAddrBody'));
+      return;
+    }
+    if (!/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr)) {
+      showError(T('invalid'),
+        'Bitcoin addresses start with 1, 3, or bc1. Double-check the address you were given \u2014 copy it exactly, character for character.');
+      return;
+    }
+
+    curAddr = addr;
+    curCheckout = 'checkout.html?addr=' + encodeURIComponent(addr);
+
+    // carry the address through to checkout
+    var unlock2 = $('unlockBtn2');
+    if (unlock2) unlock2.href = curCheckout;
+
+    Promise.all([loadData(), loadPrice()])
+      .then(function (res) {
+        var data = res[0], price = res[1];
+        if (data.txCount === 0) {
+          showError(T('noActivity'),
+            'This address exists in a valid format but has never sent or received Bitcoin. ' +
+            'Double-check the address — many platforms issue a fresh address for each deposit. ' +
+            'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
+          return;
+        }
+        var cps = aggregateCounterparties(data);
+        stampLastSeen(data, cps);
+        setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
+        $('results').style.display = 'block';
+        // v10: one split decides what the system AND the table may reveal
+        var split = paywallSplit(cps);
+        renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
+        renderTable(data, split.unlockedSet);
+        try {
+          if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
+          renderSystem(data, cps, price, { split: split });
+        } catch (e) {
+          $('stage3d').innerHTML = '<div style="padding:30px;color:#7e93b3">' + T('unavail') + '</div>';
+        }
+      })
+      .catch(function (err) {
+        if (String(err).indexOf('HTTP 400') !== -1 || String(err).indexOf('HTTP 404') !== -1) {
+          showError('That address isn\u2019t recognized by the Bitcoin network.',
+            'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.');
+        } else {
+          showError('Couldn\u2019t reach the blockchain data sources.',
+            'Both our primary and backup nodes are unreachable right now. This is usually temporary — wait a minute and refresh. (' + esc(String(err && err.message || err)) + ')');
+        }
+      });
+  }
+
+  // ---------- entry: which page are we on? ----------
+  if ($('addrChip')) {
+    runScan();                            // scan.html
+  } else if ($('demoStage')) {
+    // index.html live-demo hero — wait for the deferred i18n layer so
+    // locked-node labels are translated (DOMContentLoaded fires after
+    // deferred scripts execute).
+    if (window.PF_I18N_T || document.readyState === 'complete') runDemo();
+    else document.addEventListener('DOMContentLoaded', runDemo);
+  }
 })();

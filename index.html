@@ -26,6 +26,7 @@
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/i18n.js" defer></script>
+<script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js"></script>
 </head>
 <body>
 
@@ -41,28 +42,44 @@
 </header>
 
 <main>
-  <!-- HERO -->
-  <section class="hero">
+  <!-- HERO v10 — THE UNIVERSE IS THE HOMEPAGE -->
+  <!-- Live demo solar system, auto-orbiting on load. ALL DEMO DATA IS
+       FICTIONAL (wallet "DEMO") — built in assets/scan.js runDemo(). -->
+  <section class="hero hero-demo">
     <div class="bg"></div>
     <div class="fg" id="scan">
       <div class="eyebrow">⚡ Phantom Flash Unchained Investigation</div>
       <h1>Is your investment real?<br><span class="glow">Find out in 60 seconds.</span></h1>
       <p class="lede">
         Your money leaves a trail on the blockchain — public, permanent, impossible to fake.
-        Paste the wallet address you sent funds to, and Phantom Flash pulls the live record on the
-        spot: where your money actually lives, where it moved, and who it moved with.
-        <strong>If it's real, you'll see it. If it's not — you'll see that first.</strong>
+        <strong>This is what a wallet really looks like. Now look at yours.</strong>
       </p>
+    </div>
 
-      <!-- SCAN INPUT -->
-      <form class="scan-box" id="scanForm" autocomplete="off">
-        <input type="text" id="addrInput" inputmode="text" spellcheck="false"
-               placeholder="Paste a Bitcoin address — e.g. bc1q… or 1A1z…" aria-label="Bitcoin address">
-        <button class="btn primary" type="submit">PFLASH IT ⚡</button>
-      </form>
-      <div class="scan-error" id="scanError"></div>
-      <div class="scan-hint">Free instant PFLASH · live blockchain data · no account needed · Bitcoin addresses</div>
-      <div class="scan-hint" style="margin-top:6px;opacity:.85"><em>PFLASH it. (The P is silent. The truth isn't.)</em></div>
+    <!-- LIVE DEMO UNIVERSE + sun-docked wallet input -->
+    <div class="demo-stage" id="demoStage">
+      <div class="demo-badge" id="demoBadge">● LIVE DEMO — this is a real victim’s-eye view. Make it yours:</div>
+      <div class="controls-hint demo-hint-controls">drag to orbit · scroll to zoom · click a planet to visit its world</div>
+      <div id="graph3d" style="position:absolute;inset:0"></div>
+
+      <!-- node info card (same machinery as the scan page) -->
+      <div class="node-card" id="nodeCard">
+        <button class="nc-close" id="ncClose" aria-label="Close">✕</button>
+        <div id="ncBody"></div>
+      </div>
+
+      <!-- THE WALLET INPUT GOES INTO THE SUN -->
+      <div class="sun-dock">
+        <div class="sun-arrow" aria-hidden="true">⬆</div>
+        <div class="sun-dock-label" id="sunDockLabel">Drop your wallet address into the sun</div>
+        <form class="scan-box sun-box" id="scanForm" autocomplete="off">
+          <input type="text" id="addrInput" inputmode="text" spellcheck="false"
+                 placeholder="Paste a Bitcoin address — e.g. bc1q… or 1A1z…" aria-label="Bitcoin address">
+          <button class="btn primary" type="submit">PFLASH IT ⚡</button>
+        </form>
+        <div class="scan-error" id="scanError"></div>
+        <div class="scan-hint">Free instant PFLASH · live blockchain data · no account needed · Bitcoin addresses</div>
+      </div>
     </div>
   </section>
 
@@ -299,5 +316,6 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
 });
 </script>
+<script src="assets/scan.js"></script>
 </body>
 </html>

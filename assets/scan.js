@@ -20,6 +20,7 @@
    ============================================================ */
 (function () {
   'use strict';
+  var T = function(k){ return (window.PF_I18N_T ? window.PF_I18N_T(k) : k); };
 
   var SATS = 1e8;
   var MAX_TX_TABLE = 25;
@@ -491,14 +492,14 @@
   // ---------- address from query ----------
   var params = new URLSearchParams(window.location.search);
   var addr = (params.get('addr') || '').trim();
-  $('addrChip').textContent = addr || 'No address provided';
+  $('addrChip').textContent = addr || T('noAddr');
 
   if (!addr) {
-    showError('No address provided.', 'Go back and paste the Bitcoin address you want to PFLASH.');
+    showError(T('noAddr'), T('noAddrBody'));
     return;
   }
   if (!/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr)) {
-    showError('That doesn\u2019t look like a valid Bitcoin address.',
+    showError(T('invalid'),
       'Bitcoin addresses start with 1, 3, or bc1. Double-check the address you were given \u2014 copy it exactly, character for character.');
     return;
   }
@@ -614,12 +615,12 @@
   }
 
   function loadData() {
-    setStatus('PFLASHING THE CHAIN… pulling the live blockchain record');
+    setStatus(T('pflashingLive'));
     var base = 'https://mempool.space/api/address/' + encodeURIComponent(addr);
     return Promise.all([fetchJson(base), fetchJson(base + '/txs', 20000)])
       .then(function (res) { return normalizeMempool(res[0], res[1]); })
       .catch(function () {
-        setStatus('Primary source busy — trying backup node…');
+        setStatus(T('busy'));
         return fetchJson('https://blockchain.info/rawaddr/' + encodeURIComponent(addr) + '?limit=50&cors=true', 20000)
           .then(normalizeBlockchainInfo);
       });
@@ -696,7 +697,7 @@
         '<td>' + esc(t.txid.slice(0, 10)) + '…</td>' +
         '</tr>';
     }).join('');
-    $('txBody').innerHTML = rows || '<tr><td colspan="5">No transactions found.</td></tr>';
+    $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
   }
 
   // ---------- node info card ----------
@@ -750,7 +751,7 @@
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
       '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="checkout.html?addr=' +
-      encodeURIComponent(addr) + '">Unlock the Full Unchained Report — $2,717.17 →</a>';
+      encodeURIComponent(addr) + '">' + T('payCta') + '</a>';
   }
 
   // ---------- 3D solar system ----------
@@ -900,7 +901,7 @@
     .then(function (res) {
       var data = res[0], price = res[1];
       if (data.txCount === 0) {
-        showError('No activity found on this address.',
+        showError(T('noActivity'),
           'This address exists in a valid format but has never sent or received Bitcoin. ' +
           'Double-check the address — many platforms issue a fresh address for each deposit. ' +
           'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
@@ -908,7 +909,7 @@
       }
       var cps = aggregateCounterparties(data);
       stampLastSeen(data, cps);
-      setStatus('PFLASHED in seconds — ' + data.txCount.toLocaleString('en-US') + ' transactions found.', true);
+      setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
       $('results').style.display = 'block';
       renderStats(data, cps, price);
       renderTable(data);
@@ -916,7 +917,7 @@
         if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
         renderSystem(data, cps, price);
       } catch (e) {
-        $('stage3d').innerHTML = '<div style="padding:30px;color:#7e93b3">3D explorer unavailable in this browser — see the transaction table below for the same first-hop data.</div>';
+        $('stage3d').innerHTML = '<div style="padding:30px;color:#7e93b3">' + T('unavail') + '</div>';
       }
     })
     .catch(function (err) {

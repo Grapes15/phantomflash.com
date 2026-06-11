@@ -655,3 +655,15 @@ html,body{max-width:100%;overflow-x:hidden}
   .tx th,.tx td{font-size:11px;white-space:nowrap}
   .tx-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
+
+/* "Don't get left in the dark" noir panel */
+.dark-panel{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(0,229,255,.18);box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.dark-panel img{display:block;width:100%;height:auto}
+.dark-overlay{position:absolute;inset:auto 0 0 0;padding:120px 30px 30px;background:linear-gradient(180deg,rgba(4,10,17,0) 0%,rgba(4,10,17,.55) 30%,rgba(4,10,17,.92) 62%,rgba(4,10,17,.97) 100%)}
+.dark-overlay h2{font-family:var(--display);font-size:clamp(26px,4.4vw,44px);letter-spacing:.04em;color:#f6e7c4;text-shadow:0 2px 0 #000,0 0 14px rgba(0,0,0,.95),0 0 26px rgba(0,229,255,.35);margin:0 0 10px}
+.dark-overlay p{max-width:640px;color:#e6eef8;font-size:15px;line-height:1.65;margin:0 0 16px;text-shadow:0 1px 3px rgba(0,0,0,.95);background:rgba(4,10,17,.66);border-left:3px solid rgba(0,229,255,.45);border-radius:8px;padding:12px 16px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+@media(max-width:720px){
+  .dark-panel img{min-height:340px;object-fit:cover;object-position:62% 40%}
+  .dark-overlay{padding:22px 16px 20px}
+  .dark-overlay p{font-size:14px}
+}

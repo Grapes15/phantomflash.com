@@ -150,6 +150,44 @@
     return FEATURES[(hashStr(a) >>> 3) % FEATURES.length];
   }
 
+  // ---------- v9: money bags (Walker's idea) ----------
+  // Non-crypto visitors couldn't see at a glance "where the money is".
+  // Each planet gets 1-5 stacked 💰 bags = its RELATIVE share of the
+  // total observed first-hop volume with the scanned wallet. Bands are
+  // log-spaced (~3x per band) so one whale doesn't flatten everyone
+  // else. HONESTY RULE: bags are share-of-observed-traffic, NOT the
+  // absolute wealth of that address.
+  var BAG_ROWS = { 1: [1], 2: [2], 3: [2, 1], 4: [3, 1], 5: [3, 2] }; // bottom row first
+  var BAG_WORDS = ['one', 'two', 'three', 'four', 'five'];
+  function bagTier(total, grandTotal) {
+    if (!grandTotal || !total) return 1;
+    var share = total / grandTotal;
+    if (share >= 0.30) return 5;
+    if (share >= 0.10) return 4;
+    if (share >= 0.03) return 3;
+    if (share >= 0.01) return 2;
+    return 1;
+  }
+  function bagEmojis(tier) { return new Array(tier + 1).join('\uD83D\uDCB0'); }
+  function bagPileHtml(tier, locked) {
+    if (locked) {
+      // shrouded sack: greyed bag + amber "?" — zero real data behind it
+      return '<div class="bag-pile bag-locked"><span class="bag-row">\uD83D\uDCB0</span><span class="bag-q">?</span></div>';
+    }
+    var rows = BAG_ROWS[tier] || [1];
+    var html = '';
+    for (var i = rows.length - 1; i >= 0; i--) { // DOM top row first
+      html += '<span class="bag-row">' + bagEmojis(rows[i]) + '</span>';
+    }
+    return '<div class="bag-pile">' + html + '</div>';
+  }
+  function bagLore(tier) {
+    var w = BAG_WORDS[tier - 1];
+    if (tier === 5) return 'A five-bag world \u2014 its vaults hold the richest share of the treasure that moved with your sun.';
+    if (tier === 1) return 'A one-bag world \u2014 only a trickle of your money\u2019s traffic ever touched its vaults.';
+    return 'A ' + w + '-bag world \u2014 its vaults hold ' + w + ' bags of the treasure that moved with your sun.';
+  }
+
   // ---------- v7: animated character-select creatures ----------
   // Inline SVG, parts grouped so CSS keyframes (style.css) can run
   // transform-only idle loops. NEVER put a transform attribute on an
@@ -732,7 +770,9 @@
       '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (price && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Shared transactions</span><span class="val">' + cp.txCount + '</span></div>' +
-      '</div>';
+      (lore && lore.bags ? '<div class="r"><span class="k">' + esc(T('bagShare')) + '</span><span class="val nc-bags">' + bagEmojis(lore.bags) + '</span></div>' : '') +
+      '</div>' +
+      (lore && lore.bags ? '<div class="nc-bagnote">' + esc(T('bagHonesty')) + '</div>' : '');
     if (lore) {
       html += '<div class="nc-lore"><div class="nc-lore-label">PLANET HISTORY</div><p>' + esc(lore.history) + '</p></div>';
     }
@@ -748,6 +788,8 @@
       '<div class="lock-ico">🔒</div>' +
       '<h4>' + esc(label) + '</h4>' +
       selectStage(shadowCreature, 'A SHROUDED WORLD', null, true) +
+      '<div class="nc-rows" style="margin-bottom:12px"><div class="r"><span class="k">' + esc(T('bagShare')) + '</span>' +
+      '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
       '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="checkout.html?addr=' +
@@ -764,6 +806,16 @@
 
     // living lore: name + creature + history for every rendered planet
     var lore = buildSystemLore(planets, price);
+
+    // v9: money-bag tiers — share of TOTAL observed first-hop volume
+    // (all counterparties, including ones beyond the render cap, so the
+    // shares stay honest), then woven into each planet's history.
+    var grandTotal = 0;
+    cps.forEach(function (c) { grandTotal += c.total; });
+    lore.forEach(function (e, i) {
+      e.bags = bagTier(planets[i].total, grandTotal);
+      e.history += ' ' + bagLore(e.bags);
+    });
 
     var maxTotal = planets.length ? planets[0].total : 1;
     function planetSize(sats) {
@@ -784,7 +836,7 @@
         id: 'p' + i, kind: 'planet', cp: cp, lore: pl,
         val: planetSize(cp.total),
         color: isIn ? '#3ddc97' : '#ff4d5e',
-        labelHtml: '<b>' + pl.creature.glyph + ' ' + esc(pl.name) + '</b><br>' +
+        labelHtml: '<b>' + pl.creature.glyph + ' ' + esc(pl.name) + '</b> <span style="letter-spacing:-2px">' + bagEmojis(pl.bags) + '</span><br>' +
           '<span style="color:#7e93b3">' + esc(shortAddr(cp.addr)) + '</span><br>' +
           (cp.inSats ? '↓ in: ' + esc(fmtBtc(cp.inSats)) + '<br>' : '') +
           (cp.outSats ? '↑ out: ' + esc(fmtBtc(cp.outSats)) + '<br>' : '') +
@@ -876,6 +928,55 @@
 
     // dim the locked nodes (semi-transparent material) once objects exist
     graph.nodeThreeObjectExtend(true);
+
+    // ---- v9: money-bag overlay (Walker's idea) ----
+    // Pure-DOM emoji piles projected from 3D node positions each frame.
+    // No textures, no extra geometry — cheap on phones (≤58 labels,
+    // updated at half-rate on small screens). The bundled 3d-force-graph
+    // doesn't expose THREE, so we project world→screen by hand using the
+    // camera's matrixWorldInverse + projectionMatrix.
+    var bagLayer = document.createElement('div');
+    bagLayer.className = 'bag-layer';
+    stage.appendChild(bagLayer);
+    var bagTracked = [];
+    nodes.forEach(function (n) {
+      if (n.kind === 'sun') return;
+      var el = document.createElement('div');
+      el.className = 'bag-anchor';
+      el.innerHTML = n.kind === 'planet' ? bagPileHtml(n.lore.bags, false) : bagPileHtml(0, true);
+      el.style.display = 'none';
+      bagLayer.appendChild(el);
+      n.__bagEl = el;
+      n.__bagOff = 8 + (n.val || 3) * 1.1; // ride above the planet's sphere
+      bagTracked.push(n);
+    });
+    var bagFrame = 0;
+    (function tickBags() {
+      requestAnimationFrame(tickBags);
+      bagFrame++;
+      if (IS_SMALL && (bagFrame % 2)) return; // half-rate on phones
+      var cam = graph.camera && graph.camera();
+      if (!cam || !cam.matrixWorldInverse || !cam.projectionMatrix) return;
+      var W = stage.clientWidth, H = stage.clientHeight;
+      var mi = cam.matrixWorldInverse.elements, pr = cam.projectionMatrix.elements;
+      for (var bi = 0; bi < bagTracked.length; bi++) {
+        var n = bagTracked[bi], el = n.__bagEl;
+        var x = n.x || 0, y = n.y || 0, z = n.z || 0;
+        var vx = mi[0] * x + mi[4] * y + mi[8] * z + mi[12];
+        var vy = mi[1] * x + mi[5] * y + mi[9] * z + mi[13];
+        var vz = mi[2] * x + mi[6] * y + mi[10] * z + mi[14];
+        var cw = pr[3] * vx + pr[7] * vy + pr[11] * vz + pr[15];
+        if (cw <= 0) { el.style.display = 'none'; continue; } // behind camera
+        var ndx = (pr[0] * vx + pr[4] * vy + pr[8] * vz + pr[12]) / cw;
+        var ndy = (pr[1] * vx + pr[5] * vy + pr[9] * vz + pr[13]) / cw;
+        if (ndx < -1.05 || ndx > 1.05 || ndy < -1.05 || ndy > 1.05) { el.style.display = 'none'; continue; }
+        var dist = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        var scale = Math.max(0.55, Math.min(1.25, 95 / dist));
+        el.style.display = 'block';
+        el.style.transform = 'translate(' + ((ndx + 1) / 2 * W).toFixed(1) + 'px,' +
+          ((1 - ndy) / 2 * H - n.__bagOff * scale).toFixed(1) + 'px) translate(-50%,-100%) scale(' + scale.toFixed(3) + ')';
+      }
+    })();
 
     // spread the system out a bit
     graph.d3Force('charge').strength(-160);

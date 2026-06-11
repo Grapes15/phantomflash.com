@@ -518,6 +518,36 @@ svg.cs-shadow{filter:drop-shadow(0 0 6px rgba(242,169,80,.30))}
   .cs-svg g, .cs-svg path{animation:none !important}
 }
 
+/* ============================================================
+   v9 — MONEY BAGS (Walker's idea): visible wealth on planets.
+   DOM overlay projected from the 3D scene — no textures, cheap.
+   ============================================================ */
+.bag-layer{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.bag-anchor{position:absolute;left:0;top:0;will-change:transform;pointer-events:none}
+.bag-pile{display:flex;flex-direction:column;align-items:center;line-height:.9;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.9)) drop-shadow(0 0 6px rgba(242,169,80,.35))}
+.bag-pile .bag-row{display:block;font-size:16px;letter-spacing:-4px;white-space:nowrap}
+.bag-pile.bag-locked{position:relative;filter:drop-shadow(0 1px 2px rgba(0,0,0,.9))}
+.bag-pile.bag-locked .bag-row{filter:grayscale(1) brightness(.55);opacity:.8}
+.bag-pile .bag-q{position:absolute;left:50%;top:50%;transform:translate(-50%,-58%);
+  font-family:var(--display);font-size:12px;color:var(--amber);
+  text-shadow:0 0 6px rgba(0,0,0,.95)}
+.node-card .nc-bags{letter-spacing:-2px;font-size:15px}
+/* mobile-only bag legend chip (the full legend is hidden on phones) */
+.bag-key-m{display:none}
+@media (max-width:880px){
+  .bag-key-m{
+    display:block;position:absolute;right:10px;top:52px;z-index:5;pointer-events:none;
+    font-size:11px;color:var(--muted);background:rgba(6,19,27,.78);
+    border:1px solid rgba(242,169,80,.35);border-radius:999px;padding:3px 9px;
+    text-shadow:0 1px 4px #000;
+  }
+}
+.node-card .nc-bagnote{font-size:11px;color:var(--muted2);margin-top:8px;line-height:1.5;font-style:italic}
+@media (max-width:880px){
+  .bag-pile .bag-row{font-size:13px;letter-spacing:-3px}
+}
+
 /* locked / paywall node card */
 .node-card.locked{border-color:var(--amber)}
 .node-card.locked .lock-ico{font-size:24px;color:var(--amber);text-shadow:0 0 16px rgba(255,180,84,.5);margin-bottom:6px}
@@ -655,6 +685,61 @@ html,body{max-width:100%;overflow-x:hidden}
   .tx th,.tx td{font-size:11px;white-space:nowrap}
   .tx-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
+
+/* ============================================================
+   v9 — "SEE EXACTLY WHAT YOU GET" sample-report fan
+   Comic-noir stacked report pages, fictional placeholder data only.
+   ============================================================ */
+.sample-report{position:relative}
+.sr-deck{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:8px;perspective:1200px}
+.sr-page{
+  position:relative;border:2px solid var(--edge);border-radius:8px;overflow:hidden;
+  background:
+    radial-gradient(rgba(26,21,13,.05) 1px, transparent 1.3px) 0 0/4px 4px,
+    var(--paper);
+  color:var(--paper-ink);
+  box-shadow:6px 6px 0 rgba(0,0,0,.5), 0 0 0 1px var(--line);
+  padding:16px 14px 14px;min-height:240px;display:flex;flex-direction:column;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.sr-page:nth-child(odd){transform:rotate(-1.2deg)}
+.sr-page:nth-child(even){transform:rotate(1deg)}
+.sr-page:hover{transform:rotate(0) translateY(-6px);box-shadow:8px 10px 0 rgba(0,0,0,.55), 0 0 26px rgba(0,229,255,.18);z-index:2}
+.sr-tab{
+  font-family:var(--display);font-size:14px;letter-spacing:.06em;color:#a8231f;
+  border-bottom:2px solid var(--paper-ink);padding-bottom:6px;margin-bottom:8px;text-transform:uppercase;
+}
+.sr-page h3{margin:0 0 6px;font-size:14px;font-weight:800;color:var(--paper-ink);line-height:1.3}
+.sr-page p{margin:0;font-size:12px;line-height:1.55;color:#4a4031}
+.sr-mock{
+  margin-top:auto;border:1px dashed #8a7a55;border-radius:6px;background:rgba(26,21,13,.05);
+  font-family:var(--mono);font-size:10.5px;line-height:1.6;color:#3c3322;padding:8px 9px;
+  overflow-wrap:anywhere;
+}
+.sr-mock .hot{color:#a8231f;font-weight:700}
+.sr-stamp{
+  position:absolute;right:8px;top:8px;transform:rotate(8deg);
+  font-family:var(--display);font-size:10px;letter-spacing:.12em;color:rgba(168,35,31,.85);
+  border:2px solid rgba(168,35,31,.7);border-radius:4px;padding:2px 6px;pointer-events:none;
+}
+.sr-note{margin-top:18px;text-align:center;color:var(--muted2);font-size:12.5px;font-style:italic}
+.sr-cta{margin-top:14px;text-align:center}
+.sr-cta .lead-line{
+  font-family:var(--display);font-size:clamp(20px,3vw,28px);letter-spacing:.04em;color:var(--ink);
+  text-transform:uppercase;margin:0 0 14px;
+}
+/* price digits in mono — Bangers' "7" glyph reads like a "1"; a price must be unambiguous */
+.sr-cta .lead-line .money{
+  color:var(--cyan);text-shadow:0 0 18px var(--cyan-glow);
+  font-family:var(--mono);font-weight:800;font-size:.82em;letter-spacing:0;
+}
+@media (max-width:1080px){.sr-deck{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:880px){
+  .sr-deck{grid-template-columns:repeat(2,1fr);gap:12px}
+  .sr-page{min-height:0;padding:13px 12px 12px}
+  .sr-page:nth-child(5){grid-column:1 / -1}
+}
+@media (max-width:420px){.sr-deck{grid-template-columns:1fr}}
 
 /* "Don't get left in the dark" noir panel */
 .dark-panel{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(0,229,255,.18);box-shadow:0 18px 60px rgba(0,0,0,.55)}

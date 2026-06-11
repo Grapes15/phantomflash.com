@@ -38,6 +38,18 @@
       recentTx: 'Recent transactions', date: 'Date', dir: 'Direction', amt: 'Amount (BTC)', cp: 'Counterparty (first hop)', txid: 'TXID',
       checkoutEyebrow: '⚡ Full Unchained Report', checkoutTitle: 'Put Phantom Flash on the trail', checkoutSub: 'Tell us where to reach you and which wallet to trace. Then complete payment, and Phantom Flash gets to work — every hop, every wallet, the whole truth. Most reports are delivered within 5–7 business days.', step1: 'Step 1 — Your information', name: 'Full name', email: 'Email', phone: 'Phone', walletLabel: 'Wallet address to trace', story: 'Tell us the story (optional)', continuePay: 'Continue to payment →', captured: '✓ Information captured. Complete payment in Step 2 and Phantom Flash is on the trail. If your email app opened, hit send — that delivers your intake to our team (fallback).', order: 'Order summary', step2: 'Step 2 — Payment', paySecure: 'Pay ' + PRICE + ' securely (Stripe) →', afterPay: 'What happens after payment:', afterPayText: 'you\'ll receive a confirmation email, an engagement summary, and a short intake call gets scheduled. Phantom Flash starts tracing immediately; reports are typically delivered in 5–7 business days. Rush handling is available when time is critical — mention it in your notes.',
       darkTitle: 'Don\u2019t get left in the dark\u2026', darkText: 'Somewhere right now, someone is deciding whether to send more money into a wallet they\u2019ve never actually looked at. The chain has been keeping the receipts the whole time \u2014 public, permanent, sixty seconds away. The only people who stay in the dark are the ones who never turn on the light.', darkCta: 'Turn the light on \u2014 free PFLASH \u26a1',
+      lockedIntro: 'The free PFLASH stops at the first hop. Phantom Flash sees the rest — the Full Unchained Report follows your money through every hop after that: relay wallets, consolidation hubs, the exchanges and services where it actually landed.',
+      bagLegend: '💰 = share of your money’s traffic', bagShare: 'Share of traffic',
+      bagHonesty: '💰 bags = this planet’s share of the observed first-hop volume with your scanned wallet — not the absolute wealth of that address.',
+      srTitle: 'See exactly what you get',
+      srSub: 'Every Full Unchained Report is a private interactive web report — not a PDF attachment. Here’s the actual structure, shown with a fictional case. Yours is built from your wallet’s real trail.',
+      srNote: 'Sample shown with fictional data. Your report is built by hand from your wallet’s actual on-chain record.',
+      srLead: 'This is what <span class="money">' + PRICE + '</span> buys.', srCta: 'Get my report →',
+      sr1t: 'The Story', sr1b: 'How the scheme actually worked — the narrative of your money’s journey, told in plain language, start to finish.',
+      sr2t: 'Tracing Map', sr2b: 'Every hop, visualized — an interactive flow of your funds from your wallet to where they actually landed.',
+      sr3t: 'Wallet Inventory', sr3b: 'Every address documented — role, volume, first/last activity, and how it connects to your funds.',
+      sr4t: 'Key Findings', sr4b: 'What matters, in plain language — the conclusions, the evidence behind each one, and what they mean for you.',
+      sr5t: 'Evidence Package', sr5b: 'Formatted for law enforcement — IC3-ready summaries, transaction IDs, exchange escalation contacts, timeline.',
       noAddr: 'No address provided.', noAddrBody: 'Go back and paste the Bitcoin address you want to PFLASH.', invalid: 'That does not look like a valid Bitcoin address.', busy: 'Primary source busy — trying backup node…', noTx: 'No transactions found.', noActivity: 'No activity found on this address.', unavail: '3D explorer unavailable in this browser — see the transaction table below for the same first-hop data.', notRecognized: 'That address is not recognized by the Bitcoin network.', noReach: 'Could not reach the blockchain data sources.', pflashingLive: 'PFLASHING THE CHAIN… pulling the live blockchain record', pflashDonePrefix: 'PFLASHED in seconds — ', pflashDoneSuffix: ' transactions found.'
     },
     es: {
@@ -54,6 +66,17 @@
       disclaimer: 'El Phantom Flash Unchained Report es un análisis investigativo de blockchain proporcionado solo con fines informativos. No es una garantía ni un compromiso de ningún tipo. Phantom Flash y sus operadores no son responsables por información de rastreo incorrecta, incompleta o desactualizada en ningún informe o escaneo gratuito. Los resultados no están garantizados y no se promete ni se implica la recuperación de fondos. Nada en este sitio constituye asesoría legal, financiera o de inversión. Los datos del escaneo gratuito se obtienen en vivo de fuentes públicas de blockchain y se presentan tal cual. Phantom Flash es un servicio de investigación independiente y no está afiliado con ninguna billetera, exchange o producto de software de criptomonedas.',
       scanTitle: 'Billetera PFLASHED ⚡', scanLoading: 'PFLASHING THE CHAIN…', scanBack: '← PFLASH otra dirección', totalIn: 'Total recibido', totalOut: 'Total enviado', txs: 'Transacciones', cps: 'Contrapartes (1er salto)', window: 'Ventana de actividad', systemTitle: 'El sistema', liveData: '● DATOS EN VIVO', systemSub: 'Aquí es donde realmente vive tu dinero — y estos planetas están <strong>habitados</strong>. La billetera que PFLASHED es el sol. Cada planeta es una billetera real con la que transaccionó.', deepTitle: 'Hallazgos de rastreo profundo', locked: '🔒 BLOQUEADO', paywallTitle: 'Viste el primer salto. Phantom Flash ve el resto.', paywallSub: 'El Full Unchained Report sigue tu dinero por cada salto, nombra los servicios donde aterrizó y documenta todo el recorrido.', payCta: 'Desbloquear el Full Unchained Report — ' + PRICE + ' →', recentTx: 'Transacciones recientes', date: 'Fecha', dir: 'Dirección', amt: 'Cantidad (BTC)', cp: 'Contraparte (primer salto)', txid: 'TXID',
       checkoutEyebrow: '⚡ Full Unchained Report', checkoutTitle: 'Pon a Phantom Flash sobre la pista', checkoutSub: 'Dinos cómo contactarte y qué billetera rastrear. Luego completa el pago y Phantom Flash se pone a trabajar.', step1: 'Paso 1 — Tu información', name: 'Nombre completo', email: 'Correo electrónico', phone: 'Teléfono', walletLabel: 'Dirección de billetera a rastrear', story: 'Cuéntanos la historia (opcional)', continuePay: 'Continuar al pago →', captured: '✓ Información capturada. Completa el pago en el Paso 2 y Phantom Flash estará sobre la pista.', order: 'Resumen del pedido', step2: 'Paso 2 — Pago', paySecure: 'Pagar ' + PRICE + ' de forma segura (Stripe) →', afterPay: 'Qué sucede después del pago:', afterPayText: 'recibirás un correo de confirmación, un resumen de ingreso y se programará una breve llamada. Phantom Flash comienza el rastreo de inmediato.',
+      bagLegend: '💰 = parte del tráfico de tu dinero', bagShare: 'Parte del tráfico',
+      bagHonesty: '💰 bolsas = la parte de este planeta del volumen de primer salto observado con tu billetera escaneada — no la riqueza absoluta de esa dirección.',
+      srTitle: 'Mira exactamente lo que recibes',
+      srSub: 'Cada Full Unchained Report es un informe web interactivo y privado — no un PDF adjunto. Esta es la estructura real, mostrada con un caso ficticio. El tuyo se construye con el rastro real de tu billetera.',
+      srNote: 'Muestra con datos ficticios. Tu informe se construye a mano con el registro real en cadena de tu billetera.',
+      srLead: 'Esto es lo que <span class="money">' + PRICE + '</span> compra.', srCta: 'Obtener mi informe →',
+      sr1t: 'La historia', sr1b: 'Cómo funcionó realmente el esquema: la narrativa del recorrido de tu dinero, en lenguaje claro, de principio a fin.',
+      sr2t: 'Mapa de rastreo', sr2b: 'Cada salto, visualizado: un flujo interactivo de tus fondos desde tu billetera hasta donde realmente aterrizaron.',
+      sr3t: 'Inventario de billeteras', sr3b: 'Cada dirección documentada: rol, volumen, primera/última actividad y cómo se conecta con tus fondos.',
+      sr4t: 'Hallazgos clave', sr4b: 'Lo que importa, en lenguaje claro: las conclusiones, la evidencia detrás de cada una y qué significan para ti.',
+      sr5t: 'Paquete de evidencia', sr5b: 'Formateado para las autoridades: resúmenes listos para IC3, IDs de transacciones, contactos de escalación y línea de tiempo.',
       noAddr: 'No se proporcionó dirección.', noAddrBody: 'Regresa y pega la dirección Bitcoin que quieres PFLASH.', invalid: 'Eso no parece una dirección Bitcoin válida.', busy: 'La fuente principal está ocupada — probando nodo de respaldo…', noTx: 'No se encontraron transacciones.', noActivity: 'No se encontró actividad en esta dirección.', unavail: 'El explorador 3D no está disponible en este navegador.', notRecognized: 'La red Bitcoin no reconoce esa dirección.', noReach: 'No se pudo acceder a las fuentes de datos blockchain.', pflashDonePrefix: 'PFLASHED en segundos — ', pflashDoneSuffix: ' transacciones encontradas.', pflashLive: 'PFLASHING THE CHAIN… leyendo el registro blockchain en vivo'
     },
     zh: {}, vi: {}, pt: {}, fr: {}, de: {}
@@ -89,7 +112,18 @@
     includes:'Truy vết đa bước · gói bằng chứng kèm theo · cuộc gọi tư vấn kèm theo', recentSub:'(tối đa 25 giao dịch gần nhất)', hud:'BƯỚC ĐẦU — TRỰC TIẾP · CÓ CƯ DÂN · 🔒 VÒNG NGOÀI — BỊ CHE PHỦ'
   });
   Object.assign(D.es, { exchangeLocked:'Identificación de exchange — bloqueada', clusterLocked:'Análisis de hubs y clústeres — bloqueado', riskLocked:'Puntuación de riesgo — bloqueada', lockedIntro:'El PFLASH gratuito se detiene en el primer salto. Phantom Flash ve el resto.', includes:'Rastreo multi-salto · paquete de evidencia incluido · llamada incluida' });
-  Object.assign(D.zh, { exchangeLocked:'交易所识别 — 已锁定', clusterLocked:'枢纽与集群分析 — 已锁定', riskLocked:'风险评分 — 已锁定', lockedIntro:'免费 PFLASH 停在第一跳。Phantom Flash 能看到后面的全部。', includes:'多跳追踪 · 包含证据包 · 包含咨询电话' });
+  Object.assign(D.zh, { exchangeLocked:'交易所识别 — 已锁定', clusterLocked:'枢纽与集群分析 — 已锁定', riskLocked:'风险评分 — 已锁定', lockedIntro:'免费 PFLASH 停在第一跳。Phantom Flash 能看到后面的全部。', includes:'多跳追踪 · 包含证据包 · 包含咨询电话',
+    bagLegend:'💰 = 你的资金流量占比', bagShare:'流量占比',
+    bagHonesty:'💰 钱袋 = 该星球在与你扫描钱包的第一跳可观察交易量中的占比，而不是该地址的绝对财富。',
+    srTitle:'看看你到底能得到什么',
+    srSub:'每份 Full Unchained Report 都是一个私密的交互式网页报告——不是 PDF 附件。这里展示的是真实结构，使用虚构案例。你的报告将基于你钱包的真实链上记录构建。',
+    srNote:'示例使用虚构数据。你的报告由人工根据你钱包的真实链上记录构建。',
+    srLead:'这就是 <span class="money">' + PRICE + '</span> 能买到的。', srCta:'获取我的报告 →',
+    sr1t:'案情故事', sr1b:'骗局到底是怎么运作的——用清晰的语言，从头到尾讲述你的钱的去向。',
+    sr2t:'追踪地图', sr2b:'每一跳都可视化——从你的钱包到资金真正落脚点的交互式资金流向图。',
+    sr3t:'钱包清单', sr3b:'每个地址都有记录：角色、交易量、首次/最后活动，以及它与你资金的关联。',
+    sr4t:'关键发现', sr4b:'用清晰的语言说明重点：结论、每个结论背后的证据，以及对你的意义。',
+    sr5t:'证据包', sr5b:'按执法机关格式整理：IC3 就绪摘要、交易 ID、交易所升级联系方式、时间线。' });
 
   function getLang() {
     var p = new URLSearchParams(location.search).get('lang');
@@ -161,6 +195,14 @@
     if(right[0]) right[0].innerHTML='<strong>'+t('bewareTitle')+'</strong> '+t('bewareText');
     if(right[1]) right[1].innerHTML='<div class="label">'+t('recentTitle')+'</div><p style="margin-top:10px">'+t('recentBody')+'</p>';
     if(right[2]) right[2].innerHTML='<div class="label">'+t('notSureTitle')+'</div><p style="margin-top:10px">'+t('notSureBody')+'</p>';
+    // v9 sample-report section
+    set('#srTitle', t('srTitle')); set('#srSub', t('srSub')); set('#srNote', t('srNote'));
+    set('#srLead', t('srLead')); set('#srCta', t('srCta'));
+    var srH = document.querySelectorAll('.sr-deck .sr-h'), srP = document.querySelectorAll('.sr-deck .sr-p');
+    ['sr1','sr2','sr3','sr4','sr5'].forEach(function(k,i){
+      if (srH[i]) srH[i].textContent = t(k+'t');
+      if (srP[i]) srP[i].textContent = t(k+'b');
+    });
     set('.dark-overlay h2', t('darkTitle')); set('.dark-overlay p', t('darkText')); set('.dark-overlay .btn', t('darkCta'));
     set('.cta-band h2', t('finalCta')); set('.cta-band p', t('finalSub')); set('.cta-band .btn', t('pflashButton'));
   }
@@ -183,6 +225,7 @@
     set('.cta-band h2',t('paywallTitle')); set('.cta-band p',t('paywallSub')); set('#unlockBtn2',t('payCta')); var inc=document.querySelector('.cta-band p:last-child'); if(inc) inc.textContent=t('includes');
     var rt=document.querySelectorAll('h2.section-title')[2]; if(rt){ rt.childNodes[0].textContent=t('recentTx')+' '; var sp=rt.querySelector('span'); if(sp && t('recentSub')) sp.textContent=t('recentSub'); }
     var th=document.querySelectorAll('th'); [t('date'),t('dir'),t('amt'),t('cp'),t('txid')].forEach(function(v,i){ if(th[i]) th[i].textContent=v; });
+    setAllText('.bag-key', t('bagLegend')); // v9 money-bag legend (desktop legend + mobile chip)
   }
   function applyCheckout(){
     document.title='Phantom Flash — '+t('checkoutTitle'); attr('meta[name="description"]','content',t('metaCheckout'));

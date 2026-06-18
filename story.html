@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phantom Flash — Story 01: Bird Song</title>
+<meta name="description" content="Bird Song — Story 01 of the Phantom Flash living comic. A four-panel cut. Not fiction. Documentation.">
+<meta name="theme-color" content="#06131b">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Phantom Flash — Story 01: Bird Song">
+<meta property="og:description" content="A four-panel cut from the Phantom Flash living comic. Not fiction. Documentation.">
+<meta property="og:image" content="https://phantomflash.com/assets/story01-p4.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* ── STORY READER — scoped; does not touch homepage layout ── */
+.story-hero{
+  position:relative;text-align:center;padding:64px 20px 30px;
+  background:
+    radial-gradient(1200px 420px at 50% -10%, rgba(0,229,255,.10), transparent 70%),
+    radial-gradient(900px 380px at 50% 120%, rgba(242,169,80,.08), transparent 70%);
+  border-bottom:1px solid var(--line);
+}
+.story-kicker{
+  font-family:var(--mono);color:var(--cyan);letter-spacing:.32em;
+  text-transform:uppercase;font-size:12px;margin-bottom:14px;
+}
+.story-title{
+  font-family:var(--display);font-weight:400;text-transform:uppercase;
+  font-size:clamp(44px,9vw,104px);line-height:.92;letter-spacing:.02em;margin:0;
+  color:var(--ink);text-shadow:4px 4px 0 var(--edge), 0 0 40px var(--cyan-glow);
+}
+.story-title .lash{color:var(--cyan)}
+.story-deck{
+  max-width:620px;margin:18px auto 0;color:var(--muted);
+  font-size:17px;line-height:1.6;
+}
+.story-deck .stamp{
+  display:inline-block;margin-top:16px;font-family:var(--display);
+  letter-spacing:.06em;color:var(--amber);font-size:20px;
+  border:2px solid var(--amber);padding:4px 14px;transform:rotate(-1.5deg);
+  text-shadow:0 0 18px var(--amber-glow);
+}
+
+.comic{max-width:1040px;margin:0 auto;padding:48px 20px 20px}
+
+.panel{
+  position:relative;margin:0 auto 58px;max-width:920px;
+  opacity:0;transform:translateY(26px);
+  transition:opacity .8s ease, transform .8s ease;
+}
+.panel.in{opacity:1;transform:none}
+.panel .num{
+  font-family:var(--display);color:var(--cyan-dim);letter-spacing:.14em;
+  font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;
+}
+.panel .num::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--line2),transparent)}
+.frame{
+  position:relative;border:3px solid var(--edge);border-radius:6px;overflow:hidden;
+  box-shadow:8px 9px 0 rgba(5,9,12,.85), 0 24px 70px rgba(0,0,0,.55);
+  background:var(--edge);
+}
+.frame img{display:block;width:100%;height:auto}
+/* newsprint caption box — same DNA as homepage .caption */
+.cap{
+  margin:16px auto 0;max-width:760px;background:var(--paper);color:var(--paper-ink);
+  border:2px solid var(--edge);border-left:6px solid var(--edge);
+  font-family:var(--mono);font-size:16px;line-height:1.55;padding:13px 18px;
+  box-shadow:4px 5px 0 rgba(5,9,12,.6);transform:rotate(-.4deg);
+}
+.panel:nth-child(even) .cap{transform:rotate(.4deg)}
+.cap b{font-family:var(--display);letter-spacing:.04em;color:#7a1d18}
+
+.story-close{
+  max-width:760px;margin:10px auto 0;text-align:center;padding:30px 20px 0;
+}
+.story-close .line{
+  font-family:var(--display);text-transform:uppercase;letter-spacing:.03em;
+  font-size:clamp(22px,3.6vw,32px);color:var(--ink);margin:0 0 6px;
+}
+.story-close .line .cy{color:var(--cyan);text-shadow:0 0 26px var(--cyan-glow)}
+.story-close .sub{color:var(--muted);font-size:15px;margin:0 0 26px}
+.story-foot-cta{
+  display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;
+}
+.story-index{
+  text-align:center;color:var(--muted2);font-family:var(--mono);
+  font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin:40px 0 8px;
+}
+@media (max-width:720px){
+  .panel{margin-bottom:42px}
+  .frame{box-shadow:5px 6px 0 rgba(5,9,12,.85), 0 16px 44px rgba(0,0,0,.55)}
+  .cap{font-size:15px;transform:none!important}
+  .story-foot-cta .btn{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .panel{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="logo" href="index.html"><span class="bolt">⚡</span> Phantom Flash <span class="sub">// UNCHAINED</span></a>
+    <nav class="nav-links">
+      <a href="story.html" class="hide-m">Stories</a>
+      <a href="index.html#how" class="hide-m">How it works</a>
+      <a href="index.html#scan" class="btn primary">Free PFLASH</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="story-hero">
+    <div class="story-kicker">The Living Comic · Story 01</div>
+    <h1 class="story-title">Bird&nbsp;Song</h1>
+    <p class="story-deck">
+      A big story, cut to four panels. The arc of cutting one tether so the signal
+      comes through clean.
+      <br><span class="stamp">Not fiction. Documentation.</span>
+    </p>
+  </section>
+
+  <!-- NEWSPAPER TICKER (reused brand element) -->
+  <div class="headline-strip" aria-hidden="true">
+    <div class="track">
+      <span>A GIFT YOU'RE MEANT TO PROTECT</span><span class="star">★</span>
+      <span>THE NOISE COMES FOR THE FRAGILE THING</span><span class="star">★</span>
+      <span>SOMETHING OLDER IS WATCHING</span><span class="star">★</span>
+      <span>CUT ONE TETHER AND YOU RISE</span><span class="star">★</span>
+      <span>A GIFT YOU'RE MEANT TO PROTECT</span><span class="star">★</span>
+      <span>THE NOISE COMES FOR THE FRAGILE THING</span><span class="star">★</span>
+      <span>SOMETHING OLDER IS WATCHING</span><span class="star">★</span>
+      <span>CUT ONE TETHER AND YOU RISE</span><span class="star">★</span>
+    </div>
+  </div>
+
+  <div class="comic">
+
+    <article class="panel">
+      <div class="num">Panel 01 — The Nest</div>
+      <div class="frame">
+        <img src="assets/story01-p1.jpg" alt="A weathered hand sets a small bird's nest on a dark desk under a single amber lamp." loading="lazy" decoding="async">
+      </div>
+      <div class="cap"><b>It started as a gift.</b> Something small. Something you're supposed to protect.</div>
+    </article>
+
+    <article class="panel">
+      <div class="num">Panel 02 — The Jay &amp; The Butterfly</div>
+      <div class="frame">
+        <img src="assets/story01-p2.jpg" alt="Through a dark window at dusk, a blue jay lunges at a fragile butterfly while a still figure watches from inside." loading="lazy" decoding="async">
+      </div>
+      <div class="cap">Then the noise comes for the fragile thing. <b>It always does.</b></div>
+    </article>
+
+    <article class="panel">
+      <div class="num">Panel 03 — The Parliament</div>
+      <div class="frame">
+        <img src="assets/story01-p3.jpg" alt="A row of owls on a bare branch at dusk — a parliament — one baby owl among them, every eye turned toward the nest." loading="lazy" decoding="async">
+      </div>
+      <div class="cap">And something older is watching. The message was never subtle: <b>guard the nest.</b></div>
+    </article>
+
+    <article class="panel">
+      <div class="num">Panel 04 — Bird Song</div>
+      <div class="frame">
+        <img src="assets/story01-p4.jpg" alt="At dawn, a single bird lifts off a telephone wire that still vibrates; below, a figure in a long coat looks up, lighter, freed." loading="lazy" decoding="async">
+      </div>
+      <div class="cap">Cut one tether and you don't fall — <b>you rise.</b> The silence as the world begins to wake.</div>
+    </article>
+
+    <div class="story-close">
+      <p class="line">PFLASH it. The P is silent. <span class="cy">The truth isn't.</span></p>
+      <p class="sub">Story 01 of the living comic. Four panels now — the arc expands from here.</p>
+      <div class="story-foot-cta">
+        <a class="btn primary big" href="index.html#scan">Try a free PFLASH ⚡</a>
+        <a class="btn ghost big" href="index.html">Back to the universe</a>
+      </div>
+    </div>
+
+    <div class="story-index">⚡ More stories coming ⚡</div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap legal">
+    <p>
+      Bird Song is a stylized work from the Phantom Flash living comic. The Phantom Flash Unchained
+      Report is an investigative blockchain analysis provided for informational purposes only.
+      Nothing on this site is legal, financial, or investment advice.
+    </p>
+    <p>© 2026 Phantom Flash. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+/* reveal panels on scroll */
+(function(){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  }, {threshold:.18});
+  document.querySelectorAll('.panel').forEach(function(p){ io.observe(p); });
+})();
+</script>
+</body>
+</html>

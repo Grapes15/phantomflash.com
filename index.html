@@ -75,11 +75,11 @@
         <div class="sun-dock-label" id="sunDockLabel">Drop your wallet address into the sun</div>
         <form class="scan-box sun-box" id="scanForm" autocomplete="off">
           <input type="text" id="addrInput" inputmode="text" spellcheck="false"
-                 placeholder="Paste a Bitcoin address — e.g. bc1q… or 1A1z…" aria-label="Bitcoin address">
+                 placeholder="Paste a wallet address — BTC (bc1q…, 1A1z…) or ETH (0x…)" aria-label="Bitcoin or Ethereum address">
           <button class="btn primary" type="submit">PFLASH IT ⚡</button>
         </form>
         <div class="scan-error" id="scanError"></div>
-        <div class="scan-hint">Free instant PFLASH · live blockchain data · no account needed · Bitcoin addresses</div>
+        <div class="scan-hint">Free instant PFLASH · live blockchain data · no account needed · Bitcoin &amp; Ethereum</div>
       </div>
     </div>
   </section>
@@ -308,10 +308,14 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   var addr = document.getElementById('addrInput').value.trim();
   var err = document.getElementById('scanError');
   err.textContent = '';
-  if(!addr){ err.textContent = 'Paste a Bitcoin address first.'; return; }
+  if(!addr){ err.textContent = 'Paste a wallet address first.'; return; }
   // light client-side sanity check; scan.html does full validation against the API
-  if(!/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr)){
-    err.textContent = 'That doesn\u2019t look like a Bitcoin address. It should start with 1, 3, or bc1.';
+  var isEth = /^0x[0-9a-fA-F]{40}$/.test(addr);
+  var isBtc = /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr);
+  if(!isEth && !isBtc){
+    err.textContent = /^0x/i.test(addr)
+      ? 'That looks like an Ethereum address but isn\u2019t valid \u2014 it should be 0x followed by 40 hex characters.'
+      : 'That doesn\u2019t look like a Bitcoin (1, 3, bc1\u2026) or Ethereum (0x\u2026) address.';
     return;
   }
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);

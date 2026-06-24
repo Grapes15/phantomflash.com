@@ -31,6 +31,12 @@
   var T = function(k){ return (window.PF_I18N_T ? window.PF_I18N_T(k) : k); };
 
   var SATS = 1e8;
+  // ---------- active coin (set per-scan in runScan; BTC by default + demo) ----------
+  // The internal model counts in a coin's smallest practical unit — sats for
+  // BTC, wei for ETH. COIN.divisor converts that base unit to a whole coin for
+  // display; COIN.ticker is the symbol shown to the user. The field names below
+  // keep the historical "sats" spelling but mean "base units of the active coin."
+  var COIN = { chain: 'btc', ticker: 'BTC', divisor: 1e8 };
   var MAX_TX_TABLE = 10; // v10: 10 most recent free; the rest are counted and locked
   // small screens get a lower node cap so the 3D system stays smooth on phones
   var IS_SMALL = Math.min(window.innerWidth, window.innerHeight) <= 600 ||
@@ -56,15 +62,21 @@
     $('errorTitle').textContent = title + ' ';
     $('errorBody').textContent = body;
   }
-  function fmtBtc(sats) {
-    var btc = sats / SATS;
-    if (btc === 0) return '0 BTC';
-    if (btc < 0.0001) return btc.toFixed(8) + ' BTC';
-    return btc.toLocaleString('en-US', { maximumFractionDigits: 5 }) + ' BTC';
+  function fmtBtc(units) {
+    if (COIN.usd) {                          // multi-asset ETH scan — amounts are already USD
+      if (!units) return '$0';
+      if (units < 0.01) return '<$0.01';
+      return '$' + units.toLocaleString('en-US', { maximumFractionDigits: units < 100 ? 2 : 0 });
+    }
+    var v = units / COIN.divisor;
+    if (v === 0) return '0 ' + COIN.ticker;
+    if (v < 0.0001) return v.toFixed(8) + ' ' + COIN.ticker;
+    return v.toLocaleString('en-US', { maximumFractionDigits: 5 }) + ' ' + COIN.ticker;
   }
-  function fmtUsd(sats, price) {
+  function fmtUsd(units, price) {
+    if (COIN.usd) return '';                 // already shown in dollars by fmtBtc
     if (!price) return '';
-    var usd = (sats / SATS) * price;
+    var usd = (units / COIN.divisor) * price;
     return '≈ $' + usd.toLocaleString('en-US', { maximumFractionDigits: 0 });
   }
   function shortAddr(a) {
@@ -668,6 +680,112 @@
       .catch(function () { return null; });
   }
 
+  // ---------- Ethereum + stablecoins (Blockscout — keyless, CORS-open) ----------
+  // An Ethereum address rarely moves just one asset — and scam money usually
+  // travels as stablecoins — so we trace native ETH PLUS USDT and USDC, and
+  // unify them in the only honest common unit: US dollars. Every transfer is
+  // converted to USD (ETH at the live price, stablecoins at $1) so the system,
+  // stats and planets compare apples to apples. The tx table still shows each
+  // move in its native asset ("5,000 USDT"). To add a token, add a row here.
+  var ETH_TOKENS = [
+    { symbol: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, usd: 1 },
+    { symbol: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, usd: 1 }
+  ];
+
+  // Which chain does an address belong to? Returns 'btc', 'eth', or null.
+  function detectChain(a) {
+    if (/^0x[0-9a-fA-F]{40}$/.test(a)) return 'eth';
+    if (/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(a)) return 'btc';
+    return null;
+  }
+
+  // native amount → short human string for the tx table ("5,000 USDT", "0.42 ETH")
+  function fmtToken(amount, symbol) {
+    var s = amount < 1
+      ? amount.toFixed(symbol === 'ETH' ? 6 : 2)
+      : amount.toLocaleString('en-US', { maximumFractionDigits: amount < 1000 ? 2 : 0 });
+    return s + ' ' + symbol;
+  }
+
+  // One Etherscan-style transfer row (native or token) → normalized + USD-valued.
+  // Returns null for reverted txs, zero-value rows, or rows that don't touch the
+  // scanned wallet — so the money map stays about money.
+  function ethTransfer(tx, me, symbol, decimals, usdEach) {
+    if (tx.isError === '1' || tx.txreceipt_status === '0') return null; // reverted
+    var raw = Number(tx.value);
+    if (!(raw > 0)) return null;
+    var native = raw / Math.pow(10, decimals);
+    var usd = native * usdEach;
+    if (!(usd > 0)) return null;             // e.g. native ETH when no price is available
+    var from = (tx.from || '').toLowerCase();
+    var to = (tx.to || '').toLowerCase();
+    var isIn = to === me, isOut = from === me;
+    if (!isIn && !isOut) return null;
+    var cps = [];
+    if (isIn) { if (from && from !== me) cps.push({ addr: tx.from, sats: usd }); }
+    else { if (to && to !== me) cps.push({ addr: tx.to, sats: usd }); }
+    return {
+      txid: tx.hash,
+      time: Number(tx.timeStamp) || 0,
+      confirmed: true,
+      inSats: isIn ? usd : 0,
+      outSats: isOut ? usd : 0,
+      direction: isIn ? 'in' : 'out',
+      assetLabel: fmtToken(native, symbol),
+      counterparties: cps
+    };
+  }
+
+  // Merge native-ETH + token transfer lists into the shared normalized shape,
+  // amounts in USD. ethUsd prices native ETH; stablecoins are valued at $1.
+  function normalizeEthAll(ethRes, tokenResults, ethUsd) {
+    var me = addr.toLowerCase();
+    var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [] };
+    function ingest(rows, symbol, decimals, usdEach) {
+      (rows || []).forEach(function (tx) {
+        var t = ethTransfer(tx, me, symbol, decimals, usdEach);
+        if (!t) return;
+        if (t.inSats) out.fundedSum += t.inSats;
+        if (t.outSats) out.spentSum += t.outSats;
+        out.txs.push(t);
+      });
+    }
+    ingest(ethRes && ethRes.result, 'ETH', 18, ethUsd || 0);
+    tokenResults.forEach(function (tr) {
+      ingest(tr.d && tr.d.result, tr.tk.symbol, tr.tk.decimals, tr.tk.usd);
+    });
+    out.txs.sort(function (a, b) { return b.time - a.time; }); // newest first, across assets
+    out.txCount = out.txs.length;
+    return out;
+  }
+
+  function loadDataEth() {
+    setStatus(T('pflashingLive'));
+    var api = 'https://eth.blockscout.com/api';
+    var a = encodeURIComponent(addr);
+    // price first so native ETH can be valued; each token list is independently
+    // guarded so a slow/timed-out asset never breaks the whole scan
+    return loadPriceEth().then(function (ethUsd) {
+      var ethList = fetchJson(api + '?module=account&action=txlist&address=' + a +
+        '&sort=desc&page=1&offset=100', 20000).catch(function () { return { result: [] }; });
+      var tokenLists = ETH_TOKENS.map(function (tk) {
+        return fetchJson(api + '?module=account&action=tokentx&contractaddress=' + tk.address +
+          '&address=' + a + '&sort=desc&page=1&offset=100', 20000)
+          .then(function (d) { return { tk: tk, d: d }; })
+          .catch(function () { return { tk: tk, d: { result: [] } }; });
+      });
+      return Promise.all([ethList].concat(tokenLists)).then(function (res) {
+        return normalizeEthAll(res[0], res.slice(1), ethUsd);
+      });
+    });
+  }
+
+  function loadPriceEth() {
+    return fetchJson('https://eth.blockscout.com/api?module=stats&action=ethprice', 8000)
+      .then(function (p) { return (p && p.result) ? parseFloat(p.result.ethusd) : null; })
+      .catch(function () { return null; });
+  }
+
   // ---------- counterparty aggregation ----------
   // Returns sorted array: [{addr, inSats (they sent us), outSats (we sent them), txCount, total}]
   function aggregateCounterparties(data) {
@@ -737,7 +855,7 @@
       return '<tr>' +
         '<td>' + fmtDate(t.time) + '</td>' +
         '<td class="dir-' + t.direction + '">' + (t.direction === 'in' ? '↓ IN' : '↑ OUT') + '</td>' +
-        '<td>' + esc(fmtBtc(amt)) + '</td>' +
+        '<td>' + esc(t.assetLabel || fmtBtc(amt)) + '</td>' +
         '<td>' + esc(cp) + '</td>' +
         '<td>' + esc(t.txid.slice(0, 10)) + '…</td>' +
         '</tr>';
@@ -1188,11 +1306,17 @@
       showError(T('noAddr'), T('noAddrBody'));
       return;
     }
-    if (!/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr)) {
+    var chain = detectChain(addr);
+    if (!chain) {
       showError(T('invalid'),
-        'Bitcoin addresses start with 1, 3, or bc1. Double-check the address you were given \u2014 copy it exactly, character for character.');
+        /^0x/i.test(addr)
+          ? 'That looks like an Ethereum address but isn\u2019t valid \u2014 it should be 0x followed by 40 hexadecimal characters. Copy it exactly, character for character.'
+          : 'Bitcoin addresses start with 1, 3, or bc1; Ethereum addresses start with 0x. Double-check the address you were given \u2014 copy it exactly, character for character.');
       return;
     }
+    // ETH-address scans are multi-asset (ETH + USDT + USDC), so amounts are
+    // unified and displayed in USD (divisor 1; values arrive already in dollars).
+    if (chain === 'eth') COIN = { chain: 'eth', ticker: 'USD', divisor: 1, usd: true };
 
     curAddr = addr;
     curCheckout = 'checkout.html?addr=' + encodeURIComponent(addr);
@@ -1201,12 +1325,16 @@
     var unlock2 = $('unlockBtn2');
     if (unlock2) unlock2.href = curCheckout;
 
-    Promise.all([loadData(), loadPrice()])
+    Promise.all([
+      chain === 'eth' ? loadDataEth() : loadData(),
+      chain === 'eth' ? Promise.resolve(null) : loadPrice()
+    ])
       .then(function (res) {
         var data = res[0], price = res[1];
         if (data.txCount === 0) {
           showError(T('noActivity'),
-            'This address exists in a valid format but has never sent or received Bitcoin. ' +
+            'This address exists in a valid format but has never sent or received ' +
+            (COIN.chain === 'eth' ? 'ETH, USDT or USDC' : 'Bitcoin') + '. ' +
             'Double-check the address — many platforms issue a fresh address for each deposit. ' +
             'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
           return;
@@ -1228,8 +1356,10 @@
       })
       .catch(function (err) {
         if (String(err).indexOf('HTTP 400') !== -1 || String(err).indexOf('HTTP 404') !== -1) {
-          showError('That address isn\u2019t recognized by the Bitcoin network.',
-            'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.');
+          showError('That address isn\u2019t recognized on the ' + (COIN.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + ' network.',
+            (COIN.chain === 'eth'
+              ? 'Check for typos — copy it exactly from your wallet, your receipt, or the platform that gave it to you.'
+              : 'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.'));
         } else {
           showError('Couldn\u2019t reach the blockchain data sources.',
             'Both our primary and backup nodes are unreachable right now. This is usually temporary — wait a minute and refresh. (' + esc(String(err && err.message || err)) + ')');

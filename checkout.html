@@ -26,6 +26,28 @@
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
 <link rel="stylesheet" href="assets/style.css">
 <script src="assets/i18n.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .crypto-pay{margin-top:20px}
+  .cp-or{display:flex;align-items:center;gap:12px;color:#7e93b3;font:600 12px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;margin:8px 0 16px}
+  .cp-or::before,.cp-or::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.13)}
+  .cp-coins{display:flex;gap:8px;flex-wrap:wrap}
+  .cp-coin{flex:1 1 auto;min-width:54px;padding:11px 8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.03);color:#e6f1ff;border-radius:9px;font:700 13px/1 system-ui;cursor:pointer}
+  .cp-coin.active{border-color:#27c4de;background:rgba(39,196,222,.13);color:#27c4de}
+  .cp-panel{margin-top:16px}
+  .cp-warn{border-left:3px solid #ffb020;background:rgba(255,176,32,.1);padding:10px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:#ffd9a0;margin-bottom:14px;line-height:1.5}
+  .cp-amt{font:800 23px/1.2 system-ui;color:#fff}
+  .cp-amt small{font-weight:600;font-size:13px;color:#7e93b3}
+  .cp-net{font-size:11.5px;color:#7e93b3;letter-spacing:.07em;text-transform:uppercase;margin:3px 0 14px}
+  .cp-addr-row{display:flex;gap:8px;margin-bottom:8px}
+  .cp-addr{flex:1;background:#04121a;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:11px 12px;font:13px/1.4 ui-monospace,Menlo,monospace;color:#e6f1ff;word-break:break-all}
+  .cp-copy{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#e6f1ff;border-radius:8px;padding:0 14px;font:700 12px/1 system-ui;cursor:pointer;white-space:nowrap}
+  .cp-copy:hover{border-color:#27c4de}
+  .cp-qr{display:flex;justify-content:center;margin:16px 0}
+  .cp-qr>div,.cp-qr img,.cp-qr canvas{background:#fff !important;padding:10px;border-radius:10px}
+  .cp-unset{color:#ff7a87;font-size:13px;padding:8px 0}
+  .cp-foot{font-size:12.5px;color:#7e93b3;margin-top:16px;line-height:1.55}
+</style>
 </head>
 <body>
 
@@ -109,6 +131,35 @@
            href="https://buy.stripe.com/6oU8wR7Q6fjOewJ2OCaAw00">
           Pay $2,717.17 securely (Stripe) →
         </a>
+
+        <div style="text-align:center;margin:14px 0 6px;opacity:.7">— or —</div>
+
+        <a class="btn big" id="venmoBtn" style="width:100%;text-align:center"
+           href="https://venmo.com/u/Irwinlawoffice" target="_blank" rel="noopener">
+          Pay with Venmo → <span style="opacity:.75">@Irwinlawoffice</span>
+        </a>
+        <div style="font-size:13px;opacity:.75;margin-top:8px;line-height:1.5">
+          Venmo: send <strong>$2,717.17</strong> to <strong>@Irwinlawoffice</strong>. In the payment note,
+          include only the <em>name and email</em> you entered in Step&nbsp;1 — never put wallet
+          addresses or case details in a Venmo note.
+        </div>
+
+        <!-- Crypto payment (static receive addresses + QR; manual confirmation) -->
+        <div class="crypto-pay" id="cryptoPay">
+          <div class="cp-or"><span>or pay with crypto</span></div>
+          <div class="cp-coins" id="cpCoins">
+            <button type="button" class="cp-coin" data-c="BTC">BTC</button>
+            <button type="button" class="cp-coin" data-c="ETH">ETH</button>
+            <button type="button" class="cp-coin" data-c="USDC">USDC</button>
+            <button type="button" class="cp-coin" data-c="USDT">USDT</button>
+            <button type="button" class="cp-coin" data-c="XRP">XRP</button>
+          </div>
+          <div class="cp-panel" id="cpPanel"></div>
+          <p class="cp-foot">Crypto payments are confirmed by hand. After you send, email your
+            transaction ID (TXID/hash) to
+            <a href="mailto:irwin@irwinlawmn.com">irwin@irwinlawmn.com</a> and Phantom Flash
+            confirms it on-chain and starts your report.</p>
+        </div>
       </div>
 
       <div class="callout" style="margin-top:18px">
@@ -173,6 +224,80 @@
     var ref = w.replace(/[^a-zA-Z0-9]/g, '').slice(0, 64);
     if (ref.length >= 3) btn.href = btn.href.split('?')[0] + '?client_reference_id=' + encodeURIComponent(ref);
   }
+})();
+
+// ---- Crypto payment widget (static receive addresses + QR, manual confirm) ----
+(function(){
+  'use strict';
+  var USD = 2717.17;
+  // TODO(Dan): paste real receiving addresses. USDC + USDT reuse the ETH (ERC-20)
+  // address. Any value still containing "PASTE_" shows a "not configured" notice
+  // instead of a payable address — so a half-set page can never take funds astray.
+  var ETH_ADDR = 'PASTE_ETH_ERC20_ADDRESS';
+  var XRP_TAG  = '';                       // optional destination tag (exchange-hosted XRP)
+  var COINS = {
+    BTC:  { name:'Bitcoin',  net:'Bitcoin network',          addr:'PASTE_BTC_ADDRESS', cg:'bitcoin'  },
+    ETH:  { name:'Ethereum', net:'Ethereum network (native ETH)', addr:ETH_ADDR,       cg:'ethereum' },
+    USDC: { name:'USD Coin', net:'Ethereum / ERC-20 ONLY',   addr:ETH_ADDR, stable:true },
+    USDT: { name:'Tether',   net:'Ethereum / ERC-20 ONLY',   addr:ETH_ADDR, stable:true },
+    XRP:  { name:'XRP',      net:'XRP Ledger',                addr:'rNjbnoBj8yJPJeNDszFurGKXPa9J7buU53', cg:'ripple', tag:XRP_TAG }
+  };
+  var prices = {};
+  var usdStr = USD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function amount(coin, c){
+    if (c.stable) return usdStr + ' ' + coin;     // 1:1 stablecoin
+    var px = prices[c.cg];
+    if (!px) return null;
+    var a = USD / px, dp = a < 1 ? 6 : (a < 1000 ? 4 : 2);
+    return a.toFixed(dp) + ' ' + coin;
+  }
+  function copy(text, btn){
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    var o = btn.textContent; btn.textContent = 'Copied ✓';
+    setTimeout(function(){ btn.textContent = o; }, 1400);
+  }
+  function render(coin){
+    var c = COINS[coin], panel = document.getElementById('cpPanel');
+    [].forEach.call(document.querySelectorAll('.cp-coin'), function(b){
+      b.classList.toggle('active', b.getAttribute('data-c') === coin);
+    });
+    var unset = /PASTE_/.test(c.addr);
+    var amt = amount(coin, c);
+    var h = '<div class="cp-warn">⚠ Send <b>' + coin + '</b> only, on the <b>' + c.net +
+            '</b>. Crypto transfers are irreversible — the wrong asset or network means lost funds.</div>';
+    h += amt
+      ? '<div class="cp-amt">' + amt + ' <small>≈ $' + usdStr + '</small></div>'
+      : '<div class="cp-amt">$' + usdStr + ' <small>worth of ' + coin + ' (live rate unavailable — send the USD equivalent)</small></div>';
+    h += '<div class="cp-net">' + c.name + ' · ' + c.net + '</div>';
+    if (unset){ panel.innerHTML = h + '<div class="cp-unset">⚠ Receiving address not configured yet.</div>'; return; }
+    h += '<div class="cp-addr-row"><div class="cp-addr">' + c.addr + '</div>' +
+         '<button type="button" class="cp-copy" id="cpCopyA">Copy</button></div>';
+    if (coin === 'XRP' && c.tag) {
+      h += '<div class="cp-addr-row"><div class="cp-addr">Destination tag: ' + c.tag + '</div>' +
+           '<button type="button" class="cp-copy" id="cpCopyT">Copy</button></div>';
+    }
+    h += '<div class="cp-qr" id="cpQr"></div>';
+    panel.innerHTML = h;
+    var qr = document.getElementById('cpQr');
+    if (window.QRCode) { try { new QRCode(qr, { text: c.addr, width:168, height:168, correctLevel: QRCode.CorrectLevel.M }); } catch(e){} }
+    document.getElementById('cpCopyA').addEventListener('click', function(){ copy(c.addr, this); });
+    var ct = document.getElementById('cpCopyT'); if (ct) ct.addEventListener('click', function(){ copy(c.tag, this); });
+  }
+  [].forEach.call(document.querySelectorAll('.cp-coin'), function(b){
+    b.addEventListener('click', function(){ render(b.getAttribute('data-c')); });
+  });
+  // live BTC/ETH/XRP rates (best-effort; stablecoins are exact)
+  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple&vs_currencies=usd')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      prices.bitcoin = d.bitcoin && d.bitcoin.usd;
+      prices.ethereum = d.ethereum && d.ethereum.usd;
+      prices.ripple = d.ripple && d.ripple.usd;
+      var a = document.querySelector('.cp-coin.active');
+      if (a) render(a.getAttribute('data-c'));
+    }).catch(function(){});
+  render('BTC');
 })();
 </script>
 </body>

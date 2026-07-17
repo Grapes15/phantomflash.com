@@ -145,16 +145,16 @@ a:hover{text-decoration:underline}
 }
 .hero .bg{
   position:absolute;inset:0;
-  background:url("hero-desk-panel.jpg") center 32% / cover no-repeat;
+  background:url("hero-desk-panel.jpg") 62% 24% / cover no-repeat;
   filter:saturate(1.04);
-  opacity:.40;
+  opacity:.62;
 }
 .hero .bg::after{
   content:"";position:absolute;inset:0;
   background:
     radial-gradient(900px 420px at 50% 30%, rgba(0,229,255,.08), transparent 65%),
     radial-gradient(700px 380px at 78% 60%, rgba(242,169,80,.07), transparent 70%),
-    linear-gradient(180deg, rgba(6,19,27,.82) 0%, rgba(6,19,27,.58) 40%, rgba(6,19,27,.93) 88%, var(--bg) 100%);
+    linear-gradient(180deg, rgba(6,19,27,.52) 0%, rgba(6,19,27,.5) 40%, rgba(6,19,27,.93) 88%, var(--bg) 100%);
 }
 .hero .fg{position:relative;z-index:2;max-width:1040px;margin:0 auto;padding:92px 20px 64px}
 .eyebrow{

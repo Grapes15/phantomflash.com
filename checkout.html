@@ -47,6 +47,38 @@
   .cp-qr>div,.cp-qr img,.cp-qr canvas{background:#fff !important;padding:10px;border-radius:10px}
   .cp-unset{color:#ff7a87;font-size:13px;padding:8px 0}
   .cp-foot{font-size:12.5px;color:#7e93b3;margin-top:16px;line-height:1.55}
+  /* ---- story intake: wizard + skip path ---- */
+  .story-choice{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .story-choice button{flex:1 1 180px;padding:13px 12px;border-radius:10px;font:700 13.5px/1.3 system-ui;cursor:pointer}
+  .sc-wizard{border:1px solid #27c4de;background:rgba(39,196,222,.12);color:#27c4de}
+  .sc-skip{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.04);color:#e6f1ff}
+  .sc-wizard:hover{background:rgba(39,196,222,.2)}
+  .sc-skip:hover{border-color:#7e93b3}
+  .story-hint{font-size:12.5px;color:#7e93b3;margin-top:8px;line-height:1.5}
+  .wiz{display:none;margin-top:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:16px;background:rgba(255,255,255,.02)}
+  .wiz.show{display:block}
+  .wiz-dots{display:flex;gap:6px;margin-bottom:12px}
+  .wiz-dots span{width:26px;height:5px;border-radius:99px;background:rgba(255,255,255,.15)}
+  .wiz-dots span.on{background:#27c4de}
+  .wiz-q{font:700 15px/1.4 system-ui;color:#fff;margin:0 0 4px}
+  .wiz-sub{font-size:12.5px;color:#7e93b3;line-height:1.55;margin:0 0 10px}
+  .wiz textarea{width:100%;min-height:96px;background:#04121a;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e6f1ff;font:14px/1.5 system-ui;padding:11px 12px;resize:vertical}
+  .wiz-nav{display:flex;gap:10px;justify-content:space-between;margin-top:12px}
+  .wiz-nav button{padding:10px 18px;border-radius:9px;font:700 13px/1 system-ui;cursor:pointer;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.04);color:#e6f1ff}
+  .wiz-nav .wn-next{border-color:#27c4de;background:rgba(39,196,222,.14);color:#27c4de}
+  .wiz-nav button:disabled{opacity:.35;cursor:default}
+  .docdump{display:none;margin-top:14px;border-left:3px solid #f2a950;background:rgba(242,169,80,.08);border-radius:0 10px 10px 0;padding:14px 16px}
+  .docdump.show{display:block}
+  .docdump h4{margin:0 0 8px;font:800 13px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#f2a950}
+  .docdump ul{margin:0 0 12px;padding-left:18px;font-size:13.5px;line-height:1.65;color:#d9e6f5}
+  .docdump .dd-btns{display:flex;gap:10px;flex-wrap:wrap}
+  .docdump .dd-btns a{flex:1 1 180px;text-align:center;padding:12px;border-radius:9px;font:700 13px/1.3 system-ui;text-decoration:none}
+  .dd-upload{border:1px solid #f2a950;color:#f2a950;background:rgba(242,169,80,.1)}
+  .dd-email{border:1px solid rgba(255,255,255,.2);color:#e6f1ff;background:rgba(255,255,255,.04)}
+  .inperson{margin-top:18px;border:1px dashed rgba(255,255,255,.25);border-radius:11px;padding:15px 16px;text-align:center}
+  .inperson .ip-t{font:800 13px/1 system-ui;letter-spacing:.06em;text-transform:uppercase;color:#e6f1ff;margin-bottom:6px}
+  .inperson p{margin:0;font-size:13.5px;color:#7e93b3;line-height:1.6}
+  .inperson a{color:#27c4de;font-weight:700;text-decoration:none}
 </style>
 </head>
 <body>
@@ -98,10 +130,46 @@
         <div>
           <label for="fWallet">Wallet address to trace</label>
           <input id="fWallet" name="wallet" type="text" class="mono-input" required spellcheck="false" placeholder="bc1q… / 1A1z… / 0x… (BTC or ETH)">
+          <div class="story-hint">Have more than one address? List the main one here — the wizard and your documents can carry the rest.
+            <a href="#" id="pflashLink" style="color:#27c4de;font-weight:700">See it first — run a free PFLASH on this address →</a></div>
         </div>
+
         <div>
-          <label for="fNotes">Tell us the story (optional)</label>
-          <textarea id="fNotes" name="notes" rows="4" placeholder="Brief summary — what platform, how you found it, roughly how much you've sent, anything that's felt off…"></textarea>
+          <label>Tell us the story</label>
+          <div class="story-hint" style="margin:0 0 10px">The detail of your report depends on what you give us.
+            Tell it straight and objective — dates, names, amounts. Two ways to do it:</div>
+          <div class="story-choice">
+            <button type="button" class="sc-wizard" id="btnWizard">🧭 Walk me through it</button>
+            <button type="button" class="sc-skip" id="btnSkip">Skip it — I’ll upload what you need</button>
+          </div>
+
+          <!-- WIZARD -->
+          <div class="wiz" id="wiz">
+            <div class="wiz-dots" id="wizDots"></div>
+            <div id="wizStep"></div>
+            <div class="wiz-nav">
+              <button type="button" id="wizBack">← Back</button>
+              <button type="button" class="wn-next" id="wizNext">Next →</button>
+            </div>
+          </div>
+
+          <!-- DOCUMENT DUMP (shown after wizard OR on skip) -->
+          <div class="docdump" id="docdump">
+            <h4>📁 Get us your documents</h4>
+            <ul>
+              <li><b>Chat history</b> — export your full conversation with anyone who called themselves a trader, mentor, account manager, or “support.” (WhatsApp: chat → Export Chat. Telegram, texts, dating apps: screenshots work.)</li>
+              <li><b>Screenshots</b> of the platform or app — especially any “balance” or “earnings” screens.</li>
+              <li><b>Receipts</b> — exchange confirmations, bank/card statements showing the purchases, wire receipts.</li>
+              <li><b>Every wallet address</b> you sent funds to, and any they showed you.</li>
+            </ul>
+            <div class="dd-btns" id="ddBtns">
+              <a class="dd-email" id="ddEmail" href="#">✉ Email everything to us</a>
+            </div>
+            <div class="story-hint" style="margin-top:10px">Send what you have — don’t wait for perfect. We build the report from whatever you can give us, and follow up for the rest.</div>
+          </div>
+
+          <textarea id="fNotes" name="notes" rows="4" style="margin-top:12px"
+            placeholder="Anything else — or your whole story in your own words (optional)"></textarea>
         </div>
         <button class="btn primary big" type="submit">Continue to payment →</button>
         <div class="success-note" id="successNote">
@@ -160,6 +228,14 @@
             <a href="mailto:irwin@irwinlawmn.com">irwin@irwinlawmn.com</a> and Phantom Flash
             confirms it on-chain and starts your report.</p>
         </div>
+
+        <!-- In-person option — for clients who won't pay online -->
+        <div class="inperson">
+          <div class="ip-t">🤝 Rather not pay online?</div>
+          <p>We get it. Meet with our team in person — pay by <b>check, cash, or card</b>,
+            and we run your report with you, right there.<br>
+            Call <a href="tel:+15076641155">507-664-1155</a> to set it up.</p>
+        </div>
       </div>
 
       <div class="callout" style="margin-top:18px">
@@ -190,15 +266,122 @@
 <script>
 (function () {
   'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  // Where client documents go. UPLOAD_URL is a Dropbox File Request link —
+  // guarded like the crypto addresses: while it still says PASTE_, the upload
+  // button is hidden and the email path carries the load.
+  var UPLOAD_URL = 'PASTE_DROPBOX_FILE_REQUEST_URL';
+  var INTAKE_TO = 'irwin@irwinlawmn.com';
+  var INTAKE_CC = 'loralee@irwinlawmn.com';   // Loralee gets everything the client sends
+
   // Prefill wallet from ?addr= (carried from scan page)
   var params = new URLSearchParams(window.location.search);
   var addr = (params.get('addr') || '').trim();
-  if (addr) document.getElementById('fWallet').value = addr;
+  if (addr) $('fWallet').value = addr;
 
-  // fallback: lead capture via mailto until Formspree/Stripe webhook exists.
-  // TODO(v3): point the form at Formspree (see comment in the form markup) and delete this handler.
+  // "See it first" — free PFLASH tie-in to the tracing model
+  $('pflashLink').addEventListener('click', function (e) {
+    e.preventDefault();
+    var w = $('fWallet').value.trim();
+    window.open('scan.html' + (w ? '?addr=' + encodeURIComponent(w) : ''), '_blank');
+  });
+
+  // ---------- story wizard ----------
+  var STEPS = [
+    { q: 'How did this start?',
+      sub: 'Who contacted you, and where — text, WhatsApp, dating app, social media, a website? What was the platform or company called? Just the facts, in order.',
+      ph: 'Example: In March I got a text from “Amy” — wrong number that turned into daily chats. She introduced me to a trading site called…' },
+    { q: 'Where did the money go?',
+      sub: 'Which exchange or app did you buy crypto on (Coinbase, Cash App, an ATM…)? Every wallet address you sent to. Amounts and dates — best guess is fine.',
+      ph: 'Example: Bought BTC on Coinbase, sent to bc1q… on April 2 ($5,000), then 0x… on April 20 ($12,000)…' },
+    { q: 'What were you promised?',
+      sub: 'Returns, profits, a “mentor” or “account manager,” a balance screen that kept going up. What did they show you or tell you?',
+      ph: 'Example: The site showed my balance at $84,000. My “account manager” said I could withdraw after the next trade window…' },
+    { q: 'When did the warning signs start?',
+      sub: 'Blocked withdrawals, surprise “taxes” or “unlock fees,” pressure to send more, threats. What happened when you tried to get money out?',
+      ph: 'Example: When I tried to withdraw, they said I owed a 20% tax first. Then a “verification fee.” Then they stopped answering…' },
+    { q: 'What do you have?',
+      sub: 'Chat exports, screenshots, receipts, emails, the site’s URL. You’ll get an upload/email option next — list what exists so we know what to expect.',
+      ph: 'Example: Full WhatsApp thread with Amy, screenshots of the platform, Coinbase receipts, the site URL…' }
+  ];
+  var answers = new Array(STEPS.length).fill('');
+  var step = 0, wizDone = false;
+
+  function renderDots() {
+    $('wizDots').innerHTML = STEPS.map(function (_, i) {
+      return '<span class="' + (i <= step ? 'on' : '') + '"></span>';
+    }).join('');
+  }
+  function renderStep() {
+    var s = STEPS[step];
+    $('wizStep').innerHTML =
+      '<p class="wiz-q">' + (step + 1) + '. ' + s.q + '</p>' +
+      '<p class="wiz-sub">' + s.sub + '</p>' +
+      '<textarea id="wizAns" placeholder="' + s.ph.replace(/"/g, '&quot;') + '"></textarea>';
+    $('wizAns').value = answers[step];
+    $('wizBack').disabled = (step === 0);
+    $('wizNext').textContent = (step === STEPS.length - 1) ? 'Done ✓' : 'Next →';
+    renderDots();
+    $('wizAns').focus();
+  }
+  function saveAns() { var el = $('wizAns'); if (el) answers[step] = el.value; }
+
+  $('btnWizard').addEventListener('click', function () {
+    $('wiz').classList.add('show');
+    $('docdump').classList.remove('show');
+    renderStep();
+    $('wiz').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('btnSkip').addEventListener('click', function () {
+    saveAns();
+    $('wiz').classList.remove('show');
+    $('docdump').classList.add('show');
+    $('docdump').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('wizBack').addEventListener('click', function () {
+    saveAns(); if (step > 0) { step--; renderStep(); }
+  });
+  $('wizNext').addEventListener('click', function () {
+    saveAns();
+    if (step < STEPS.length - 1) { step++; renderStep(); }
+    else { wizDone = true; $('wiz').classList.remove('show'); $('docdump').classList.add('show');
+           $('docdump').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  });
+
+  // upload button — only if a real File Request link is configured
+  if (!/PASTE_/.test(UPLOAD_URL)) {
+    var up = document.createElement('a');
+    up.className = 'dd-upload'; up.target = '_blank'; up.rel = 'noopener';
+    up.href = UPLOAD_URL; up.textContent = '⬆ Upload your documents';
+    $('ddBtns').insertBefore(up, $('ddEmail'));
+  }
+
+  function compiledStory() {
+    var parts = [];
+    STEPS.forEach(function (s, i) {
+      if (answers[i] && answers[i].trim()) parts.push('— ' + s.q + '\n' + answers[i].trim());
+    });
+    var notes = $('fNotes').value.trim();
+    if (notes) parts.push('— Additional notes\n' + notes);
+    if (!parts.length) return '(story skipped — client will upload/email documents)';
+    return parts.join('\n\n');
+  }
+
+  // document-email link mirrors the intake recipients + client name
+  function refreshDocEmail() {
+    var name = $('fName').value.trim() || 'client';
+    $('ddEmail').href = 'mailto:' + INTAKE_TO + '?cc=' + INTAKE_CC +
+      '&subject=' + encodeURIComponent('Phantom Flash documents — ' + name) +
+      '&body=' + encodeURIComponent('Documents attached for my Phantom Flash report.\n\nName: ' + name + '\n');
+  }
+  $('fName').addEventListener('input', refreshDocEmail);
+  refreshDocEmail();
+
+  // intake submit — To Dan, CC Loralee, wizard answers compiled in
   document.getElementById('leadForm').addEventListener('submit', function (e) {
     e.preventDefault();
+    saveAns();
     var f = e.target;
     var body =
       'PHANTOM FLASH — NEW REPORT INTAKE\n\n' +
@@ -206,10 +389,10 @@
       'Email: ' + f.email.value + '\n' +
       'Phone: ' + f.phone.value + '\n' +
       'Wallet: ' + f.wallet.value + '\n\n' +
-      'Notes:\n' + f.notes.value;
-    // TODO: confirm intake destination address with Dan before launch.
-    var mailto = 'mailto:irwin@irwinlawmn.com' +
-      '?subject=' + encodeURIComponent('Phantom Flash intake — ' + f.name.value) +
+      'THE STORY\n' + compiledStory() + '\n';
+    var mailto = 'mailto:' + INTAKE_TO +
+      '?cc=' + INTAKE_CC +
+      '&subject=' + encodeURIComponent('Phantom Flash intake — ' + f.name.value) +
       '&body=' + encodeURIComponent(body);
     document.getElementById('successNote').style.display = 'block';
     window.location.href = mailto;

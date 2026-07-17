@@ -37,6 +37,10 @@
   // display; COIN.ticker is the symbol shown to the user. The field names below
   // keep the historical "sats" spelling but mean "base units of the active coin."
   var COIN = { chain: 'btc', ticker: 'BTC', divisor: 1e8 };
+  // OPERATOR full-trace view: unlocks every counterparty + all transactions.
+  // Activated by ?full=1 but ONLY on localhost (see runScan) — inert/ignored on
+  // the public site, so the paywall can never be bypassed in production.
+  var FULL_MODE = false;
   var MAX_TX_TABLE = 10; // v10: 10 most recent free; the rest are counted and locked
   // small screens get a lower node cap so the 3D system stays smooth on phones
   var IS_SMALL = Math.min(window.innerWidth, window.innerHeight) <= 600 ||
@@ -557,18 +561,40 @@
   var addr = '';
 
   // ---------- data fetchers ----------
+  // Fetch with retry: data APIs throttle bursts (HTTP 429/5xx or Cloudflare
+  // 524 timeouts), which used to surface as a false "No activity" scan. Retry
+  // up to 3 times with backoff before giving up.
   function fetchJson(url, timeoutMs) {
-    return new Promise(function (resolve, reject) {
-      var ctrl = new AbortController();
-      var t = setTimeout(function () { ctrl.abort(); }, timeoutMs || 15000);
-      fetch(url, { signal: ctrl.signal })
-        .then(function (r) {
-          clearTimeout(t);
-          if (!r.ok) return reject(new Error('HTTP ' + r.status));
-          return r.json().then(resolve, reject);
-        })
-        .catch(function (e) { clearTimeout(t); reject(e); });
-    });
+    function attempt(triesLeft, delayMs) {
+      return new Promise(function (resolve, reject) {
+        var ctrl = new AbortController();
+        var t = setTimeout(function () { ctrl.abort(); }, timeoutMs || 15000);
+        fetch(url, { signal: ctrl.signal })
+          .then(function (r) {
+            clearTimeout(t);
+            if (!r.ok) {
+              var retryable = r.status === 429 || r.status >= 500;
+              if (retryable && triesLeft > 0) {
+                return setTimeout(function () {
+                  attempt(triesLeft - 1, delayMs * 2).then(resolve, reject);
+                }, delayMs);
+              }
+              return reject(new Error('HTTP ' + r.status));
+            }
+            return r.json().then(resolve, reject);
+          })
+          .catch(function (e) {
+            clearTimeout(t);
+            if (triesLeft > 0 && e && e.name !== 'AbortError') {
+              return setTimeout(function () {
+                attempt(triesLeft - 1, delayMs * 2).then(resolve, reject);
+              }, delayMs);
+            }
+            reject(e);
+          });
+      });
+    }
+    return attempt(3, 700);
   }
 
   // Normalized shape:
@@ -766,11 +792,16 @@
     // price first so native ETH can be valued; each token list is independently
     // guarded so a slow/timed-out asset never breaks the whole scan
     return loadPriceEth().then(function (ethUsd) {
+      // stagger the requests ~400ms apart — a simultaneous burst trips the
+      // API's rate limiter and used to produce a false "No activity" result
       var ethList = fetchJson(api + '?module=account&action=txlist&address=' + a +
         '&sort=desc&page=1&offset=100', 20000).catch(function () { return { result: [] }; });
-      var tokenLists = ETH_TOKENS.map(function (tk) {
-        return fetchJson(api + '?module=account&action=tokentx&contractaddress=' + tk.address +
-          '&address=' + a + '&sort=desc&page=1&offset=100', 20000)
+      var tokenLists = ETH_TOKENS.map(function (tk, i) {
+        return new Promise(function (res) { setTimeout(res, 400 * (i + 1)); })
+          .then(function () {
+            return fetchJson(api + '?module=account&action=tokentx&contractaddress=' + tk.address +
+              '&address=' + a + '&sort=desc&page=1&offset=100', 20000);
+          })
           .then(function (d) { return { tk: tk, d: d }; })
           .catch(function () { return { tk: tk, d: { result: [] } }; });
       });
@@ -841,8 +872,9 @@
   // Counterparty addresses are shown ONLY for unlocked counterparties;
   // a locked counterparty's address never reaches the DOM.
   function renderTable(data, unlockedSet) {
-    var shown = Math.min(data.txs.length, MAX_TX_TABLE);
-    var rows = data.txs.slice(0, MAX_TX_TABLE).map(function (t) {
+    var cap = FULL_MODE ? data.txs.length : MAX_TX_TABLE;
+    var shown = Math.min(data.txs.length, cap);
+    var rows = data.txs.slice(0, cap).map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
       var cp;
       if (!t.counterparties.length) {
@@ -861,7 +893,7 @@
         '</tr>';
     }).join('');
     var more = data.txCount - shown;
-    if (more > 0) {
+    if (more > 0 && !FULL_MODE) {
       rows += '<tr class="tx-locked-row"><td colspan="5">' +
         '<a href="' + esc(curCheckout) + '">\uD83D\uDD12 ' +
         esc(T('txMoreLocked').replace('{n}', more.toLocaleString('en-US'))) +
@@ -943,6 +975,11 @@
   // so the Walker canon holds). Everything else becomes a COUNT — the
   // locked counterparties' real data never enters a render object.
   function paywallSplit(cps) {
+    if (FULL_MODE) {                          // operator view — nothing locked
+      var setAll = {};
+      cps.forEach(function (c) { setAll[c.addr] = true; });
+      return { planets: cps.slice(0, MAX_PLANETS), unlockedSet: setAll, lockedCpCount: 0 };
+    }
     var unlockedN = Math.min(8, Math.ceil(cps.length * 0.4));
     var planets = cps.slice(0, Math.min(unlockedN, MAX_PLANETS));
     var unlockedSet = {};
@@ -1073,7 +1110,7 @@
     var anchorPool = outPlanetIdx.length ? outPlanetIdx
       : (planets.length ? planets.map(function (_, i) { return i; }) : null);
 
-    var lockedCount = opts.demo ? Math.min(LOCKED_PLANETS, IS_SMALL ? 4 : 6) : (planets.length ? LOCKED_PLANETS : 6);
+    var lockedCount = FULL_MODE ? 0 : (opts.demo ? Math.min(LOCKED_PLANETS, IS_SMALL ? 4 : 6) : (planets.length ? LOCKED_PLANETS : 6));
     for (var L = 0; L < lockedCount; L++) {
       var label = lockedLabels[L % lockedLabels.length];
       nodes.push({
@@ -1297,6 +1334,26 @@
   // ============================================================
   // SCAN MODE (scan.html): live data + v10 paywall-with-teeth
   // ============================================================
+  // Operator full-trace furniture: banner + hide the client-only paywall
+  // sections. Only ever called on localhost (see runScan).
+  function enableOperatorView() {
+    document.body.classList.add('pf-full');
+    var sh = document.querySelector('.scan-head');
+    if (sh) {
+      var b = document.createElement('div');
+      b.style.cssText = 'margin:14px auto 0;max-width:760px;padding:10px 14px;border:1px solid #d39a2a;border-radius:10px;background:rgba(211,154,42,.12);color:#f0c560;font:700 13px/1.45 -apple-system,system-ui,sans-serif;letter-spacing:.03em;text-align:center';
+      b.textContent = '⚙ OPERATOR — FULL TRACE: every counterparty + all transactions unlocked. This is NOT the client view.';
+      sh.appendChild(b);
+    }
+    var card = document.querySelector('.locked-card');
+    var grid = card && card.closest('.grid');
+    if (grid) {
+      var p = grid.previousElementSibling, h = p && p.previousElementSibling;
+      [grid, p, h].forEach(function (el) { if (el) el.style.display = 'none'; });
+    }
+    document.querySelectorAll('.cta-band').forEach(function (el) { el.style.display = 'none'; });
+  }
+
   function runScan() {
     var params = new URLSearchParams(window.location.search);
     addr = (params.get('addr') || '').trim();
@@ -1317,6 +1374,13 @@
     // ETH-address scans are multi-asset (ETH + USDT + USDC), so amounts are
     // unified and displayed in USD (divisor 1; values arrive already in dollars).
     if (chain === 'eth') COIN = { chain: 'eth', ticker: 'USD', divisor: 1, usd: true };
+
+    // OPERATOR full-trace view — ?full=1, but ONLY when served from localhost.
+    // On the public site location.hostname is phantomflash.com, so this is a
+    // no-op and the paywall stands.
+    var OPERATOR = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/.test(location.hostname);
+    FULL_MODE = OPERATOR && params.get('full') === '1';
+    if (FULL_MODE) enableOperatorView();
 
     curAddr = addr;
     curCheckout = 'checkout.html?addr=' + encodeURIComponent(addr);

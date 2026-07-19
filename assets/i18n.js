@@ -263,7 +263,7 @@
     var labels=document.querySelectorAll('form.lead label'); [t('name'),t('email'),t('phone'),t('walletLabel'),t('story')].forEach(function(v,i){if(labels[i]) labels[i].textContent=v;});
     set('.lead button',t('continuePay')); set('#successNote',t('captured'));
     var hs=document.querySelectorAll('.card h3'); if(hs[1]) hs[1].textContent=t('order'); if(hs[2]) hs[2].textContent=t('step2');
-    set('#stripeBtn',t('paySecure')); var ap=document.querySelector('.callout strong'); if(ap) ap.textContent=t('afterPay'); var co=document.querySelector('.callout'); if(co) co.childNodes.forEach(function(n){ if(n.nodeType===3 && n.textContent.trim().length>20) n.textContent=' '+t('afterPayText'); });
+    /* #stripeBtn label is managed by the product selector (checkout.html), not i18n */ var ap=document.querySelector('.callout strong'); if(ap) ap.textContent=t('afterPay'); var co=document.querySelector('.callout'); if(co) co.childNodes.forEach(function(n){ if(n.nodeType===3 && n.textContent.trim().length>20) n.textContent=' '+t('afterPayText'); });
   }
   function apply(){ applyCommon(); if(document.querySelector('.hero')) applyIndex(); if(document.getElementById('stage3d')) applyScan(); if(document.getElementById('leadForm')) applyCheckout(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();

@@ -103,14 +103,13 @@
 
 <main class="wrap">
   <section class="scan-head" style="padding-top:44px">
-    <div class="eyebrow">⚡ Full Owlchained Report</div>
+    <div class="eyebrow">⚡ PFLASH-IT · 🦉 Full Owlchained</div>
     <h1>Put Phantom Flash on the trail</h1>
     <p class="section-sub" style="margin-top:10px">
-      Tell us where to reach you and which wallet to trace, complete payment, and Phantom Flash
-      gets to work — every hop, every wallet, the whole truth. <strong>Don't wait until your
-      documents are together to order</strong> — your report comes with a private account, and
-      <strong>everything you add in the first 48 hours is included</strong>. Most reports are
-      delivered within 5–7 business days.
+      Pick your report, tell us where to reach you and which wallet to trace, complete payment,
+      and Phantom Flash gets to work — every hop, every wallet, the whole truth. <strong>Don't wait
+      until your documents are together to order</strong> — your report comes with a private account,
+      and <strong>everything you add in the first 48 hours is included</strong>.
     </p>
   </section>
 
@@ -198,14 +197,18 @@
     <div>
       <div class="price-card" style="text-align:left;padding:28px">
         <div class="label">Order summary</div>
-        <h3 style="margin:10px 0 4px">Full Owlchained Report</h3>
-        <div class="price" style="font-size:44px;margin:4px 0 14px">$271</div>
-        <ul style="margin:0 0 22px">
-          <li>Complete multi-hop trace of your funds</li>
+        <div id="prodPick" style="display:flex;gap:10px;margin:14px 0 8px">
+          <button type="button" class="pp-opt" data-p="pflash" style="flex:1;cursor:pointer;padding:12px 8px;border-radius:10px;border:2px solid #27c4de;background:rgba(39,196,222,.08);color:inherit;font-family:inherit;text-align:center;line-height:1.5">⚡ PFLASH-IT<br><b>$271</b><br><small style="opacity:.75">machine speed · same day</small></button>
+          <button type="button" class="pp-opt" data-p="owl" style="flex:1;cursor:pointer;padding:12px 8px;border-radius:10px;border:2px solid transparent;background:rgba(255,255,255,.04);color:inherit;font-family:inherit;text-align:center;line-height:1.5">🦉 Full Owlchained<br><b>$2,717.17</b><br><small style="opacity:.75">hand-built + human call</small></button>
+        </div>
+        <h3 style="margin:10px 0 4px" id="prodName">PFLASH-IT Report</h3>
+        <div class="price" style="font-size:44px;margin:4px 0 14px" id="prodPrice">$271</div>
+        <ul style="margin:0 0 22px" id="prodBullets">
+          <li>One document upload — that's all it takes to start</li>
+          <li>Automated multi-hop trace — wallets, transactions, convergence points</li>
           <li>Interactive web report + tracing board</li>
           <li>Exchange &amp; service identification — named</li>
-          <li>Evidence package, law-enforcement-ready if you ever need it</li>
-          <li>Consult call to walk through the findings</li>
+          <li><strong>PFLASH speed</strong> — most reports delivered same day</li>
           <li><strong>Private report account</strong> — add documents free for 48 hours; updates after that are $171 each</li>
         </ul>
         <div class="story-hint" style="margin:-10px 0 18px">⚡ <strong>Start now.</strong> You don't need your
@@ -215,7 +218,7 @@
         <h3 style="margin:0 0 12px">Step 2 — Payment</h3>
 
         <div class="story-hint" style="margin:0 0 14px">
-          Stripe checkout is being updated. To start tonight, use Venmo below and include only the
+          Stripe checkout is being updated. To start right now, use Venmo below and include only the
           name and email you entered in Step&nbsp;1.
         </div>
 
@@ -224,7 +227,7 @@
           Pay with Venmo → <span style="opacity:.75">@Irwinlawoffice</span>
         </a>
         <div style="font-size:13px;opacity:.75;margin-top:8px;line-height:1.5">
-          Venmo: send <strong>$271</strong> to <strong>@Irwinlawoffice</strong>. In the payment note,
+          Venmo: send <strong id="venmoAmt">$271</strong> to <strong>@Irwinlawoffice</strong>. In the payment note,
           include only the <em>name and email</em> you entered in Step&nbsp;1 — never put wallet
           addresses or case details in a Venmo note.
         </div>
@@ -274,9 +277,11 @@
       </div>
 
       <div class="callout" style="margin-top:14px;border-left-color:#f2a950">
-        <strong>Want a human on it?</strong> Our white-glove service — a real investigator working your
-        case with you, start to finish — is available for a flat <strong>$2,500</strong>.
-        Email <a href="mailto:irwin@irwinlawmn.com">irwin@irwinlawmn.com</a> to set it up.
+        <strong>Building a case?</strong> The <strong>Full Owlchained Report ($2,717.17)</strong> is the
+        hand-built investigation — every hop verified, a plain-language case narrative, an evidence
+        package formatted for IC3, FBI, Secret Service, and state law enforcement, and
+        <strong>a call with a real human</strong>. Select it in the order summary above, or email
+        <a href="mailto:irwin@irwinlawmn.com">irwin@irwinlawmn.com</a>.
       </div>
     </div>
   </div>
@@ -419,6 +424,7 @@
     var f = e.target;
     var body =
       'PHANTOM FLASH — NEW REPORT INTAKE\n\n' +
+      'Product: ' + (window.PF_ORDER ? window.PF_ORDER.name + ' (' + window.PF_ORDER.price + ')' : 'PFLASH-IT Report ($271)') + '\n' +
       'Name: ' + f.name.value + '\n' +
       'Email: ' + f.email.value + '\n' +
       'Phone: ' + f.phone.value + '\n' +
@@ -446,7 +452,7 @@
 // ---- Crypto payment widget (static receive addresses + QR, manual confirm) ----
 (function(){
   'use strict';
-  var USD = 271;
+  function USD(){ return (window.PF_ORDER && window.PF_ORDER.usd) || 271; }
   // TODO(Dan): paste real receiving addresses. USDC + USDT reuse the ETH (ERC-20)
   // address. Any value still containing "PASTE_" shows a "not configured" notice
   // instead of a payable address — so a half-set page can never take funds astray.
@@ -460,13 +466,13 @@
     XRP:  { name:'XRP',      net:'XRP Ledger',                addr:'rNjbnoBj8yJPJeNDszFurGKXPa9J7buU53', cg:'ripple', tag:XRP_TAG }
   };
   var prices = {};
-  var usdStr = USD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  function usdStr(){ return USD().toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
   function amount(coin, c){
-    if (c.stable) return usdStr + ' ' + coin;     // 1:1 stablecoin
+    if (c.stable) return usdStr() + ' ' + coin;     // 1:1 stablecoin
     var px = prices[c.cg];
     if (!px) return null;
-    var a = USD / px, dp = a < 1 ? 6 : (a < 1000 ? 4 : 2);
+    var a = USD() / px, dp = a < 1 ? 6 : (a < 1000 ? 4 : 2);
     return a.toFixed(dp) + ' ' + coin;
   }
   function copy(text, btn){
@@ -484,8 +490,8 @@
     var h = '<div class="cp-warn">⚠ Send <b>' + coin + '</b> only, on the <b>' + c.net +
             '</b>. Crypto transfers are irreversible — the wrong asset or network means lost funds.</div>';
     h += amt
-      ? '<div class="cp-amt">' + amt + ' <small>≈ $' + usdStr + '</small></div>'
-      : '<div class="cp-amt">$' + usdStr + ' <small>worth of ' + coin + ' (live rate unavailable — send the USD equivalent)</small></div>';
+      ? '<div class="cp-amt">' + amt + ' <small>≈ $' + usdStr() + '</small></div>'
+      : '<div class="cp-amt">$' + usdStr() + ' <small>worth of ' + coin + ' (live rate unavailable — send the USD equivalent)</small></div>';
     h += '<div class="cp-net">' + c.name + ' · ' + c.net + '</div>';
     if (unset){ panel.innerHTML = h + '<div class="cp-unset">⚠ Receiving address not configured yet.</div>'; return; }
     h += '<div class="cp-addr-row"><div class="cp-addr">' + c.addr + '</div>' +
@@ -515,6 +521,55 @@
       if (a) render(a.getAttribute('data-c'));
     }).catch(function(){});
   render('BTC');
+  window.PF_CRYPTO_REFRESH = function(){ var a = document.querySelector('.cp-coin.active'); if (a) render(a.getAttribute('data-c')); };
+})();
+
+// ---- Two-product selector: PFLASH-IT ($271) vs Full Owlchained ($2,717.17) ----
+(function(){
+  'use strict';
+  var PRODUCTS = {
+    pflash: {
+      name: 'PFLASH-IT Report', usd: 271, price: '$271',
+      bullets: [
+        "One document upload — that's all it takes to start",
+        'Automated multi-hop trace — wallets, transactions, convergence points',
+        'Interactive web report + tracing board',
+        'Exchange &amp; service identification — named',
+        '<strong>PFLASH speed</strong> — most reports delivered same day',
+        '<strong>Private report account</strong> — add documents free for 48 hours; updates after that are $171 each'
+      ]
+    },
+    owl: {
+      name: 'Full Owlchained Report', usd: 2717.17, price: '$2,717.17',
+      bullets: [
+        '<strong>Everything in the PFLASH-IT Report</strong>, plus:',
+        'Hand-built investigative workup — every hop verified, whatever the truth turns out to be',
+        'The Story — your money\'s journey as a plain-language case narrative',
+        'Evidence package formatted for IC3, FBI, Secret Service, and state law enforcement',
+        '<strong>A call with a real human</strong> — walk the findings and next steps together',
+        'Delivered in 5–7 business days'
+      ]
+    }
+  };
+  function select(key){
+    var p = PRODUCTS[key] || PRODUCTS.pflash;
+    window.PF_ORDER = { key: key, name: p.name, usd: p.usd, price: p.price };
+    document.getElementById('prodName').textContent = p.name;
+    document.getElementById('prodPrice').textContent = p.price;
+    document.getElementById('prodBullets').innerHTML = p.bullets.map(function(b){ return '<li>' + b + '</li>'; }).join('');
+    var va = document.getElementById('venmoAmt'); if (va) va.textContent = p.price;
+    [].forEach.call(document.querySelectorAll('.pp-opt'), function(b){
+      var on = b.getAttribute('data-p') === key;
+      b.style.border = on ? '2px solid #27c4de' : '2px solid transparent';
+      b.style.background = on ? 'rgba(39,196,222,.08)' : 'rgba(255,255,255,.04)';
+    });
+    if (window.PF_CRYPTO_REFRESH) window.PF_CRYPTO_REFRESH();
+  }
+  [].forEach.call(document.querySelectorAll('.pp-opt'), function(b){
+    b.addEventListener('click', function(){ select(b.getAttribute('data-p')); });
+  });
+  var q = new URLSearchParams(location.search).get('product');
+  select(q === 'owl' ? 'owl' : 'pflash');
 })();
 </script>
 </body>

@@ -214,14 +214,12 @@
 
         <h3 style="margin:0 0 12px">Step 2 — Payment</h3>
 
-        <a class="btn primary big" id="stripeBtn" style="width:100%;text-align:center"
-           href="https://buy.stripe.com/6oU8wR7Q6fjOewJ2OCaAw00">
-          Pay $271 securely (Stripe) →
-        </a>
+        <div class="story-hint" style="margin:0 0 14px">
+          Stripe checkout is being updated. To start tonight, use Venmo below and include only the
+          name and email you entered in Step&nbsp;1.
+        </div>
 
-        <div style="text-align:center;margin:14px 0 6px;opacity:.7">— or —</div>
-
-        <a class="btn big" id="venmoBtn" style="width:100%;text-align:center"
+        <a class="btn primary big" id="venmoBtn" style="width:100%;text-align:center"
            href="https://venmo.com/u/Irwinlawoffice" target="_blank" rel="noopener">
           Pay with Venmo → <span style="opacity:.75">@Irwinlawoffice</span>
         </a>
@@ -441,7 +439,7 @@
   if (w) {
     var btn = document.getElementById('stripeBtn');
     var ref = w.replace(/[^a-zA-Z0-9]/g, '').slice(0, 64);
-    if (ref.length >= 3) btn.href = btn.href.split('?')[0] + '?client_reference_id=' + encodeURIComponent(ref);
+    if (btn && ref.length >= 3) btn.href = btn.href.split('?')[0] + '?client_reference_id=' + encodeURIComponent(ref);
   }
 })();
 

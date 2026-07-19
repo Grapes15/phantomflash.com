@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var PRICE = '$2,717.17';
+  var PRICE = '$271';
   var LANGS = {
     en: 'English', es: 'Español', zh: '中文', vi: 'Tiếng Việt',
     pt: 'Português', fr: 'Français', de: 'Deutsch'

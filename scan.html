@@ -179,5 +179,13 @@
 </footer>
 
 <script src="assets/scan.js?v=20260720b"></script>
+<script>
+/* GA4 key-event wiring */
+(function(){
+  function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
+  var u=document.getElementById('unlockBtn2'); if(u) u.addEventListener('click', function(){ track('unlock_click',{product:'pflash_it', value:271, currency:'USD'}); });
+  var o=document.getElementById('owlLink2'); if(o) o.addEventListener('click', function(){ track('unlock_click',{product:'owlchained', value:2717.17, currency:'USD'}); });
+})();
+</script>
 </body>
 </html>

@@ -359,5 +359,19 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
 });
 </script>
 <script src="assets/scan.js?v=20260720b"></script>
+<script>
+/* GA4 key-event wiring */
+(function(){
+  function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
+  var f=document.getElementById('scanForm');
+  if(f) f.addEventListener('submit', function(){
+    var v=(document.getElementById('addrInput')||{value:''}).value.trim();
+    track('scan_started',{address_kind: v.indexOf('0x')===0?'eth':'btc_or_other'});
+  });
+  document.querySelectorAll('#pfCard .btn, #owlCard .btn, #srCta, .cta-band .btn').forEach(function(b){
+    b.addEventListener('click', function(){ track('checkout_cta_click',{cta:(b.id||b.textContent.trim().slice(0,40))}); });
+  });
+})();
+</script>
 </body>
 </html>

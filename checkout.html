@@ -579,5 +579,24 @@
   select(q === 'owl' ? 'owl' : 'pflash');
 })();
 </script>
+<script>
+/* GA4 key-event wiring */
+(function(){
+  function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
+  function ord(){ return window.PF_ORDER || {key:'pflash', usd:271}; }
+  var s=document.getElementById('stripeBtn');
+  if(s) s.addEventListener('click', function(){ var o=ord(); track('begin_checkout',{payment:'stripe', product:o.key, value:o.usd, currency:'USD'}); });
+  var v=document.getElementById('venmoBtn');
+  if(v) v.addEventListener('click', function(){ var o=ord(); track('begin_checkout',{payment:'venmo', product:o.key, value:o.usd, currency:'USD'}); });
+  document.querySelectorAll('.pp-opt').forEach(function(b){
+    b.addEventListener('click', function(){ track('product_selected',{product:b.getAttribute('data-p')}); });
+  });
+  document.querySelectorAll('.cp-coin').forEach(function(b){
+    b.addEventListener('click', function(){ var o=ord(); track('begin_checkout',{payment:'crypto_'+b.getAttribute('data-c'), product:o.key, value:o.usd, currency:'USD'}); });
+  });
+  var lf=document.getElementById('leadForm');
+  if(lf) lf.addEventListener('submit', function(){ var o=ord(); track('generate_lead',{product:o.key, value:o.usd, currency:'USD'}); });
+})();
+</script>
 </body>
 </html>

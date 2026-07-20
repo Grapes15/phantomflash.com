@@ -840,3 +840,20 @@ html,body{max-width:100%;overflow-x:hidden}
   .dark-overlay{padding:22px 16px 20px}
   .dark-overlay p{font-size:14px}
 }
+
+/* ---------- comic band — "find it for me" ---------- */
+.comic-band{text-align:center}
+.comic-band .section-title{display:inline-block}
+.comic-band .section-title::after{margin-left:auto;margin-right:auto}
+.comic-sub{margin-left:auto;margin-right:auto;max-width:660px}
+.comic-figure{
+  margin:6px auto 0;max-width:1080px;border-radius:12px;overflow:hidden;
+  border:3px solid var(--edge);
+  box-shadow:10px 10px 0 rgba(0,0,0,.55), 0 0 0 1px var(--line2), 0 18px 50px rgba(0,0,0,.6);
+  background:var(--edge);
+}
+.comic-figure img{display:block;width:100%;height:auto}
+.comic-cta{margin-top:26px}
+@media (max-width:640px){
+  .comic-figure{box-shadow:6px 6px 0 rgba(0,0,0,.5), 0 0 0 1px var(--line2)}
+}

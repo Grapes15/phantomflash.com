@@ -15,20 +15,21 @@
       metaScan: 'Your wallet, PFLASHED: a live on-chain scan rendered as an interactive 3D system. See where your money actually lives — free, in seconds.',
       metaCheckout: 'Put Phantom Flash on the trail: the PFLASH-IT Report ($271) at machine speed, or the Full Owlchained Report ($2,717.17) — the hand-built investigation with evidence package and a call with a real human.',
       navHow: 'How it works', navReport: 'The Report', navFree: 'Free PFLASH', navHome: 'Home', navUnlock: 'Unlock Full Report',
-      eyebrow: '⚡ Phantom Flash Owlchained Investigation',
+      eyebrow: '⚡ Owlchained — Instant Cryptocurrency Tracing',
       hero: 'Is your investment real?<br><span class="glow">Find out in 60 seconds.</span>',
       lede: 'Your money leaves a trail on the blockchain — public, permanent, impossible to fake. <strong>This is what a wallet really looks like. Now look at yours.</strong>',
-      demoBadge: '● LIVE DEMO — this is a real victim’s-eye view. Make it yours:',
+      demoBadge: '● LIVE TRACE — this is what an on-chain tracing looks like. Now find yours:',
       sunDockLabel: 'Drop your wallet address into the sun',
       addrPlaceholder: 'Paste a wallet address — BTC (bc1q…, 1A1z…) or ETH (0x…)', pflashButton: 'PFLASH IT ⚡',
-      hint1: 'Free instant PFLASH · live blockchain data · no account needed · Bitcoin & Ethereum',
+      hint1: 'Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, USDT & USDC',
       hint2: 'PFLASH it. (The P is silent. The truth isn\'t.)',
       trust1: '⚡ Live blockchain data — nothing simulated', trust2: '⚡ Real wallets. Real transactions. Real answers.', trust3: '⚡ Reports built for exchange & law-enforcement escalation',
       howSub: 'Three steps. The first one is free, takes sixty seconds, and shows you what\'s actually on the chain.',
       deskTitle: 'The chain never sleeps.', deskSub: 'Neither does Phantom Flash.',
-      deskP1: 'Phantom Flash exists for one reason: so everyday investors can see what\'s actually happening to their money. No jargon, no gatekeepers, no waiting on hold. Just the public ledger, read at lightning speed — hop by hop, wallet by wallet.',
+      deskP1: 'Phantom Flash finds your crypto — whether it\'s tied up in an investment, a friend is holding it, someone took it, or you just want to see where it went. Paste the wallet and watch the chain show you.',
       deskP2: 'The on-chain record is the whole story. Every transaction ever made with your money is carved into a public ledger that nobody can edit and nobody can delete. The Phantom Flash Owlchained Investigation reads that ledger the way professional investigators do — until the full picture is on the table. Whatever the truth is, it\'s yours.',
-      warningTitle: 'Already seeing warning signs?', warningText: 'Told to pay taxes, “unlock fees,” or fresh deposits before you can withdraw? Stop — and PFLASH the wallet before you send another dollar. Crypto moves fast, and the window to act at an exchange is measured in days, not months. Verify first. Then decide.',
+      warningTitle: 'What do you want to find?', warningText: 'Did a friend say he\'s holding your Bitcoin for you? Want to check on your son\'s crypto trading? Sent money into an investment and want to see where it actually went? Whatever the reason — paste the wallet and Phantom Flash follows the coins. No accusations, no assumptions. Just where your money is.',
+      comicTitle: '“Find it for me.”', comicSub: 'Whatever happened to your crypto — an investment gone quiet, a friend who says he\'s holding it, a night you\'d take back — you just want it found. That\'s the call Phantom Flash answers.', comicCta: 'Find your crypto — free PFLASH ⚡',
       reportTitle: 'Two reports. One truth.',
       reportSub: 'Need the answer <em>now</em>? PFLASH-IT. Building a case? Go Full Owlchained. Same chain, same truth — you choose the depth.',
       price: PRICE, priceFull: PRICE_FULL, getReport: 'Get my report →',
@@ -216,6 +217,7 @@
     var split=document.querySelector('.phantom-split');
     if(split){ var h=split.querySelector('h2.section-title'); if(h) h.innerHTML=t('deskTitle')+'<br>'+t('deskSub'); var sub=split.querySelector('.section-sub'); if(sub) sub.textContent=t('deskP1'); var calls=split.querySelectorAll('.callout'); if(calls[0]) calls[0].innerHTML='<strong>'+t('deskP2').split('.')[0]+'.</strong> '+t('deskP2').split('.').slice(1).join('.'); if(calls[1]) calls[1].innerHTML='<strong>'+t('warningTitle')+'</strong> '+t('warningText'); }
 
+    set('#comicTitle', t('comicTitle')); set('#comicSub', t('comicSub')); set('#comicCta', t('comicCta'));
     set('#report .section-title', t('reportTitle')); set('#report .section-sub', t('reportSub'));
     set('#pfCard .label', t('pfLabel')); set('#pfCard .price', t('price')); set('#pfCard .pc-tag', t('pfTag')); set('#pfCard .btn', t('pfCta'));
     var pfl=document.querySelectorAll('#pfCard li'); [t('pf1'),t('pf2'),t('pf3'),t('pf4'),t('pf5'),t('pf6')].forEach(function(v,i){if(pfl[i]) pfl[i].innerHTML=v;});

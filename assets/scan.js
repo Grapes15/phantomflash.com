@@ -929,10 +929,11 @@
   function showPlanetCard(cp, price, lore) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show';
+    var demo = (curAddr === 'DEMO');
     var html =
-      '<h4><span class="nc-glyph">' + (lore ? lore.creature.glyph : '🪐') + '</span> ' + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
-      (lore ? '<div class="nc-sub">Inhabited world · first-hop wallet</div>' : '') +
-      (lore ? selectStage(lore.creature, lore.name, lore.feature, false) : '') +
+      '<h4>' + (lore && !demo ? '<span class="nc-glyph">' + lore.creature.glyph + '</span> ' : (lore ? '' : '<span class="nc-glyph">🪐</span> ')) + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
+      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : 'Inhabited world · first-hop wallet') + '</div>' : '') +
+      (lore && !demo ? selectStage(lore.creature, lore.name, lore.feature, false) : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
@@ -942,7 +943,7 @@
       '</div>' +
       (lore && lore.bags ? '<div class="nc-bagnote">' + esc(T('bagHonesty')) + '</div>' : '');
     if (lore) {
-      html += '<div class="nc-lore"><div class="nc-lore-label">PLANET HISTORY</div><p>' + esc(lore.history) + '</p></div>';
+      html += '<div class="nc-lore"><div class="nc-lore-label">' + (demo ? 'WHAT THE BLOCKCHAIN SHOWS' : 'PLANET HISTORY') + '</div><p>' + esc(lore.history) + '</p></div>';
     }
     $('ncBody').innerHTML = html;
   }
@@ -1022,7 +1023,13 @@
     cps.forEach(function (c) { grandTotal += c.total; });
     lore.forEach(function (e, i) {
       e.bags = bagTier(planets[i].total, grandTotal);
-      e.history += ' ' + bagLore(e.bags);
+      if (opts.demo && planets[i].demoLore) {
+        // sample tracing supplies real-world forensic text — no space-opera lore
+        if (planets[i].demoName) e.name = planets[i].demoName;
+        e.history = planets[i].demoLore;
+      } else {
+        e.history += ' ' + bagLore(e.bags);
+      }
     });
 
     var maxTotal = planets.length ? planets[0].total : 1;
@@ -1110,7 +1117,7 @@
     var anchorPool = outPlanetIdx.length ? outPlanetIdx
       : (planets.length ? planets.map(function (_, i) { return i; }) : null);
 
-    var lockedCount = FULL_MODE ? 0 : (opts.demo ? Math.min(LOCKED_PLANETS, IS_SMALL ? 4 : 6) : (planets.length ? LOCKED_PLANETS : 6));
+    var lockedCount = FULL_MODE ? 0 : (opts.demo ? 0 : (planets.length ? LOCKED_PLANETS : 6));
     for (var L = 0; L < lockedCount; L++) {
       var label = lockedLabels[L % lockedLabels.length];
       nodes.push({
@@ -1279,30 +1286,48 @@
   // ============================================================
   function buildDemoData() {
     var DAY = 86400, now = Math.floor(Date.now() / 1000);
-    // [fictional-id, inSats(they→sun), outSats(sun→them), txCount, daysAgo]
+    // SAMPLE TRACING - fictional data, synthetic addresses (not real wallets).
+    // Written to read the way a real Phantom Flash tracing reads: each wallet
+    // gets a plain-language finding, the amounts, and - where the chain supports
+    // it - a probable identity. Findings are PROBABILITIES; the flows are facts.
+    // [addr, name, inSats(they->sun), outSats(sun->them), txCount, daysAgo, finding]
     var rows = [
-      ['DEMO\u00b7W01', 62000000,        0, 14,   3],   // 0.62 BTC in — the whale (Planet Walker)
-      ['DEMO\u00b7W02',        0, 18000000,  6,   5],   // 0.18 BTC out ≈ $12,400
-      ['DEMO\u00b7W03', 12500000,        0,  9,   8],
-      ['DEMO\u00b7W04',  6200000,  3600000, 11,   2],   // port world
-      ['DEMO\u00b7W05',  7400000,        0,  4,  12],
-      ['DEMO\u00b7W06',        0,  5200000,  3,  16],
-      ['DEMO\u00b7W07',  4100000,        0,  5,  21],
-      ['DEMO\u00b7W08',  1900000,  1400000,  8,   6],   // busy port — smuggler's haven
-      ['DEMO\u00b7W09',        0,  2600000,  2,  30],
-      ['DEMO\u00b7W10',  1900000,        0,  3,  45],
-      ['DEMO\u00b7W11',  1200000,        0,  2, 400],   // silent world (>1y)
-      ['DEMO\u00b7W12',        0,   800000,  1,  60]
+      ['bc1qs7g4hf2n8kxr3vd0q9m5aw7czt6ljy4p2u', 'Funding source — likely your exchange', 62000000, 0, 14, 3,
+        'This is where your money came IN. About $42,800 in Bitcoin reached your wallet from this address across 14 deposits — the pattern is almost certainly a withdrawal from your own regulated exchange or brokerage (Coinbase, Kraken or similar). Because exchanges keep identity records, an address like this is usually the single strongest subpoena target in a case. That identification is a probability read from the flow — but this is where your money’s trail begins, and it’s your information.'],
+      ['bc1qh3m9x2kf7v0aq5d8s4n6cwltr9zj2y5g8e', 'Collection hub — “Lin” (probable)', 0, 18000000, 6, 5,
+        'The single largest amount OUT of your wallet landed here — roughly $12,400. This address receives from at least 31 other wallets, in deposits ranging from a few dollars to tens of thousands. That many-into-one pattern is the signature of a collection hub: one wallet gathering many people’s funds. On-chain timing and counterparties point (probably, not certainly) to an operator we’ll call “Lin,” likely working out of a Hong Kong-based ring. This same hub also appears in another Phantom Flash tracing — on the blockchain, you may not be the only one who paid into it.'],
+      ['bc1q4t8v2n7khf3m0x9s5aq6dwzr2cyl8j3g7u', 'Inbound — possible “return”', 12500000, 0, 9, 8,
+        'About $8,600 came back to you from this address. Small inbound “returns” like this are often staged early in a scheme to build trust before a bigger ask — but they can also be a legitimate payout. The chain can’t tell you the motive; it can only show you the money moved this way. Treat the read as a probability.'],
+      ['bc1q9d2s7hf4kx3n8v0mq5awt6czr2yl9j5g3e', 'Pass-through relay', 6200000, 3600000, 11, 2,
+        'A pass-through relay: funds land here and leave again within hours, so money only rested here briefly on its way somewhere else. Relays like this are used to put distance between your wallet and the final destination. Following it to the next hop is exactly what the full trace does.'],
+      ['bc1qk7h3m9x2f4v8n0s5aqd6wtzr9cyl2j8g4u', 'Secondary funding (probable)', 7400000, 0, 4, 12,
+        'Roughly $5,100 flowed to you from here. The pattern is consistent with a second funding source or one of your own wallets — money you likely controlled. Probable, not proven.'],
+      ['bc1q2n8v4kf7h3mx0q9s5awt6dzr2cyl8j3g7e', 'Feeder into the hub (probable)', 0, 5200000, 3, 16,
+        'About $3,600 left your wallet to this address and did not come back. It sits one hop upstream of the collection hub above — a likely feeder into the same cluster. Probable connection, based on shared counterparties.'],
+      ['bc1qm5x9k2h7f3v8n0d4aqs6wtzr9cyl2j8g5u', 'Low-volume inbound', 4100000, 0, 5, 21,
+        'About $2,800 came in from here over 5 transactions. A low-volume counterparty; on the data so far it doesn’t connect cleanly to the main cluster. Noted, not yet linked.'],
+      ['bc1qf7h3n9x2k4m8v0s5awqd6tzr2cyl9j3g7e', 'Shuffling / mixing service (probable)', 1900000, 1400000, 8, 6,
+        'The busiest address in your first hop — 8 transactions, money in and right back out. High-frequency two-way flow like this is a common signature of a mixing or shuffling service used to blur the trail. It rarely stops the trace — the chain still records every hop.'],
+      ['bc1q8v2n7kf4h3mx0q9d5awts6zr2cyl8j3g5u', 'Secondary payout path', 0, 2600000, 2, 30,
+        'About $1,800 went out to this wallet. A small outbound leg, probably a secondary payout path branching off the main flow.'],
+      ['bc1q3m9x7k2h4f8v0n5aqds6wtzr9cyl2j8g4e', 'Minor inbound', 1900000, 0, 3, 45,
+        'A minor inbound counterparty (~$1,300). Nothing on-chain ties it to the main scheme yet — included so your picture is complete.'],
+      ['bc1qn8v4k7f2h3mx0q9s5awtd6zr2cyl8j3g7u', 'Dormant / cold wallet', 1200000, 0, 2, 400,
+        'Dormant. About $800 arrived here more than a year ago and nothing has moved since — a cold wallet holding a slice of the funds. Cold doesn’t mean gone; it means parked, and the chain will show us the moment it wakes up.'],
+      ['bc1q7k3h9x2m4f8v0n5aqds6wtzr2cyl9j3g5e', 'Small outbound leg', 0, 800000, 1, 60,
+        'A small outbound leg (~$550) — likely a test transfer or a fee payment. Small, but it’s part of the same trail.']
     ];
     if (!IS_SMALL) { // perf cap ~12 planets on phones; a couple more on desktop
-      rows.push(['DEMO\u00b7W13', 450000, 0, 2, 90]);
-      rows.push(['DEMO\u00b7W14', 0, 300000, 1, 120]);
+      rows.push(['bc1q4v8n2k7f3hmx0q9s5awtd6zr2cyl8j3g7u', 'Trace-level inbound', 450000, 0, 2, 90,
+        'Trace-level inbound (~$310). Small, included for completeness so the map shows everything your wallet touched.']);
+      rows.push(['bc1q9x2k7h3f4m8v0n5aqds6wtzr9cyl2j8g4e', 'Trace-level outbound', 0, 300000, 1, 120,
+        'Trace-level outbound (~$210). Small, included for completeness so the map shows everything your wallet touched.']);
     }
     var fundedSum = 0, spentSum = 0, txCount = 0;
     var cps = rows.map(function (r) {
-      fundedSum += r[1]; spentSum += r[2]; txCount += r[3];
-      return { addr: r[0], inSats: r[1], outSats: r[2], txCount: r[3],
-               total: r[1] + r[2], lastSeen: now - r[4] * DAY };
+      fundedSum += r[2]; spentSum += r[3]; txCount += r[4];
+      return { addr: r[0], demoName: r[1], inSats: r[2], outSats: r[3], txCount: r[4],
+               total: r[2] + r[3], lastSeen: now - r[5] * DAY, demoLore: r[6] };
     }).sort(function (a, b) { return b.total - a.total; });
     return {
       data: { txCount: txCount, fundedSum: fundedSum, spentSum: spentSum, txs: [] },
@@ -1310,7 +1335,6 @@
       price: 69000 // fixed fictional rate so demo $ figures are stable
     };
   }
-
   function runDemo() {
     curAddr = 'DEMO';
     curCheckout = 'checkout.html';
@@ -1322,7 +1346,7 @@
       renderSystem(demo.data, demo.cps, demo.price, {
         demo: true,
         noPaywall: true,
-        lockedExtra: IS_SMALL ? 3 : 4,
+        lockedExtra: 0,   // sample is FULLY charted — nothing browned out. Locking only happens on a visitor's own scan.
         autoOrbit: true
       });
     } catch (e) {

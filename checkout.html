@@ -241,6 +241,7 @@
             <button type="button" class="cp-coin" data-c="USDC">USDC</button>
             <button type="button" class="cp-coin" data-c="USDT">USDT</button>
             <button type="button" class="cp-coin" data-c="XRP">XRP</button>
+            <button type="button" class="cp-coin" data-c="SOL">SOL</button>
           </div>
           <div class="cp-panel" id="cpPanel"></div>
           <p class="cp-foot">Crypto payments are confirmed by hand. After you send, email your
@@ -453,14 +454,15 @@
   // TODO(Dan): paste real receiving addresses. USDC + USDT reuse the ETH (ERC-20)
   // address. Any value still containing "PASTE_" shows a "not configured" notice
   // instead of a payable address — so a half-set page can never take funds astray.
-  var ETH_ADDR = 'PASTE_ETH_ERC20_ADDRESS';
+  var ETH_ADDR = '0xFA20a0102D6a19a6C7d3a8afA980938a6B1b500c';
   var XRP_TAG  = '';                       // optional destination tag (exchange-hosted XRP)
   var COINS = {
-    BTC:  { name:'Bitcoin',  net:'Bitcoin network',          addr:'PASTE_BTC_ADDRESS', cg:'bitcoin'  },
+    BTC:  { name:'Bitcoin',  net:'Bitcoin network',          addr:'bc1q4q7cspmgemghux36rq9dhkw2thrm2nhj7xyntk', cg:'bitcoin'  },
     ETH:  { name:'Ethereum', net:'Ethereum network (native ETH)', addr:ETH_ADDR,       cg:'ethereum' },
     USDC: { name:'USD Coin', net:'Ethereum / ERC-20 ONLY',   addr:ETH_ADDR, stable:true },
     USDT: { name:'Tether',   net:'Ethereum / ERC-20 ONLY',   addr:ETH_ADDR, stable:true },
-    XRP:  { name:'XRP',      net:'XRP Ledger',                addr:'rNjbnoBj8yJPJeNDszFurGKXPa9J7buU53', cg:'ripple', tag:XRP_TAG }
+    XRP:  { name:'XRP',      net:'XRP Ledger',                addr:'rNjbnoBj8yJPJeNDszFurGKXPa9J7buU53', cg:'ripple', tag:XRP_TAG },
+    SOL:  { name:'Solana',   net:'Solana network',            addr:'AsHkoJJVDnFb2LU3mdFRwL2sFdmjEJQzT86AvWZx76C8', cg:'solana' }
   };
   var prices = {};
   function usdStr(){ return USD().toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -507,13 +509,14 @@
   [].forEach.call(document.querySelectorAll('.cp-coin'), function(b){
     b.addEventListener('click', function(){ render(b.getAttribute('data-c')); });
   });
-  // live BTC/ETH/XRP rates (best-effort; stablecoins are exact)
-  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple&vs_currencies=usd')
+  // live BTC/ETH/XRP/SOL rates (best-effort; stablecoins are exact)
+  fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,solana&vs_currencies=usd')
     .then(function(r){ return r.json(); })
     .then(function(d){
       prices.bitcoin = d.bitcoin && d.bitcoin.usd;
       prices.ethereum = d.ethereum && d.ethereum.usd;
       prices.ripple = d.ripple && d.ripple.usd;
+      prices.solana = d.solana && d.solana.usd;
       var a = document.querySelector('.cp-coin.active');
       if (a) render(a.getAttribute('data-c'));
     }).catch(function(){});

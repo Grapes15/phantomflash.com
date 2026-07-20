@@ -212,10 +212,11 @@
     return '<div class="bag-pile">' + html + '</div>';
   }
   function bagLore(tier) {
-    var w = BAG_WORDS[tier - 1];
-    if (tier === 5) return 'A five-bag world \u2014 its vaults hold the richest share of the treasure that moved with your sun.';
-    if (tier === 1) return 'A one-bag world \u2014 only a trickle of your money\u2019s traffic ever touched its vaults.';
-    return 'A ' + w + '-bag world \u2014 its vaults hold ' + w + ' bags of the treasure that moved with your sun.';
+    if (tier >= 5) return 'It carries the largest share of your wallet’s first-hop volume.';
+    if (tier === 4) return 'It carries a large share of your wallet’s first-hop volume.';
+    if (tier === 3) return 'A moderate share of your first-hop volume ran through it.';
+    if (tier === 2) return 'A small share of your first-hop volume touched it.';
+    return 'Only a trickle of your first-hop volume touched it.';
   }
 
   // ---------- v7: animated character-select creatures ----------
@@ -443,111 +444,73 @@
     return CREATURES[(hashStr(a) >>> 13) % CREATURES.length];
   }
 
-  // Map the REAL tracing data onto lore traits and build 2-3 sentences.
-  // cp: {addr,inSats,outSats,txCount,total,lastSeen}; lore: this planet's
-  // {name,creature}; names: all planet names in system order (by volume);
-  // maxTotal: volume of planet #1; price: USD/BTC or null.
+  // Turn the REAL first-hop data into a plain-language forensic finding:
+  // direction of flow, amounts, transaction count, volume rank. No identities
+  // are invented on a free scan — only what the chain actually shows, hedged
+  // where the pattern is suggestive rather than certain.
   function planetHistory(cp, lore, names, idx, maxTotal, price) {
     var rng = mulberry32(hashStr(cp.addr) ^ 0x9E3779B9);
-    var routes = cp.txCount + ' trade route' + (cp.txCount === 1 ? '' : 's');
     var amt = function (sats) {
-      var s = fmtBtc(sats), u = fmtUsd(sats, price);
-      return u ? s + ' (' + u + ')' : s;
+      var b = fmtBtc(sats), u = fmtUsd(sats, price);
+      return u ? b + ' (' + u + ')' : b;
     };
+    var tx = cp.txCount + ' transaction' + (cp.txCount === 1 ? '' : 's');
     var ratio = maxTotal ? cp.total / maxTotal : 0;
-    var isPort = cp.inSats > 0 && cp.outSats > 0;
-    var tribute = cp.inSats >= cp.outSats; // they sent the sun money
-    var busy = cp.txCount >= 8;
+    var both = cp.inSats > 0 && cp.outSats > 0;
+    var inboundOnly = cp.inSats > 0 && cp.outSats === 0;
     var silent = cp.lastSeen && (Date.now() / 1000 - cp.lastSeen) > 365 * 86400;
-
-    // neighbors to name-drop (the next planets down the volume ladder)
-    var n1 = names[(idx + 1) % names.length];
-    var n2 = names[(idx + 2) % names.length];
-    if (names.length < 2) { n1 = null; n2 = null; }
-    if (names.length < 3 || n2 === lore.name) n2 = null;
-    if (n1 === lore.name) n1 = n2;
-
     var s1, s2, s3;
 
-    var feat = planetFeature(cp.addr);
-    var featLine = pick(rng, [
-      'Travelers know it for ' + feat.text + '.',
-      'It is famous across the system for ' + feat.text + '.',
-      'Star charts mark it for ' + feat.text + '.'
-    ]);
-
-    if (idx === 0) {
-      // ---- Planet Walker: first among worlds ----
-      s1 = 'Planet Walker is an influential planet over the others — first among the worlds of this system, home to ' + WALKER.ruler + '. It is famous for ' + feat.text + '.';
-      var partners = n1 ? (n1 + (n2 ? ' and the ' + n2 + ' system' : '')) : null;
-      s2 = (partners
-        ? 'Primarily the ' + (tribute ? 'patron of your sun and a power behind ' + partners : 'funder of the ' + partners + (n2 ? '' : ' starship')) + ', it'
-        : 'It') + ' directly controls commerce across ' + routes + ' worth ' + amt(cp.total) + '.';
-      s3 = tribute
-        ? 'Of that, ' + amt(cp.inSats) + ' was delivered straight to your sun. The bunny is fast — but the chain remembers every hop.'
-        : 'Of that, ' + amt(cp.outSats) + ' sailed out from your sun to its harbors. The bunny is fast — but the chain remembers every hop.';
-      return s1 + ' ' + s2 + ' ' + s3;
-    }
-
-    // ---- everyone else ----
-    var influence =
-      ratio >= 0.5  ? 'an influential world that bends the orbits of its neighbors' :
-      ratio >= 0.15 ? 'a prosperous mid-system world' :
-      ratio >= 0.03 ? 'a modest outpost on a steady trade lane' :
-                      'a small world in a far orbit';
-    s1 = pick(rng, [
-      lore.name + ' is ' + influence + ', home to ' + lore.creature.ruler + '.',
-      'Charted as ' + lore.name + ' — ' + influence + ', ruled by ' + lore.creature.ruler + '.',
-      lore.name + ', ' + influence + ', belongs to ' + lore.creature.ruler + '.'
-    ]);
-
-    if (isPort) {
-      s2 = pick(rng, [
-        'A true port world: ' + amt(cp.inSats) + ' arrived at your sun from its docks, while ' + amt(cp.outSats) + ' sailed back out, across ' + routes + '.',
-        'Ships arrive heavy and leave heavier — it sent your sun ' + amt(cp.inSats) + ' and received ' + amt(cp.outSats) + ' in return, over ' + routes + '.'
+    if (both) {
+      s1 = pick(rng, [
+        'Two-way wallet: ' + amt(cp.inSats) + ' came in to your wallet and ' + amt(cp.outSats) + ' went back out, across ' + tx + '.',
+        'Money moved both directions here — ' + amt(cp.inSats) + ' in, ' + amt(cp.outSats) + ' out, over ' + tx + '.'
       ]);
-    } else if (tribute) {
       s2 = pick(rng, [
-        'It has paid ' + amt(cp.inSats) + ' in tribute to your sun across ' + routes + '.',
-        'Its freighters delivered ' + amt(cp.inSats) + ' to your sun over ' + routes + '.',
-        'Across ' + routes + ', ' + amt(cp.inSats) + ' in tribute has flowed from its harbors to your sun.'
+        'Funds arriving and leaving like this is a pattern often seen with relay or pass-through wallets — but it can also just be ordinary back-and-forth. The chain shows the movement, not the reason.',
+        'That in-and-out pattern can mean a relay or pass-through, or it can be routine two-way activity. Read it as a probability, not a verdict.'
+      ]);
+    } else if (inboundOnly) {
+      s1 = pick(rng, [
+        'Money came in to your wallet from this address — ' + amt(cp.inSats) + ' across ' + tx + '.',
+        'This address sent ' + amt(cp.inSats) + ' to your wallet, over ' + tx + '.'
+      ]);
+      s2 = pick(rng, [
+        'On the free scan this is a first-hop source; where those funds came from before that is the next step in a full trace.',
+        'It is a first-hop source — a full trace follows it back another hop to see where the money originated.'
       ]);
     } else {
+      s1 = pick(rng, [
+        'Your wallet sent ' + amt(cp.outSats) + ' to this address, across ' + tx + '.',
+        'Money went out from your wallet to here — ' + amt(cp.outSats) + ' over ' + tx + '.'
+      ]);
       s2 = pick(rng, [
-        'Your sun has funded its expeditions — ' + amt(cp.outSats) + ' sailed out along ' + routes + '.',
-        'It is an expedition world: ' + amt(cp.outSats) + ' of your sun\u2019s treasure was sent to outfit its fleets, across ' + routes + '.',
-        'Over ' + routes + ', your sun dispatched ' + amt(cp.outSats) + ' to its shipyards.'
+        'It is a first-hop destination; following it onward — to the next wallet, exchange, or service — is what the full trace does.',
+        'This is a first-hop destination. A full trace follows it forward to where the money landed next.'
       ]);
     }
 
-    if (silent) {
-      s3 = pick(rng, [
-        'Now it is a silent world — no ship has left its harbor in over a year, but its vaults remember.',
-        'The harbor lights have gone dark; a silent world for more than a year. Phantom Flash still watches.'
-      ]);
-    } else if (busy && isPort) {
-      s3 = pick(rng, [
-        'Traders call it a smuggler\u2019s haven — convoys move fast here and rarely announce themselves.',
-        'Its lanes never sleep; a smuggler\u2019s haven where cargo changes flags mid-voyage.'
-      ]);
-    } else if (n1) {
-      s3 = pick(rng, [
-        'Its convoys run the same lanes as ' + n1 + (n2 ? ' and ' + n2 : '') + '.',
-        'It trades in the shadow of ' + n1 + (n2 ? ', within signal range of ' + n2 : '') + '.',
-        'Phantom Flash keeps one eye on its harbor lights' + (n1 ? ' — and the lane it shares with ' + n1 : '') + '.'
-      ]);
-    } else {
-      s3 = 'Phantom Flash keeps one eye on its harbor lights.';
-    }
-    return s1 + ' ' + featLine + ' ' + s2 + ' ' + s3;
+    var vol = ratio >= 0.5  ? 'By volume, it is the largest counterparty in this first hop.'
+            : ratio >= 0.15 ? 'It is one of the larger counterparties here by volume.'
+            : ratio >= 0.03 ? 'A mid-sized counterparty by volume.'
+                            : 'A smaller counterparty by volume.';
+    s3 = silent ? 'Nothing has moved to or from it in over a year — currently dormant.' : vol;
+
+    return s1 + ' ' + s2 + ' ' + s3;
   }
 
-  // Build the full lore table for the rendered planets (sorted by volume).
+  // Build the lore table for the rendered planets (sorted by volume).
+  // Names are role labels derived from the real flow direction.
   function buildSystemLore(planets, price) {
-    var used = { 'Planet Walker': true };
+    function roleName(cp) {
+      if (cp.inSats > 0 && cp.outSats > 0) return 'Two-way wallet';
+      if (cp.inSats > 0) return 'Inbound wallet';
+      return 'Outbound wallet';
+    }
     var entries = planets.map(function (cp, i) {
-      if (i === 0) return { name: 'Planet Walker', creature: WALKER, feature: planetFeature(cp.addr) };
-      return { name: planetName(cp.addr, used), creature: planetCreature(cp.addr), feature: planetFeature(cp.addr) };
+      return { name: (i === 0 ? 'Top counterparty' : roleName(cp)),
+               creature: (i === 0 ? WALKER : planetCreature(cp.addr)),
+               feature: planetFeature(cp.addr) };
     });
     var names = entries.map(function (e) { return e.name; });
     var maxTotal = planets.length ? planets[0].total : 0;
@@ -923,7 +886,7 @@
       '<div class="r"><span class="k">Transactions</span><span class="val">' + data.txCount.toLocaleString('en-US') + '</span></div>' +
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
-      '<p>Your sun — every planet in this system orbits your money. Every trade route below began or ended here, and the chain wrote it all down. Phantom Flash just reads it back.</p></div>';
+      '<p>Your sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
   }
 
   function showPlanetCard(cp, price, lore) {
@@ -931,9 +894,8 @@
     nodeCard.className = 'node-card show';
     var demo = (curAddr === 'DEMO');
     var html =
-      '<h4>' + (lore && !demo ? '<span class="nc-glyph">' + lore.creature.glyph + '</span> ' : (lore ? '' : '<span class="nc-glyph">🪐</span> ')) + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
-      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : 'Inhabited world · first-hop wallet') + '</div>' : '') +
-      (lore && !demo ? selectStage(lore.creature, lore.name, lore.feature, false) : '') +
+      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
+      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : 'First-hop wallet') + '</div>' : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
@@ -943,7 +905,7 @@
       '</div>' +
       (lore && lore.bags ? '<div class="nc-bagnote">' + esc(T('bagHonesty')) + '</div>' : '');
     if (lore) {
-      html += '<div class="nc-lore"><div class="nc-lore-label">' + (demo ? 'WHAT THE BLOCKCHAIN SHOWS' : 'PLANET HISTORY') + '</div><p>' + esc(lore.history) + '</p></div>';
+      html += '<div class="nc-lore"><div class="nc-lore-label">WHAT THE BLOCKCHAIN SHOWS</div><p>' + esc(lore.history) + '</p></div>';
     }
     $('ncBody').innerHTML = html;
   }
@@ -951,17 +913,13 @@
   function showLockedCard(label) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show locked';
-    // deterministic silhouette creature per locked label — decorative only,
-    // derived from the label string, never from real downstream data
-    var shadowCreature = CREATURES[hashStr(label) % CREATURES.length];
     $('ncBody').innerHTML =
       '<div class="lock-ico">🔒</div>' +
       '<h4>' + esc(label) + '</h4>' +
-      selectStage(shadowCreature, 'A SHROUDED WORLD', null, true) +
       '<div class="nc-rows" style="margin-bottom:12px"><div class="r"><span class="k">' + esc(T('bagShare')) + '</span>' +
       '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
-      '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">PLANET HISTORY — CLASSIFIED</div>' +
-      '<p>A shrouded world. Phantom Flash has charted its trade routes, its rulers, and where its treasure sails. The free PFLASH stops here — the story doesn\u2019t.</p></div>' +
+      '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">LOCKED — FULL REPORT</div>' +
+      '<p>A first-hop wallet Phantom Flash has already charted. The free scan stops at the first hop — the Full Owlchained Report follows it onward: where the money went next, and the exchange or service where it landed.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="' + esc(curCheckout) + '">' + T('payCta') + '</a>';
   }
 
@@ -1054,7 +1012,7 @@
         id: 'p' + i, kind: 'planet', cp: cp, lore: pl,
         val: planetSize(cp.total),
         color: isIn ? '#3ddc97' : '#ff4d5e',
-        labelHtml: '<b>' + pl.creature.glyph + ' ' + esc(pl.name) + '</b> <span style="letter-spacing:-2px">' + bagEmojis(pl.bags) + '</span><br>' +
+        labelHtml: '<b>' + esc(pl.name) + '</b> <span style="letter-spacing:-2px">' + bagEmojis(pl.bags) + '</span><br>' +
           '<span style="color:#7e93b3">' + esc(shortAddr(cp.addr)) + '</span><br>' +
           (cp.inSats ? '↓ in: ' + esc(fmtBtc(cp.inSats)) + '<br>' : '') +
           (cp.outSats ? '↑ out: ' + esc(fmtBtc(cp.outSats)) + '<br>' : '') +

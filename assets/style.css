@@ -857,3 +857,8 @@ html,body{max-width:100%;overflow-x:hidden}
 @media (max-width:640px){
   .comic-figure{box-shadow:6px 6px 0 rgba(0,0,0,.5), 0 0 0 1px var(--line2)}
 }
+
+/* footer social links */
+.footer-social{margin-top:14px;font-size:13px;color:var(--muted2)}
+.footer-social a{color:var(--muted);text-decoration:none;font-weight:700}
+.footer-social a:hover{color:var(--cyan)}

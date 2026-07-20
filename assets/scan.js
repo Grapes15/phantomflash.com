@@ -822,8 +822,9 @@
     var times = data.txs.map(function (t) { return t.time; }).filter(Boolean);
     if (times.length) {
       var min = Math.min.apply(null, times), max = Math.max.apply(null, times);
-      var range = fmtDate(min) + ' → ' + fmtDate(max);
-      if (data.txs.length < data.txCount) range += ' (most recent ' + data.txs.length + ' txs)';
+      var dmin = fmtDate(min), dmax = fmtDate(max);
+      var range = (dmin === dmax) ? dmin : (dmin + ' → ' + dmax);
+      if (data.txs.length < data.txCount) range += ' (most recent ' + data.txs.length + ' of ' + data.txCount.toLocaleString('en-US') + ')';
       $('statRange').textContent = range;
     } else {
       $('statRange').textContent = 'unconfirmed only';

@@ -16,7 +16,7 @@
       metaCheckout: 'Put Phantom Flash on the trail: the PFLASH-IT Report ($271) at machine speed, or the Full Owlchained Report ($2,717.17) — the hand-built investigation with evidence package and a call with a real human.',
       navHow: 'How it works', navReport: 'The Report', navFree: 'Free PFLASH', navHome: 'Home', navUnlock: 'Unlock Full Report',
       eyebrow: '⚡ Owlchained — Instant Cryptocurrency Tracing',
-      hero: 'Is your investment real?<br><span class="glow">Find out in 60 seconds.</span>',
+      hero: 'Where did your crypto go?<br><span class="glow">Find out in 60 seconds.</span>',
       lede: 'Your money leaves a trail on the blockchain — public, permanent, impossible to fake. <strong>This is what a wallet really looks like. Now look at yours.</strong>',
       demoBadge: '● LIVE TRACE — this is what an on-chain tracing looks like. Now find yours:',
       sunDockLabel: 'Drop your wallet address into the sun',
@@ -53,7 +53,7 @@
       finalCta: 'Before you send another dollar — PFLASH the wallet.', finalSub: 'Sixty seconds. One address. The live blockchain record, right in front of you.',
       disclaimer: 'The Phantom Flash Owlchained Report is an investigative blockchain analysis provided for informational purposes only. It is not a guarantee or commitment of any kind. Phantom Flash and its operators are not responsible for any incorrect, incomplete, or outdated tracing information in any report or free scan. Results are not guaranteed, and recovery of funds is not promised or implied. Nothing on this site is legal, financial, or investment advice. Free scan data is retrieved live from public blockchain sources and is presented as-is. Phantom Flash is an independent investigation service and is not affiliated with any cryptocurrency wallet, exchange, or software product.',
       scanTitle: 'Wallet PFLASHED ⚡', scanLoading: 'PFLASHING THE CHAIN…', scanBack: '← PFLASH another address',
-      totalIn: 'Total received', totalOut: 'Total sent out', txs: 'Transactions', cps: 'Counterparties (1st hop)', window: 'Activity window',
+      totalIn: 'Total received', totalOut: 'Total sent out', txs: 'Transactions', cps: 'Counterparties (1st hop)', window: 'Recent activity',
       systemTitle: 'The System', liveData: '● LIVE BLOCKCHAIN DATA', systemSub: 'This is where your money actually went. The wallet you PFLASHED sits at the center; every wallet it transacted with orbits it, sized by volume. Drag to rotate, scroll to zoom, <strong>click any wallet</strong> for the amounts and what the pattern most likely means. <strong>The free scan shows the first hop. The wallets beyond it — where the money went next — unlock with the Full Owlchained Report.</strong>',
       cpLockedLabel: 'COUNTERPARTY #{n} — LOCKED', moreCpLocked: 'MORE COUNTERPARTIES — LOCKED',
       cpLockedHover: 'a real first-hop wallet, charted by Phantom Flash · unlocked in the Full Owlchained Report · click for details',
@@ -196,6 +196,16 @@
       if(x==='Get my report →') a.textContent=t('getReport');
     });
     document.querySelectorAll('.site-footer .legal p:first-of-type').forEach(function(p){ p.textContent = t('disclaimer'); });
+    document.querySelectorAll('.site-footer .legal').forEach(function(f){
+      if (f.querySelector('.footer-social')) return;
+      var s = document.createElement('p');
+      s.className = 'footer-social';
+      s.innerHTML = 'Follow Phantom Flash: ' +
+        '<a href="https://x.com/PhantomFlashHQ" target="_blank" rel="noopener">X (@PhantomFlashHQ)</a> · ' +
+        '<a href="https://www.youtube.com/@PhantomFlashHQ" target="_blank" rel="noopener">YouTube (@PhantomFlashHQ)</a>';
+      var copyright = f.querySelector('p:last-of-type');
+      if (copyright) f.insertBefore(s, copyright); else f.appendChild(s);
+    });
   }
 
   function applyIndex(){

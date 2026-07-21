@@ -221,16 +221,6 @@
            href="https://buy.stripe.com/9B6aEZ1rI1sY74h9d0aAw01" target="_blank" rel="noopener">
           Pay $271 securely (Stripe) →
         </a>
-        <div class="story-hint" style="margin:12px 0 6px">Prefer Venmo?</div>
-        <a class="btn big" id="venmoBtn" style="width:100%;text-align:center"
-           href="https://venmo.com/u/Irwinlawoffice" target="_blank" rel="noopener">
-          Pay with Venmo → <span style="opacity:.75">@Irwinlawoffice</span>
-        </a>
-        <div style="font-size:13px;opacity:.75;margin-top:8px;line-height:1.5">
-          Venmo: send <strong id="venmoAmt">$271</strong> to <strong>@Irwinlawoffice</strong>. In the payment note,
-          include only the <em>name and email</em> you entered in Step&nbsp;1 — never put wallet
-          addresses or case details in a Venmo note.
-        </div>
 
         <!-- Crypto payment (static receive addresses + QR; manual confirmation) -->
         <div class="crypto-pay" id="cryptoPay">
@@ -559,7 +549,6 @@
     document.getElementById('prodName').textContent = p.name;
     document.getElementById('prodPrice').textContent = p.price;
     document.getElementById('prodBullets').innerHTML = p.bullets.map(function(b){ return '<li>' + b + '</li>'; }).join('');
-    var va = document.getElementById('venmoAmt'); if (va) va.textContent = p.price;
     var sb = document.getElementById('stripeBtn');
     if (sb) {
       sb.href = p.link + (window.PF_REF ? '?client_reference_id=' + encodeURIComponent(window.PF_REF) : '');
@@ -586,8 +575,6 @@
   function ord(){ return window.PF_ORDER || {key:'pflash', usd:271}; }
   var s=document.getElementById('stripeBtn');
   if(s) s.addEventListener('click', function(){ var o=ord(); track('begin_checkout',{payment:'stripe', product:o.key, value:o.usd, currency:'USD'}); });
-  var v=document.getElementById('venmoBtn');
-  if(v) v.addEventListener('click', function(){ var o=ord(); track('begin_checkout',{payment:'venmo', product:o.key, value:o.usd, currency:'USD'}); });
   document.querySelectorAll('.pp-opt').forEach(function(b){
     b.addEventListener('click', function(){ track('product_selected',{product:b.getAttribute('data-p')}); });
   });

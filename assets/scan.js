@@ -731,8 +731,11 @@
   // amounts in USD. ethUsd prices native ETH; stablecoins are valued at $1.
   function normalizeEthAll(ethRes, tokenResults, ethUsd) {
     var me = addr.toLowerCase();
-    var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [] };
+    var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false };
     function ingest(rows, symbol, decimals, usdEach) {
+      // Etherscan-style rate-limit/NOTOK responses put a STRING in result
+      // ("Max rate limit reached"). That is a failed source, not an empty one.
+      if (rows && !Array.isArray(rows)) { out.sourceFailed = true; rows = []; }
       (rows || []).forEach(function (tx) {
         var t = ethTransfer(tx, me, symbol, decimals, usdEach);
         if (!t) return;
@@ -741,8 +744,10 @@
         out.txs.push(t);
       });
     }
+    if (ethRes && ethRes._failed) out.sourceFailed = true;
     ingest(ethRes && ethRes.result, 'ETH', 18, ethUsd || 0);
     tokenResults.forEach(function (tr) {
+      if (tr.d && tr.d._failed) out.sourceFailed = true;
       ingest(tr.d && tr.d.result, tr.tk.symbol, tr.tk.decimals, tr.tk.usd);
     });
     out.txs.sort(function (a, b) { return b.time - a.time; }); // newest first, across assets
@@ -760,7 +765,7 @@
       // stagger the requests ~400ms apart — a simultaneous burst trips the
       // API's rate limiter and used to produce a false "No activity" result
       var ethList = fetchJson(api + '?module=account&action=txlist&address=' + a +
-        '&sort=desc&page=1&offset=100', 20000).catch(function () { return { result: [] }; });
+        '&sort=desc&page=1&offset=100', 20000).catch(function () { return { result: [], _failed: true }; });
       var tokenLists = ETH_TOKENS.map(function (tk, i) {
         return new Promise(function (res) { setTimeout(res, 400 * (i + 1)); })
           .then(function () {
@@ -768,7 +773,7 @@
               '&address=' + a + '&sort=desc&page=1&offset=100', 20000);
           })
           .then(function (d) { return { tk: tk, d: d }; })
-          .catch(function () { return { tk: tk, d: { result: [] } }; });
+          .catch(function () { return { tk: tk, d: { result: [], _failed: true } }; });
       });
       return Promise.all([ethList].concat(tokenLists)).then(function (res) {
         return normalizeEthAll(res[0], res.slice(1), ethUsd);
@@ -1406,6 +1411,15 @@
     ])
       .then(function (res) {
         var data = res[0], price = res[1];
+        if (data.txCount === 0 && data.sourceFailed) {
+          // A data source failed or rate-limited us and we found nothing —
+          // NEVER report that as "no activity": it may be a false negative.
+          showError('The blockchain data source is busy right now.',
+            'Your address wasn\u2019t the problem — our data source limited the request ' +
+            '(this can happen when several scans run back-to-back). ' +
+            'Wait about a minute and PFLASH it again.');
+          return;
+        }
         if (data.txCount === 0) {
           showError(T('noActivity'),
             'This address exists in a valid format but has never sent or received ' +

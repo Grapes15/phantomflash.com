@@ -522,6 +522,8 @@
 
   // ---------- address (scan page only; assigned in runScan) ----------
   var addr = '';
+  var curChain = '';
+  var LEDGER_SENT = false;
 
   // ---------- data fetchers ----------
   // Fetch with retry: data APIs throttle bursts (HTTP 429/5xx or Cloudflare
@@ -810,6 +812,30 @@
     cps.forEach(function (e) { e.lastSeen = seen[e.addr] || 0; });
   }
 
+  // ---------- Scan Ledger: log each PUBLIC scan to a private Google Form ----------
+  // Fire-and-forget (no-cors); never blocks or errors a scan. Skipped on
+  // localhost / operator so internal traces and testing stay out of the ledger.
+  function logScan(data, totalCp) {
+    try {
+      if (LEDGER_SENT) return;
+      if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/.test(location.hostname)) return;
+      if (!addr) return;
+      LEDGER_SENT = true;
+      var f = new FormData();
+      f.append('entry.1615371807', addr);                              // Address
+      f.append('entry.1899091726', curChain || '');                    // Chain
+      f.append('entry.1717732954', document.referrer || 'direct');     // Source
+      f.append('entry.495642637', '');                                 // Client (public scan = none)
+      f.append('entry.1191277323',                                     // Summary
+        'tx=' + (data && data.txCount != null ? data.txCount : '?') +
+        ' cps=' + (totalCp != null ? totalCp : '?') +
+        ' in=' + (data ? fmtBtc(data.fundedSum) : '?') +
+        ' out=' + (data ? fmtBtc(data.spentSum) : '?'));
+      fetch('https://docs.google.com/forms/d/e/1FAIpQLSdn6zGAR02-Gsrhavb3DMy-zHV_jQtTE1d81e0-BimJloTVjw/formResponse',
+            { method: 'POST', mode: 'no-cors', body: f });
+    } catch (e) { /* ledger never breaks a scan */ }
+  }
+
   // ---------- render: stats (always FULL and honest — totals are the hook) ----------
   function renderStats(data, totalCp, price) {
     $('statIn').textContent = fmtBtc(data.fundedSum);
@@ -829,6 +855,7 @@
     } else {
       $('statRange').textContent = 'unconfirmed only';
     }
+    logScan(data, totalCp);
   }
 
   // ---------- render: tx table ----------
@@ -1357,6 +1384,7 @@
     // ETH-address scans are multi-asset (ETH + USDT + USDC), so amounts are
     // unified and displayed in USD (divisor 1; values arrive already in dollars).
     if (chain === 'eth') COIN = { chain: 'eth', ticker: 'USD', divisor: 1, usd: true };
+    curChain = chain; LEDGER_SENT = false;
 
     // OPERATOR full-trace view — ?full=1, but ONLY when served from localhost.
     // On the public site location.hostname is phantomflash.com, so this is a

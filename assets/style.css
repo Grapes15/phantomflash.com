@@ -862,3 +862,6 @@ html,body{max-width:100%;overflow-x:hidden}
 .footer-social{margin-top:14px;font-size:13px;color:var(--muted2)}
 .footer-social a{color:var(--muted);text-decoration:none;font-weight:700}
 .footer-social a:hover{color:var(--cyan)}
+
+/* scan-ledger disclosure note (under the wallet input) */
+.scan-ledger-note{margin-top:8px;font-size:12.5px;color:var(--muted);letter-spacing:.02em;text-align:center}

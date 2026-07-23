@@ -716,7 +716,7 @@
     if (isIn) { if (from && from !== me) cps.push({ addr: tx.from, sats: usd }); }
     else { if (to && to !== me) cps.push({ addr: tx.to, sats: usd }); }
     return {
-      txid: tx.hash,
+      txid: tx.hash || tx.transactionHash,
       time: Number(tx.timeStamp) || 0,
       confirmed: true,
       inSats: isIn ? usd : 0,
@@ -729,7 +729,7 @@
 
   // Merge native-ETH + token transfer lists into the shared normalized shape,
   // amounts in USD. ethUsd prices native ETH; stablecoins are valued at $1.
-  function normalizeEthAll(ethRes, tokenResults, ethUsd) {
+  function normalizeEthAll(ethRes, intRes, tokenResults, ethUsd) {
     var me = addr.toLowerCase();
     var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false };
     function ingest(rows, symbol, decimals, usdEach) {
@@ -746,6 +746,10 @@
     }
     if (ethRes && ethRes._failed) out.sourceFailed = true;
     ingest(ethRes && ethRes.result, 'ETH', 18, ethUsd || 0);
+    // Internal (contract-mediated) ETH transfers — smart wallets (ERC-4337) and
+    // sweeper contracts move ETH ONLY here; without this list they scan empty.
+    if (intRes && intRes._failed) out.sourceFailed = true;
+    ingest(intRes && intRes.result, 'ETH', 18, ethUsd || 0);
     tokenResults.forEach(function (tr) {
       if (tr.d && tr.d._failed) out.sourceFailed = true;
       ingest(tr.d && tr.d.result, tr.tk.symbol, tr.tk.decimals, tr.tk.usd);
@@ -775,8 +779,15 @@
           .then(function (d) { return { tk: tk, d: d }; })
           .catch(function () { return { tk: tk, d: { result: [], _failed: true } }; });
       });
-      return Promise.all([ethList].concat(tokenLists)).then(function (res) {
-        return normalizeEthAll(res[0], res.slice(1), ethUsd);
+      // internal transactions — staggered after the token lists
+      var intList = new Promise(function (res) { setTimeout(res, 400 * (ETH_TOKENS.length + 1)); })
+        .then(function () {
+          return fetchJson(api + '?module=account&action=txlistinternal&address=' + a +
+            '&sort=desc&page=1&offset=100', 20000);
+        })
+        .catch(function () { return { result: [], _failed: true }; });
+      return Promise.all([ethList, intList].concat(tokenLists)).then(function (res) {
+        return normalizeEthAll(res[0], res[1], res.slice(2), ethUsd);
       });
     });
   }

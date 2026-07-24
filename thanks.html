@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment received — Phantom Flash</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#06131b">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7J7GQM0MVP');
+  </script>
+</head>
+<body>
+<main style="max-width:680px;margin:0 auto;padding:64px 20px;text-align:center">
+  <h1 style="font-family:'Bangers',cursive;font-size:2.6rem;letter-spacing:.03em;margin-bottom:8px">Payment received. ⚡</h1>
+  <p id="thanksLine" style="font-size:1.15rem;line-height:1.6;margin:16px 0">
+    Your order is in. The PFLASH is already warming up.
+  </p>
+  <p style="line-height:1.6;opacity:.85">
+    A receipt from Stripe is on its way to your email. We'll be in touch from
+    <strong>loralee@irwinlawmn.com</strong> — if you don't see anything within one business day, check spam, then email us.
+  </p>
+  <p style="margin-top:32px">
+    <a class="btn primary" href="index.html">← Back to Phantom Flash</a>
+  </p>
+</main>
+<script>
+(function(){
+  'use strict';
+  var PRODUCTS = {
+    pflash: { name: 'PFLASH-IT Report',       value: 271 },
+    owl:    { name: 'Full Owlchained Report',  value: 2717.17 },
+    update: { name: 'Report Update',           value: 171 }
+  };
+  var q = new URLSearchParams(location.search);
+  var key = q.get('p') || 'pflash';
+  var p = PRODUCTS[key] || PRODUCTS.pflash;
+  var sid = q.get('sid') || ('pf-' + Date.now());
+
+  // personalize the line
+  var el = document.getElementById('thanksLine');
+  if (el && key === 'owl') el.textContent = 'Your Full Owlchained Report is in the queue — hand-built, every hop verified. Delivered in 5–7 business days.';
+  if (el && key === 'update') el.textContent = 'Your report update is in the queue. Same wallet, fresh trail.';
+
+  // fire GA4 purchase exactly once per checkout session
+  try {
+    var dedupeKey = 'pf_purchase_' + sid;
+    if (!localStorage.getItem(dedupeKey)) {
+      if (window.gtag) {
+        gtag('event', 'purchase', {
+          transaction_id: sid,
+          value: p.value,
+          currency: 'USD',
+          items: [{ item_id: key, item_name: p.name, price: p.value, quantity: 1 }]
+        });
+      }
+      localStorage.setItem(dedupeKey, '1');
+    }
+  } catch (e) { /* private mode etc. — never break the page */ }
+})();
+</script>
+</body>
+</html>

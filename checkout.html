@@ -199,7 +199,7 @@
         <div class="label">Order summary</div>
         <div id="prodPick" style="display:flex;gap:10px;margin:14px 0 8px">
           <button type="button" class="pp-opt" data-p="pflash" style="flex:1;cursor:pointer;padding:12px 8px;border-radius:10px;border:2px solid #27c4de;background:rgba(39,196,222,.08);color:inherit;font-family:inherit;text-align:center;line-height:1.5">⚡ PFLASH-IT<br><b>$271</b><br><small style="opacity:.75">machine speed · same day</small></button>
-          <button type="button" class="pp-opt" data-p="owl" style="flex:1;cursor:pointer;padding:12px 8px;border-radius:10px;border:2px solid transparent;background:rgba(255,255,255,.04);color:inherit;font-family:inherit;text-align:center;line-height:1.5">🦉 Full Owlchained<br><b>$2,717.17</b><br><small style="opacity:.75">hand-built + human call</small></button>
+          
         </div>
         <h3 style="margin:10px 0 4px" id="prodName">PFLASH-IT Report</h3>
         <div class="price" style="font-size:44px;margin:4px 0 14px" id="prodPrice">$271</div>
@@ -268,10 +268,8 @@
       </div>
 
       <div class="callout" style="margin-top:14px;border-left-color:#f2a950">
-        <strong>Building a case?</strong> The <strong>Full Owlchained Report ($2,717.17)</strong> is the
-        hand-built analysis — every hop verified, a plain-language case narrative, an evidence
-        package formatted for IC3, FBI, Secret Service, and state law enforcement, and
-        <strong>a call with a real human</strong>. Select it in the order summary above, or email
+        <strong>Building a case for law enforcement?</strong> Larger hand-built casework is
+        available by arrangement — email
         <a href="mailto:loralee@irwinlawmn.com">loralee@irwinlawmn.com</a>.
       </div>
     </div>
@@ -289,6 +287,7 @@
       Phantom Flash is an independent blockchain analysis service and is not affiliated with any
       cryptocurrency wallet, exchange, or software product.
     </p>
+    <p>Phantom Flash is owned and operated in the United States.</p>
     <p>© 2026 Phantom Flash. All rights reserved.</p>
   </div>
 </footer>
@@ -514,7 +513,7 @@
   window.PF_CRYPTO_REFRESH = function(){ var a = document.querySelector('.cp-coin.active'); if (a) render(a.getAttribute('data-c')); };
 })();
 
-// ---- Two-product selector: PFLASH-IT ($271) vs Full Owlchained ($2,717.17) ----
+// ---- Product config: PFLASH-IT ($271) ----
 (function(){
   'use strict';
   var PRODUCTS = {
@@ -530,18 +529,6 @@
         '<strong>Private report account</strong> — add documents free for 48 hours; updates after that are $171 each'
       ]
     },
-    owl: {
-      name: 'Full Owlchained Report', usd: 2717.17, price: '$2,717.17',
-      link: 'https://buy.stripe.com/4gM5kF7Q6efK60d3SGaAw02',
-      bullets: [
-        '<strong>Everything in the PFLASH-IT Report</strong>, plus:',
-        'Hand-built tracing workup — every hop verified, whatever the truth turns out to be',
-        'The Story — your money\'s journey as a plain-language case narrative',
-        'Evidence package formatted for IC3, FBI, Secret Service, and state law enforcement',
-        '<strong>A call with a real human</strong> — walk the findings and next steps together',
-        'Delivered in 5–7 business days'
-      ]
-    }
   };
   function select(key){
     var p = PRODUCTS[key] || PRODUCTS.pflash;
@@ -564,8 +551,7 @@
   [].forEach.call(document.querySelectorAll('.pp-opt'), function(b){
     b.addEventListener('click', function(){ select(b.getAttribute('data-p')); });
   });
-  var q = new URLSearchParams(location.search).get('product');
-  select(q === 'owl' ? 'owl' : 'pflash');
+  select('pflash');
 })();
 </script>
 <script>

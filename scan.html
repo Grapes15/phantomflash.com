@@ -86,7 +86,7 @@
       sized by volume, each with a name, a resident, and a history written by your own transactions.
       Drag to orbit, scroll to zoom, <strong>click any planet</strong> to fly to it: you'll get the
       hard numbers <em>and</em> the planet's story. <strong>Some worlds are already charted. The
-      shrouded ones — and everything beyond — unlock with the Full Owlchained Report.</strong>
+      shrouded ones — and everything beyond — unlock with the PFLASH-IT Report.</strong>
       <span id="capNote" style="display:none;color:var(--amber)">Showing top counterparties by volume.</span>
     </p>
     <div class="stage3d" id="stage3d">
@@ -112,7 +112,7 @@
     <!-- LOCKED FINDINGS -->
     <h2 class="section-title" style="font-size:30px;margin-top:44px">Deep-trace findings <span style="color:var(--amber);font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)">🔒 LOCKED</span></h2>
     <p class="section-sub" style="margin-bottom:14px">
-      The free PFLASH stops at the first hop. Phantom Flash sees the rest — the Full Owlchained Report
+      The free PFLASH stops at the first hop. Phantom Flash sees the rest — the PFLASH-IT Report
       follows your money through every hop after that: relay wallets, consolidation hubs, the
       exchanges and services where it actually landed.
     </p>
@@ -146,9 +146,8 @@
     <!-- CTA -->
     <div class="cta-band">
       <h2>You've seen the first hop. Phantom Flash sees the rest.</h2>
-      <p>The PFLASH-IT Report follows your money through every hop at machine speed — one upload, delivered fast, $271. Building a case? The Full Owlchained Report ($2,717.17) adds the hand-built analysis, evidence package, and a call with a real human. Time matters — crypto moves in days, not months.</p>
+      <p>The PFLASH-IT Report follows your money through every hop at machine speed — one upload, delivered fast, $271. Time matters — crypto moves in days, not months.</p>
       <a class="btn primary big" id="unlockBtn2" href="checkout.html">Get the PFLASH-IT Report — $271 →</a>
-      <p style="margin-top:14px;font-size:13px;color:var(--muted2)">Need the full case file? <a href="checkout.html?product=owl" id="owlLink2" style="color:#f2a950;font-weight:700">Go Full Owlchained — $2,717.17 →</a></p>
     </div>
 
     <!-- RECENT TRANSACTIONS -->
@@ -174,17 +173,17 @@
       Phantom Flash is an independent blockchain analysis service and is not affiliated with any
       cryptocurrency wallet, exchange, or software product.
     </p>
+    <p>Phantom Flash is owned and operated in the United States.</p>
     <p>© 2026 Phantom Flash. All rights reserved.</p>
   </div>
 </footer>
 
-<script src="assets/scan.js?v=20260723a"></script>
+<script src="assets/scan.js?v=20260725a"></script>
 <script>
 /* GA4 key-event wiring */
 (function(){
   function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
   var u=document.getElementById('unlockBtn2'); if(u) u.addEventListener('click', function(){ track('unlock_click',{product:'pflash_it', value:271, currency:'USD'}); });
-  var o=document.getElementById('owlLink2'); if(o) o.addEventListener('click', function(){ track('unlock_click',{product:'owlchained', value:2717.17, currency:'USD'}); });
 })();
 </script>
 </body>

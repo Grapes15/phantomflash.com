@@ -963,7 +963,7 @@
       '<div class="nc-rows" style="margin-bottom:12px"><div class="r"><span class="k">' + esc(T('bagShare')) + '</span>' +
       '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">LOCKED — FULL REPORT</div>' +
-      '<p>A first-hop wallet Phantom Flash has already charted. The free scan stops at the first hop — the Full Owlchained Report follows it onward: where the money went next, and the exchange or service where it landed.</p></div>' +
+      '<p>A first-hop wallet Phantom Flash has already charted. The free scan stops at the first hop — the PFLASH-IT Report follows it onward: where the money went next, and the exchange or service where it landed.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="' + esc(curCheckout) + '">' + T('payCta') + '</a>';
   }
 

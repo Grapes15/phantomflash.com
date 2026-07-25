@@ -114,7 +114,7 @@
       <span><span class="dot">⚡</span> Live blockchain data — nothing simulated</span>
       <span><span class="dot">⚡</span> Real wallets. Real transactions. Real answers.</span>
       <span><span class="dot">⚡</span> Reports built for exchange &amp; law-enforcement escalation</span>
-      <span><span class="dot">⚡</span> <a href="#report" style="color:inherit;text-decoration:none"><strong>PFLASH-IT Report — $271</strong> · <strong>Full Owlchained — $2,717.17</strong></a></span>
+      <span><span class="dot">⚡</span> <a href="#report" style="color:inherit;text-decoration:none"><strong>PFLASH-IT Report — $271</strong></a></span>
     </div>
   </div>
 
@@ -148,7 +148,7 @@
       <div class="card halftone">
         <div class="num">STEP 03</div>
         <h3>Choose your report</h3>
-        <p>Need it now? The PFLASH-IT Report ($271) traces your money at machine speed from one upload. Building a case? The Full Owlchained Report ($2,717.17) is the hand-built analysis — evidence package, case narrative, and a call with a real human.</p>
+        <p>The PFLASH-IT Report ($271) traces your money through every hop at machine speed from one upload — interactive web report, tracing board, exchanges named. Most reports delivered same day.</p>
       </div>
     </div>
   </section>
@@ -186,12 +186,11 @@
 
   <!-- THE REPORTS — two products, front and center -->
   <section class="block wrap" id="report">
-    <h2 class="section-title">Two reports. One truth.</h2>
+    <h2 class="section-title">One report. One truth.</h2>
     <p class="section-sub">
-      Need the answer <em>now</em>? PFLASH-IT. Building a case? Go Full Owlchained.
-      Same chain, same truth — you choose the depth.
+      Your money left a trail on a public ledger. The report reads it — every hop, at machine speed.
     </p>
-    <div class="grid cols-2">
+    <div class="grid cols-2" style="grid-template-columns:1fr;max-width:640px;margin:0 auto">
       <div class="price-card" id="pfCard">
         <div class="label">⚡ PFLASH-IT Report</div>
         <div class="price">$271</div>
@@ -205,20 +204,6 @@
           <li>$171 per update as your case develops</li>
         </ul>
         <a class="btn primary big" href="checkout.html?product=pflash">PFLASH-IT — $271 →</a>
-      </div>
-      <div class="price-card" id="owlCard">
-        <div class="label">🦉 Full Owlchained Report</div>
-        <div class="price">$2,717.17</div>
-        <p class="pc-tag" style="font-weight:700;margin:2px 0 14px">The full analysis — built by hand, chained down.</p>
-        <ul>
-          <li><strong>Everything in the PFLASH-IT Report</strong>, plus:</li>
-          <li>Hand-built tracing workup — every hop verified, whatever the truth turns out to be</li>
-          <li>The Story — your money's journey as a plain-language case narrative</li>
-          <li>Evidence package formatted for IC3, FBI, Secret Service, and state law enforcement</li>
-          <li><strong>A call with a real human</strong> — walk the findings and next steps together</li>
-          <li>Delivered in 5–7 business days</li>
-        </ul>
-        <a class="btn primary big" href="checkout.html?product=owl">Go Full Owlchained — $2,717.17 →</a>
       </div>
     </div>
     <div class="grid cols-3" style="margin-top:18px">
@@ -252,7 +237,7 @@
   <section class="block wrap sample-report" id="sample">
     <h2 class="section-title" id="srTitle">See exactly what you get</h2>
     <p class="section-sub" id="srSub">
-      Every Full Owlchained Report is a private interactive web report — not a PDF attachment.
+      Every PFLASH-IT Report is a private interactive web report — not a PDF attachment.
       Here’s the actual structure, shown with a fictional case. Yours is built from your wallet’s real trail.
     </p>
     <div class="sr-deck">
@@ -292,10 +277,10 @@
         <div class="sr-mock">■ IC3 narrative · ■ TX appendix (38 txids)<br>■ exchange escalation letter · ■ timeline</div>
       </div>
     </div>
-    <p class="sr-note" id="srNote">Sample shown with fictional data. The PFLASH-IT Report ($271) delivers the tracing map, wallet inventory, and key findings — machine-built at PFLASH speed. The Story and the Evidence Package come with the Full Owlchained Report.</p>
+    <p class="sr-note" id="srNote">Sample shown with fictional data. The PFLASH-IT Report ($271) delivers the tracing map, wallet inventory, and key findings — machine-built at PFLASH speed.</p>
     <div class="sr-cta">
-      <p class="lead-line" id="srLead">This is what <span class="money">$2,717.17</span> buys.</p>
-      <a class="btn primary big" href="checkout.html?product=owl" id="srCta">Get my report →</a>
+      <p class="lead-line" id="srLead">This is what <span class="money">$271</span> buys.</p>
+      <a class="btn primary big" href="checkout.html?product=pflash" id="srCta">Get my report →</a>
     </div>
   </section>
 
@@ -335,6 +320,7 @@
       Phantom Flash is an independent blockchain analysis service and is not affiliated with any
       cryptocurrency wallet, exchange, or software product.
     </p>
+    <p>Phantom Flash is owned and operated in the United States.</p>
     <p>© 2026 Phantom Flash. All rights reserved.</p>
   </div>
 </footer>
@@ -358,7 +344,7 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
 });
 </script>
-<script src="assets/scan.js?v=20260723a"></script>
+<script src="assets/scan.js?v=20260725a"></script>
 <script>
 /* GA4 key-event wiring */
 (function(){
@@ -368,7 +354,7 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
     var v=(document.getElementById('addrInput')||{value:''}).value.trim();
     track('scan_started',{address_kind: v.indexOf('0x')===0?'eth':'btc_or_other'});
   });
-  document.querySelectorAll('#pfCard .btn, #owlCard .btn, #srCta, .cta-band .btn').forEach(function(b){
+  document.querySelectorAll('#pfCard .btn, #srCta, .cta-band .btn').forEach(function(b){
     b.addEventListener('click', function(){ track('checkout_cta_click',{cta:(b.id||b.textContent.trim().slice(0,40))}); });
   });
 })();

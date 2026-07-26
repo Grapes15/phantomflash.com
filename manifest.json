@@ -1,0 +1,17 @@
+{
+  "name": "Phantom Flash — Find Your Crypto",
+  "short_name": "PFLASH",
+  "description": "PFLASH a wallet — see where your crypto actually went. Free 60-second on-chain scan, rendered as an interactive universe.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#06131b",
+  "theme_color": "#06131b",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

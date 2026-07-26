@@ -6,6 +6,10 @@
 <title>Phantom Flash Owlchained Report — Is Your Crypto Investment Real? PFLASH It.</title>
 <meta name="description" content="Is your crypto investment real? PFLASH the wallet — a free 60-second on-chain scan that shows where your money actually lives on the blockchain. Verify before you send another dollar.">
 <meta name="theme-color" content="#06131b">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFLASH">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Phantom Flash Owlchained Report — Is Your Crypto Investment Real?">
 <meta property="og:description" content="PFLASH the wallet — a free 60-second on-chain scan that shows where your money actually lives on the blockchain. Verify before you send another dollar.">
@@ -358,6 +362,11 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
     b.addEventListener('click', function(){ track('checkout_cta_click',{cta:(b.id||b.textContent.trim().slice(0,40))}); });
   });
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
 </script>
 </body>
 </html>

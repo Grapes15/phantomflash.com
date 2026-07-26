@@ -6,6 +6,10 @@
 <title>Wallet PFLASHED — Phantom Flash Owlchained Report</title>
 <meta name="description" content="Your wallet, PFLASHED: a live on-chain scan rendered as an interactive 3D system. See where your money actually lives — free, in seconds.">
 <meta name="theme-color" content="#06131b">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFLASH">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Wallet PFLASHED — Phantom Flash Owlchained Report">
 <meta property="og:description" content="A live on-chain scan rendered as an interactive 3D system. See where your money actually lives — free, in seconds.">
@@ -185,6 +189,11 @@
   function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
   var u=document.getElementById('unlockBtn2'); if(u) u.addEventListener('click', function(){ track('unlock_click',{product:'pflash_it', value:271, currency:'USD'}); });
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
 </script>
 </body>
 </html>

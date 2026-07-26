@@ -6,6 +6,10 @@
 <title>Sample Report — Operation Nightfall — Phantom Flash Owlchained Report</title>
 <meta name="description" content="See exactly what a Full Owlchained Report looks like — a complete sample analysis, shown with a fictional case: the story, the tracing map, the wallet inventory, the findings, and the evidence package.">
 <meta name="theme-color" content="#06131b">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFLASH">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Sample Report — What a Full Owlchained Report Looks Like">
 <meta property="og:description" content="A complete sample analysis, shown with a fictional case — the story, the tracing map, the wallet inventory, the findings, and the evidence package.">
@@ -137,3 +141,9 @@
         <text x="500" y="131" fill="#9fd8e6" text-anchor="middle">bc1qte…9pfa</text>
         <rect x="430" y="168" width="140" height="54" rx="10" fill="#0b1d29" stroke="#7e93b3" stroke-width="1.4"/>
         <text x="500" y="191" fill="#e6f1ff" text-anchor="middle" font-weight="bold">RELAY C (peel)</text>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
+</script>

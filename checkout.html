@@ -6,6 +6,10 @@
 <title>Get Your Report — Phantom Flash Owlchained Report</title>
 <meta name="description" content="Put Phantom Flash on the trail: order the Full Owlchained Report — a complete multi-hop blockchain trace of your funds, with an evidence package and consult call.">
 <meta name="theme-color" content="#06131b">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFLASH">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Get Your Report — Phantom Flash Owlchained Report">
 <meta property="og:description" content="Order the Full Owlchained Report — a complete multi-hop blockchain trace of your funds, with an evidence package and consult call.">
@@ -570,6 +574,11 @@
   var lf=document.getElementById('leadForm');
   if(lf) lf.addEventListener('submit', function(){ var o=ord(); track('generate_lead',{product:o.key, value:o.usd, currency:'USD'}); });
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
 </script>
 </body>
 </html>

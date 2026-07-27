@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Sky — design review</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;min-width:0}
+  body{margin:0;background:#FFF3E9;color:#2B2320;font:15px/1.6 Inter,system-ui,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 60px}
+  h1{font-family:Bangers,cursive;font-size:clamp(28px,6vw,46px);margin:0 0 4px;letter-spacing:.02em}
+  h2{font-family:Bangers,cursive;font-size:26px;margin:34px 0 12px;letter-spacing:.03em}
+  .sub{color:#7A6250;margin:0 0 22px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;background:#fff;border:1.5px solid #F0D6C2;border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #F5E4D6;vertical-align:top}
+  th{background:#FFEEDF;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:#7A6250}
+  tr:last-child td{border-bottom:0}
+  .old{color:#B08A72;text-decoration:line-through}
+  .new{font-weight:800;color:#0B7F8A}
+  /* ---------- the sky ---------- */
+  .skywrap{border:3px solid #2B1D14;border-radius:14px;overflow:hidden;box-shadow:8px 8px 0 rgba(0,0,0,.22);background:#04070f}
+  .skyhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:#08111c;color:#cfe6f2;font:700 12px/1 Inter;letter-spacing:.1em;text-transform:uppercase;flex-wrap:wrap}
+  .skyhead .live{color:#27c4de}
+  svg{display:block;width:100%;height:auto}
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px}
+  .lg{background:#fff;border:1.5px solid #F0D6C2;border-radius:12px;padding:12px 14px;display:flex;gap:11px;align-items:flex-start}
+  .lg svg{width:44px;height:44px;flex:0 0 44px}
+  .lg b{display:block;font-size:14.5px}
+  .lg span{font-size:12.8px;color:#7A6250;line-height:1.45}
+  .note{border-left:4px solid #0FA3B1;background:#EAF7F8;border-radius:0 10px 10px 0;padding:13px 16px;margin:18px 0;font-size:14.5px}
+  .note.amber{border-left-color:#D97A2E;background:#FFF3E2}
+  code{background:#FFEEDF;padding:1px 5px;border-radius:4px;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>THE SKY — design review</h1>
+  <p class="sub">Rendered from <strong>Ken Kwong's real trace</strong> — every figure below is live on-chain data, not a mockup dataset.</p>
+
+  <h2>1 · The renaming</h2>
+  <table>
+    <tr><th>Was</th><th>Now</th><th>Why</th></tr>
+    <tr><td class="old">universe</td><td class="new">sky</td><td>A universe is sealed and solitary. <strong>Everyone stands under the same sky</strong> — the word does the shared-map work for free.</td></tr>
+    <tr><td class="old">planets</td><td class="new">satellites &amp; craft</td><td>Wallets aren't worlds — they're objects moving cargo. Opens up stations, freighters, UFOs.</td></tr>
+    <tr><td class="old">the sun (your wallet)</td><td class="new">Earth — where you stand</td><td>You view the sky <em>from</em> your own money. Zooming in = ascending.</td></tr>
+    <tr><td class="old">"shrouded worlds"</td><td class="new">UFO — unidentified</td><td>Literally accurate, and it makes the locked part <em>desirable</em>.</td></tr>
+  </table>
+
+  <h2>2 · Your sky — Kwong, ETH</h2>
+  <div class="skywrap">
+    <div class="skyhead">
+      <span><span class="live">●</span> Your sky · 14 movements · $602,676 out</span>
+      <span>drag to orbit · pinch to ascend</span>
+    </div>
+    <svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg" role="img"
+         aria-label="Kwong's sky: Earth at bottom, a UFO funding source, three freighters, a mothership hub, and a ghosted Chase station">
+      <defs>
+        <radialGradient id="earthG" cx="50%" cy="35%">
+          <stop offset="0%" stop-color="#4fd6ff"/><stop offset="70%" stop-color="#1272a8"/><stop offset="100%" stop-color="#06304a"/>
+        </radialGradient>
+        <radialGradient id="glow" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#27c4de" stop-opacity=".55"/><stop offset="100%" stop-color="#27c4de" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="ufoG" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#ffd98a"/><stop offset="100%" stop-color="#c8801a"/>
+        </radialGradient>
+        <linearGradient id="hullG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#9fb7c6"/><stop offset="100%" stop-color="#5b7488"/>
+        </linearGradient>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#ff8a5c"/>
+        </marker>
+        <marker id="arrowIn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#3ddc97"/>
+        </marker>
+      </defs>
+
+      <!-- starfield -->
+      <rect width="1000" height="620" fill="#04070f"/>
+      <g fill="#ffffff">
+        <circle cx="60" cy="70" r="1.1" opacity=".7"/><circle cx="150" cy="150" r="1" opacity=".5"/>
+        <circle cx="240" cy="60" r="1.3" opacity=".8"/><circle cx="330" cy="120" r="1" opacity=".45"/>
+        <circle cx="470" cy="52" r="1.2" opacity=".6"/><circle cx="560" cy="130" r="1" opacity=".5"/>
+        <circle cx="700" cy="70" r="1.4" opacity=".75"/><circle cx="820" cy="140" r="1" opacity=".5"/>
+        <circle cx="905" cy="60" r="1.2" opacity=".65"/><circle cx="960" cy="210" r="1" opacity=".45"/>
+        <circle cx="120" cy="300" r="1" opacity=".4"/><circle cx="880" cy="330" r="1.1" opacity=".5"/>
+        <circle cx="420" cy="230" r="1" opacity=".35"/><circle cx="640" cy="260" r="1" opacity=".4"/>
+      </g>
+      <!-- orbital arcs (the ascent) -->
+      <g fill="none" stroke="#27c4de" opacity=".13">
+        <ellipse cx="500" cy="600" rx="300" ry="120"/>
+        <ellipse cx="500" cy="600" rx="430" ry="220"/>
+        <ellipse cx="500" cy="600" rx="560" ry="330"/>
+      </g>
+
+      <!-- ============ FLOWS ============ -->
+      <!-- UFO -> Earth (money IN, green) -->
+      <path d="M212 168 C 300 300, 400 420, 476 520" stroke="#3ddc97" stroke-width="3.4" fill="none" opacity=".85" marker-end="url(#arrowIn)"/>
+      <text x="238" y="300" fill="#3ddc97" font-family="Inter" font-size="14" font-weight="800">+$602,676 in</text>
+      <text x="238" y="320" fill="#7fb8a2" font-family="Inter" font-size="12">155.56 ETH · 4 deposits</text>
+
+      <!-- Earth -> freighters (money OUT, coral) -->
+      <path d="M524 520 C 590 460, 640 400, 676 350" stroke="#ff8a5c" stroke-width="4.6" fill="none" opacity=".9" marker-end="url(#arrow)"/>
+      <text x="600" y="452" fill="#ff8a5c" font-family="Inter" font-size="13.5" font-weight="800">$431,900</text>
+      <path d="M520 512 C 560 452, 566 392, 556 330" stroke="#ff8a5c" stroke-width="2.6" fill="none" opacity=".75" marker-end="url(#arrow)"/>
+      <text x="470" y="404" fill="#ff8a5c" font-family="Inter" font-size="12.5" font-weight="700">$140,600</text>
+      <path d="M478 512 C 420 452, 372 404, 336 366" stroke="#ff8a5c" stroke-width="2.1" fill="none" opacity=".7" marker-end="url(#arrow)"/>
+      <text x="330" y="440" fill="#ff8a5c" font-family="Inter" font-size="12.5" font-weight="700">$29,700</text>
+
+      <!-- freighters -> mothership (convergence!) -->
+      <path d="M700 328 C 760 280, 800 240, 828 206" stroke="#f0c560" stroke-width="3" fill="none" opacity=".8" stroke-dasharray="7 5"/>
+      <path d="M566 308 C 660 250, 760 216, 806 200" stroke="#f0c560" stroke-width="2.4" fill="none" opacity=".7" stroke-dasharray="7 5"/>
+      <text x="640" y="196" fill="#f0c560" font-family="Inter" font-size="13" font-weight="800">two paths reconverge →</text>
+
+      <!-- ============ OBJECTS ============ -->
+      <!-- EARTH = your wallet -->
+      <circle cx="500" cy="600" r="150" fill="url(#glow)"/>
+      <circle cx="500" cy="600" r="104" fill="url(#earthG)" stroke="#7fe6ff" stroke-width="2"/>
+      <path d="M430 560 q30 -14 62 -4 t70 -6" stroke="#8fe9c0" stroke-width="7" fill="none" opacity=".55" stroke-linecap="round"/>
+      <path d="M418 596 q46 -10 88 6 t78 -2" stroke="#8fe9c0" stroke-width="6" fill="none" opacity=".4" stroke-linecap="round"/>
+      <text x="500" y="556" fill="#eaf8ff" font-family="Bangers,cursive" font-size="27" text-anchor="middle">YOUR WALLET</text>
+      <text x="500" y="578" fill="#a9d8ea" font-family="ui-monospace,Menlo,monospace" font-size="11.5" text-anchor="middle">0x2dA5…1f19</text>
+      <text x="500" y="596" fill="#7fe6ff" font-family="Inter" font-size="11.5" font-weight="800" text-anchor="middle">EARTH — where you stand</text>
+
+      <!-- UFO = unidentified funding contract -->
+      <g transform="translate(180,150)">
+        <ellipse cx="0" cy="18" rx="52" ry="9" fill="#c8801a" opacity=".25"/>
+        <ellipse cx="0" cy="6" rx="46" ry="13" fill="url(#ufoG)" stroke="#ffe9b8" stroke-width="1.6"/>
+        <path d="M-22 -2 a22 16 0 0 1 44 0 z" fill="#ffeec2" opacity=".92"/>
+        <circle cx="-26" cy="9" r="2.6" fill="#fff"/><circle cx="0" cy="11" r="2.6" fill="#fff"/><circle cx="26" cy="9" r="2.6" fill="#fff"/>
+        <text x="0" y="-26" fill="#f0c560" font-family="Bangers,cursive" font-size="23" text-anchor="middle">UFO</text>
+        <text x="0" y="40" fill="#ffdf9e" font-family="Inter" font-size="12" font-weight="800" text-anchor="middle">UNIDENTIFIED SOURCE</text>
+        <text x="0" y="56" fill="#c2a878" font-family="ui-monospace,Menlo,monospace" font-size="10.5" text-anchor="middle">0xa9d1e08c…3e43</text>
+        <text x="0" y="72" fill="#f0c560" font-family="Inter" font-size="11" font-weight="700" text-anchor="middle">🔒 identified in the full report</text>
+      </g>
+
+      <!-- FREIGHTER 1 (big) -->
+      <g transform="translate(690,338)">
+        <rect x="-42" y="-11" width="84" height="22" rx="7" fill="url(#hullG)" stroke="#cfe6f2" stroke-width="1.4"/>
+        <rect x="-56" y="-5" width="14" height="10" rx="3" fill="#8fa9bd"/>
+        <rect x="42" y="-7" width="12" height="14" rx="3" fill="#6d879b"/>
+        <circle cx="-18" cy="0" r="3" fill="#27c4de"/><circle cx="4" cy="0" r="3" fill="#27c4de"/><circle cx="26" cy="0" r="3" fill="#27c4de"/>
+        <text x="0" y="-22" fill="#cfe6f2" font-family="Inter" font-size="12.5" font-weight="800" text-anchor="middle">FREIGHTER</text>
+        <text x="0" y="30" fill="#9fb7c6" font-family="Inter" font-size="11" text-anchor="middle">held 21 min, moved on</text>
+      </g>
+      <!-- FREIGHTER 2 -->
+      <g transform="translate(556,318)">
+        <rect x="-30" y="-8" width="60" height="16" rx="5" fill="url(#hullG)" stroke="#cfe6f2" stroke-width="1.2"/>
+        <circle cx="-10" cy="0" r="2.4" fill="#27c4de"/><circle cx="10" cy="0" r="2.4" fill="#27c4de"/>
+        <text x="0" y="-17" fill="#cfe6f2" font-family="Inter" font-size="11.5" font-weight="800" text-anchor="middle">FREIGHTER</text>
+      </g>
+      <!-- FREIGHTER 3 -->
+      <g transform="translate(322,372)">
+        <rect x="-26" y="-7" width="52" height="14" rx="5" fill="url(#hullG)" stroke="#cfe6f2" stroke-width="1.2"/>
+        <circle cx="-8" cy="0" r="2.2" fill="#27c4de"/><circle cx="8" cy="0" r="2.2" fill="#27c4de"/>
+        <text x="0" y="-16" fill="#cfe6f2" font-family="Inter" font-size="11.5" font-weight="800" text-anchor="middle">FREIGHTER</text>
+      </g>
+
+      <!-- MOTHERSHIP = convergence hub -->
+      <g transform="translate(852,180)">
+        <circle cx="0" cy="0" r="62" fill="#f0c560" opacity=".07"/>
+        <path d="M0 -40 L36 -20 L36 20 L0 40 L-36 20 L-36 -20 Z" fill="#3a2f1c" stroke="#f0c560" stroke-width="2.4"/>
+        <path d="M0 -22 L20 -11 L20 11 L0 22 L-20 11 L-20 -11 Z" fill="#5a4726" stroke="#f0c560" stroke-width="1.2" opacity=".9"/>
+        <circle cx="0" cy="0" r="6" fill="#f0c560"/>
+        <circle cx="-26" cy="-14" r="2.4" fill="#ffe9b8"/><circle cx="26" cy="-14" r="2.4" fill="#ffe9b8"/>
+        <circle cx="-26" cy="14" r="2.4" fill="#ffe9b8"/><circle cx="26" cy="14" r="2.4" fill="#ffe9b8"/>
+        <text x="0" y="-52" fill="#f0c560" font-family="Bangers,cursive" font-size="24" text-anchor="middle">MOTHERSHIP</text>
+        <text x="0" y="60" fill="#ffdf9e" font-family="Inter" font-size="11.5" font-weight="800" text-anchor="middle">COLLECTION HUB</text>
+        <text x="0" y="76" fill="#c2a878" font-family="Inter" font-size="11" text-anchor="middle">where 2 of your paths met</text>
+      </g>
+
+      <!-- GHOSTED STATION = Chase, needs the client's documents -->
+      <g transform="translate(120,486)" opacity=".62">
+        <circle cx="0" cy="0" r="40" fill="none" stroke="#9fb7c6" stroke-width="2.2" stroke-dasharray="6 6"/>
+        <circle cx="0" cy="0" r="15" fill="none" stroke="#9fb7c6" stroke-width="2" stroke-dasharray="4 4"/>
+        <line x1="-40" y1="0" x2="-15" y2="0" stroke="#9fb7c6" stroke-width="2" stroke-dasharray="4 4"/>
+        <line x1="15" y1="0" x2="40" y2="0" stroke="#9fb7c6" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="0" y="-52" fill="#cfe6f2" font-family="Bangers,cursive" font-size="21" text-anchor="middle">CHASE BANK</text>
+        <text x="0" y="60" fill="#9fb7c6" font-family="Inter" font-size="11.5" font-weight="800" text-anchor="middle">SPACE STATION</text>
+        <text x="0" y="76" fill="#8aa3b2" font-family="Inter" font-size="10.8" text-anchor="middle">not on the blockchain —</text>
+        <text x="0" y="90" fill="#f2a950" font-family="Inter" font-size="10.8" font-weight="700" text-anchor="middle">upload your statement to place it</text>
+      </g>
+      <path d="M162 500 C 260 530, 380 560, 400 578" stroke="#9fb7c6" stroke-width="2" stroke-dasharray="5 6" fill="none" opacity=".5"/>
+    </svg>
+  </div>
+
+  <div class="note amber">
+    <strong>Provenance is visible, as you asked.</strong> Solid objects with solid flow lines are
+    <strong>verified on-chain by us</strong>. The <strong>dashed</strong> Chase station is
+    <strong>client-documented</strong> — it isn't on the blockchain and can only be placed from the
+    client's own statement. The app never blends the two, and neither will the report.
+  </div>
+
+  <h2>3 · The craft — every type read from real behavior</h2>
+  <div class="legend">
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="13" fill="#1272a8" stroke="#7fe6ff" stroke-width="1.6"/><circle cx="22" cy="22" r="20" fill="none" stroke="#27c4de" opacity=".35"/></svg>
+      <div><b>Earth — you</b><span>The wallet you flashed. You stand on your own money and look up.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><rect x="16" y="17" width="12" height="10" rx="2" fill="#9fb7c6" stroke="#2B2320" stroke-width="1"/><rect x="4" y="19" width="10" height="6" fill="#5b7488"/><rect x="30" y="19" width="10" height="6" fill="#5b7488"/></svg>
+      <div><b>Satellite</b><span>An ordinary wallet in your orbit. Normal traffic, nothing unusual.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><rect x="8" y="18" width="28" height="9" rx="3" fill="#5b7488" stroke="#2B2320" stroke-width="1"/><circle cx="16" cy="22" r="2" fill="#27c4de"/><circle cx="28" cy="22" r="2" fill="#27c4de"/></svg>
+      <div><b>Freighter</b><span>A relay. Money lands and leaves within minutes — hauling cargo onward to put distance behind it.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><path d="M22 8 L34 15 L34 29 L22 36 L10 29 L10 15 Z" fill="#3a2f1c" stroke="#D97A2E" stroke-width="1.8"/><circle cx="22" cy="22" r="4" fill="#D97A2E"/></svg>
+      <div><b>Mothership</b><span>A collection hub — many small craft return here. When two of your own paths reconverge on one, that's a single operator.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><ellipse cx="22" cy="24" rx="17" ry="5.5" fill="#E8A33D" stroke="#2B2320" stroke-width="1"/><path d="M14 21 a8 6 0 0 1 16 0 z" fill="#ffeec2" stroke="#2B2320" stroke-width=".8"/></svg>
+      <div><b>UFO</b><span><strong>Unidentified.</strong> A contract or operator we can't name yet. Naming it is exactly what the paid report does.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="15" fill="none" stroke="#0B7F8A" stroke-width="2.4"/><circle cx="22" cy="22" r="6" fill="none" stroke="#0B7F8A" stroke-width="2"/><line x1="7" y1="22" x2="16" y2="22" stroke="#0B7F8A" stroke-width="2"/><line x1="28" y1="22" x2="37" y2="22" stroke="#0B7F8A" stroke-width="2"/></svg>
+      <div><b>Space station</b><span>An institution — exchange, bank, brokerage. Keeps identity records and <strong>answers legal process.</strong> The actionable object.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><g transform="rotate(24 22 22)" opacity=".55"><rect x="16" y="18" width="12" height="9" rx="2" fill="#4a5a68" stroke="#2B2320" stroke-width="1"/><rect x="5" y="20" width="9" height="5" fill="#3b4854"/></g></svg>
+      <div><b>Derelict</b><span>Dormant — nothing has moved in over a year. Parked, not gone. The sky notices the moment it wakes.</span></div>
+    </div>
+    <div class="lg">
+      <svg viewBox="0 0 44 44"><ellipse cx="22" cy="22" rx="14" ry="10" fill="#2b3a46" stroke="#7A6250" stroke-width="1.4" stroke-dasharray="4 3"/><text x="22" y="27" text-anchor="middle" font-family="Inter" font-size="13" font-weight="800" fill="#9fb7c6">?</text></svg>
+      <div><b>Cloaked craft</b><span>A mixer or shuffler — high-frequency in-and-out designed to blur the trail. It rarely works; the chain still records every hop.</span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Why the taxonomy earns its keep:</strong> the shape is read from data the scanner already
+    computes — direction, dwell time, volume share, dormancy, contract-vs-wallet, convergence. So a
+    68-year-old can look at her own sky and understand it without knowing what a smart contract is.
+    <em>Kwong's sky reads in one glance:</em> a <strong>UFO</strong> feeding Earth, three
+    <strong>freighters</strong> hauling $602k away, two of them meeting at one <strong>mothership</strong>.
+  </div>
+
+  <div class="note amber">
+    <strong>What this replaces:</strong> the planet-lore system (Planet Walker, resident creatures,
+    "shrouded worlds"). A ruler of a world doesn't survive the shift to craft — and the forensic
+    voice we moved to already fits the new spine. Nothing else changes: same engine, same data,
+    same 3D sky.
+  </div>
+
+</div>
+</body>
+</html>

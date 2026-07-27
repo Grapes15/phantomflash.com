@@ -371,8 +371,11 @@ html,body{height:100%;overflow:hidden;background:#000;
     var all=Object.keys(d.cps).map(function(k){return d.cps[k]})
       .sort(function(a,b){return (b.in+b.out)-(a.in+a.out)});
     var top=all.length?(all[0].in+all[0].out):1;
-    // drop trace-level dust: a $5 transfer must not get equal billing with a $300k sweep
-    var floorV=Math.max(10, top*0.005);
+    // Drop trace-level dust only. This floor must be ABSOLUTE, never relative to the
+    // largest counterparty: a percentage floor would hide the whole case for a victim
+    // who lost $2,000 while looking fine on a $600,000 one. $25 kills spam and dust,
+    // and the top-7 cap already handles readability.
+    var floorV=25;
     var kept=all.filter(function(c){return (c.in+c.out)>=floorV});
     var hidden=all.length-kept.length;
     var list=kept.slice(0,7);

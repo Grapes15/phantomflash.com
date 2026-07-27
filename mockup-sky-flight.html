@@ -105,6 +105,17 @@ html,body{height:100%;overflow:hidden;background:#000;
   padding:16px 18px;max-width:300px;text-align:center;color:#eaf8ff;opacity:0;
   transition:opacity .5s ease;pointer-events:none}
 #note.show{opacity:1}
+/* ============ TEASER + PAY ============ */
+#teaser{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14);
+  font-size:12px;line-height:1.5;color:#cfe6f2}
+#teaser.show{display:block}
+#teaser .lk{display:block;font-weight:800;color:#f0c560;margin-bottom:3px}
+#teaser b{color:#fff}
+#teaser .dust{display:block;margin-top:6px;font-size:10.5px;color:#8aa3b2}
+.paybtn{display:block;margin-top:10px;text-align:center;text-decoration:none;
+  background:linear-gradient(135deg,#F4693B,#D9502A);color:#fff;font:800 13.5px Inter;
+  padding:13px;border-radius:11px;box-shadow:0 4px 14px rgba(244,105,59,.35)}
+.paybtn:active{transform:translateY(1px)}
 /* ============ SEARCH BAR (bottom, always there) ============ */
 #searchbar{position:absolute;left:0;right:0;bottom:0;z-index:22;
   padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 16px);
@@ -245,8 +256,9 @@ html,body{height:100%;overflow:hidden;background:#000;
         <span>Movements</span><span class="v">14</span>
         <span>Connections</span><span class="v">7</span>
       </div>
+      <div id="teaser"></div>
+      <a class="paybtn" id="pay" href="checkout.html?product=pflash">See where it went next — $271 &#8594;</a>
       <div class="btns">
-        <button class="deep" id="deeper">Zoom in — read more ⚡</button>
         <button class="again" id="replay">Replay flight</button>
       </div>
     </div>
@@ -356,8 +368,14 @@ html,body{height:100%;overflow:hidden;background:#000;
 
   function renderArrival(d){
     var now=Math.floor(Date.now()/1000);
-    var list=Object.keys(d.cps).map(function(k){return d.cps[k]})
-      .sort(function(a,b){return (b.in+b.out)-(a.in+a.out)}).slice(0,7);
+    var all=Object.keys(d.cps).map(function(k){return d.cps[k]})
+      .sort(function(a,b){return (b.in+b.out)-(a.in+a.out)});
+    var top=all.length?(all[0].in+all[0].out):1;
+    // drop trace-level dust: a $5 transfer must not get equal billing with a $300k sweep
+    var floorV=Math.max(10, top*0.005);
+    var kept=all.filter(function(c){return (c.in+c.out)>=floorV});
+    var hidden=all.length-kept.length;
+    var list=kept.slice(0,7);
     var W=400,H=800,cx=200,cy=398,max=list.length?(list[0].in+list[0].out):1;
     var svg=['<defs>',
       '<radialGradient id="wglow" cx="50%" cy="50%"><stop offset="0%" stop-color="#27c4de" stop-opacity=".5"/><stop offset="100%" stop-color="#27c4de" stop-opacity="0"/></radialGradient>',
@@ -367,10 +385,11 @@ html,body{height:100%;overflow:hidden;background:#000;
     list.forEach(function(c,i){
       var ang=(-90+(i*(360/Math.max(list.length,1))))*Math.PI/180;
       var rad=118+((i%3)*30), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.78;
-      var k=classify(c,now), sz=8+12*Math.sqrt((c.in+c.out)/max);
+      var k=classify(c,now), v=c.in+c.out;
+      var sz=7+13*(Math.log10(1+v)/Math.log10(1+max));
       var col=c.in>=c.out?'#3ddc97':'#ff8a5c';
       svg.push('<path d="M'+x.toFixed(0)+' '+y.toFixed(0)+' L'+cx+' '+cy+'" stroke="'+col+
-               '" stroke-width="'+(1.4+2.2*Math.sqrt((c.in+c.out)/max)).toFixed(1)+'" opacity=".9" fill="none"/>');
+               '" stroke-width="'+(1.2+2.6*(Math.log10(1+v)/Math.log10(1+max))).toFixed(1)+'" opacity=".9" fill="none"/>');
       if(k.t==='source'){
         svg.push('<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+(sz*1.5).toFixed(0)+'" ry="'+(sz*0.5).toFixed(0)+'" fill="#E8A33D" stroke="#0b131c"/>');
       } else if(k.t==='derelict'){
@@ -383,6 +402,16 @@ html,body{height:100%;overflow:hidden;background:#000;
       labels+='<div class="nodelabel" style="left:'+(x/W*100).toFixed(1)+'%;top:'+(y/H*100-3).toFixed(1)+'%'+
               (k.t==='source'?';color:#ffdf9e':'')+'">'+k.label+'<small>'+k.sub+'</small></div>';
     });
+    // LOCKED: the free flight stops at the first hop. Shrouded craft sit beyond it.
+    // These carry NO invented data — they represent "there is more, and it is charted".
+    var lockN=5;
+    for(var L=0;L<lockN;L++){
+      var la=(-58+L*(300/lockN))*Math.PI/180, lr=252+((L%2)*26);
+      var lx=cx+Math.cos(la)*lr, ly=cy+Math.sin(la)*lr*0.62;
+      svg.push('<ellipse cx="'+lx.toFixed(0)+'" cy="'+ly.toFixed(0)+'" rx="11" ry="7" fill="#2a2418" stroke="#6b5a33" stroke-width="1.3" stroke-dasharray="4 3" opacity=".85"/>');
+      svg.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+4).toFixed(0)+'" text-anchor="middle" font-family="Inter" font-size="9" font-weight="800" fill="#f0c560">?</text>');
+      svg.push('<path d="M'+lx.toFixed(0)+' '+ly.toFixed(0)+' L'+cx+' '+cy+'" stroke="#6b5a33" stroke-width="1" stroke-dasharray="3 5" opacity=".4" fill="none"/>');
+    }
     svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="74" fill="url(#wglow)"/>');
     svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="30" fill="url(#wcore)" stroke="#7fe6ff" stroke-width="1.8"/>');
     arrival.innerHTML='<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">'+svg.join('')+'</svg>'+
@@ -394,6 +423,17 @@ html,body{height:100%;overflow:hidden;background:#000;
     rows[0].textContent=usd(d.inSum); rows[1].textContent=usd(d.outSum);
     rows[2].textContent=d.txs.toLocaleString('en-US');
     rows[3].textContent=Object.keys(d.cps).length.toLocaleString('en-US');
+
+    // THE TEASER — honest about exactly what the free flight cannot see
+    var t=document.getElementById('teaser');
+    t.innerHTML='<span class="lk">&#128274; The free flight stops at the first hop.</span>'+
+      'Where each of these went <b>next</b>, who is behind the source, and where it '+
+      'finally cashed out are charted in the full trace.'+
+      (hidden>0?'<span class="dust">'+hidden+' trace-level movement'+(hidden===1?'':'s')+
+                ' under '+usd(floorV)+' hidden to keep the sky readable.</span>':'');
+    t.classList.add('show');
+    var pay=document.getElementById('pay');
+    pay.href='checkout.html?product=pflash&addr='+encodeURIComponent(d.addr);
   }
 
   function showNote(t,b){note.querySelector('b').textContent=t;note.querySelector('span').textContent=b;
@@ -467,8 +507,6 @@ html,body{height:100%;overflow:hidden;background:#000;
     if(e.target.closest('#hud')||e.target.closest('#searchbar'))return;
     if(arrived)return; fly(e.clientX,e.clientY,null);
   });
-  document.getElementById('deeper').addEventListener('click',function(){
-    showNote('ZOOM IN','Next level of detail: every movement, every counterparty, and what the pattern means.');});
   document.getElementById('replay').addEventListener('click',function(){location.reload()});
   setTimeout(function(){if(!flying&&!arrived)
     showNote('THE MORNING SKY LOOKS EMPTY','You cannot see stars at dawn. The wallets are up there either way — that is what the flight is for.');},1200);

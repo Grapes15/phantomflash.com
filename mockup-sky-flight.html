@@ -260,100 +260,218 @@ html,body{height:100%;overflow:hidden;background:#000;
       outline=document.getElementById('outline'), tag=outline.querySelector('.tag'),
       arrival=document.getElementById('arrival'), space=document.getElementById('space'),
       invite=document.getElementById('invite'), hud=document.getElementById('hud'),
-      note=document.getElementById('note'), glints=document.getElementById('glints');
+      note=document.getElementById('note'), glints=document.getElementById('glints'),
+      searchbar=document.getElementById('searchbar');
   var flying=false, arrived=false;
 
-  /* clouds */
+  /* ---------- scenery ---------- */
   function cloud(cls,l,t,w,h){var d=document.createElement('div');d.className='cloud '+cls;
-    d.style.left=l+'%';d.style.top=t+'%';d.style.width=w+'vmin';d.style.height=h+'vmin';
-    document.getElementById('sky').appendChild(d);}
+    d.style.left=l+'%';d.style.top=t+'%';d.style.width=w+'vmin';d.style.height=h+'vmin';sky.appendChild(d);}
   cloud('',6,58,54,15); cloud('c2',48,66,72,18); cloud('',70,50,40,11);
   cloud('c3',22,40,66,16); cloud('c2',-6,30,50,13); cloud('c3',60,22,58,14);
   cloud('',36,78,64,16); cloud('c2',80,72,52,14);
+  [[18,26],[34,17],[52,30],[68,20],[80,34],[26,42],[44,50],[62,44],[76,52],[12,58],[88,24],[58,12]]
+    .forEach(function(p,i){var g=document.createElement('div');
+      g.className='glint'+(i%4===0?' big':'');g.style.left=p[0]+'%';g.style.top=p[1]+'%';glints.appendChild(g);});
+  for(var i=0;i<44;i++){var st=document.createElement('div');st.className='streak';
+    st.style.height=(18+Math.random()*30)+'vmin';
+    st.style.transform='rotate('+((i/44)*360)+'deg) translateY(6vmin)';
+    st.style.opacity=(0.25+Math.random()*0.6).toFixed(2);warp.appendChild(st);}
 
-  /* satellite glints — sparse, faint, because it's morning */
-  var pts=[[18,26],[34,17],[52,30],[68,20],[80,34],[26,42],[44,50],[62,44],[76,52],[12,58],[88,24],[58,12]];
-  pts.forEach(function(p,i){var g=document.createElement('div');
-    g.className='glint'+(i%4===0?' big':'');g.style.left=p[0]+'%';g.style.top=p[1]+'%';glints.appendChild(g);});
+  /* ---------- REAL DATA ---------- */
+  var ETH=/^0x[0-9a-fA-F]{40}$/, BTC=/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{20,90}$/;
+  var USDT='0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      USDC='0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  function jget(u){return fetch(u).then(function(r){return r.json()}).catch(function(){return null});}
+  function usd(n){return '$'+Math.round(n).toLocaleString('en-US');}
 
-  /* warp streaks */
-  for(var i=0;i<44;i++){
-    var s=document.createElement('div');s.className='streak';
-    var a=(i/44)*360, len=18+Math.random()*30;
-    s.style.height=len+'vmin';
-    s.style.transform='rotate('+a+'deg) translateY(6vmin)';
-    s.style.opacity=(0.25+Math.random()*0.6).toFixed(2);
-    warp.appendChild(s);
+  /* Ethereum: native + INTERNAL (smart wallets move only here) + stablecoins */
+  function loadEth(a){
+    var api='https://eth.blockscout.com/api?module=account&action=';
+    return jget('https://eth.blockscout.com/api?module=stats&action=ethprice')
+      .then(function(p){
+        var px=parseFloat((p&&p.result&&p.result.ethusd)||0)||3000;
+        return Promise.all([
+          jget(api+'txlist&address='+a+'&sort=desc&page=1&offset=100'),
+          jget(api+'txlistinternal&address='+a+'&sort=desc&page=1&offset=100'),
+          jget(api+'tokentx&contractaddress='+USDT+'&address='+a+'&sort=desc&page=1&offset=100'),
+          jget(api+'tokentx&contractaddress='+USDC+'&address='+a+'&sort=desc&page=1&offset=100')
+        ]).then(function(r){
+          var me=a.toLowerCase(), cps={}, txs=0, inSum=0, outSum=0, failed=false;
+          function eat(res, dec, rate){
+            if(!res){failed=true;return}
+            var rows=res.result;
+            if(rows&&!Array.isArray(rows)){failed=true;return}
+            (rows||[]).forEach(function(t){
+              if(t.isError==='1')return;
+              var v=Number(t.value)/Math.pow(10,dec)*rate; if(!(v>0))return;
+              var f=(t.from||'').toLowerCase(), o=(t.to||'').toLowerCase();
+              var isIn=o===me, isOut=f===me; if(!isIn&&!isOut)return;
+              var cp=isIn?f:o; if(!cp||cp===me)return;
+              txs++; if(isIn)inSum+=v; else outSum+=v;
+              var e=cps[cp]||(cps[cp]={addr:cp,in:0,out:0,n:0,last:0});
+              e[isIn?'in':'out']+=v; e.n++; e.last=Math.max(e.last,Number(t.timeStamp)||0);
+            });
+          }
+          eat(r[0],18,px); eat(r[1],18,px); eat(r[2],6,1); eat(r[3],6,1);
+          return {cps:cps,txs:txs,inSum:inSum,outSum:outSum,failed:failed,chain:'eth'};
+        });
+      });
+  }
+  /* Bitcoin */
+  function loadBtc(a){
+    return Promise.all([jget('https://mempool.space/api/address/'+a),
+                        jget('https://mempool.space/api/address/'+a+'/txs')])
+      .then(function(r){
+        var st=r[0], list=r[1]||[];
+        if(!st) return {failed:true,cps:{},txs:0,inSum:0,outSum:0,chain:'btc'};
+        return jget('https://mempool.space/api/v1/prices').then(function(pr){
+          var px=(pr&&pr.USD)||60000, cps={}, inSum=0, outSum=0;
+          list.forEach(function(t){
+            var mine=false;
+            (t.vin||[]).forEach(function(v){ if(v.prevout&&v.prevout.scriptpubkey_address===a) mine=true; });
+            (t.vout||[]).forEach(function(o){
+              if(!o.scriptpubkey_address||o.scriptpubkey_address===a) return;
+              var v=(o.value||0)/1e8*px; if(!(v>0))return;
+              var e=cps[o.scriptpubkey_address]||(cps[o.scriptpubkey_address]=
+                {addr:o.scriptpubkey_address,in:0,out:0,n:0,last:0});
+              if(mine){e.out+=v;outSum+=v;} else {e.in+=v;inSum+=v;}
+              e.n++; e.last=Math.max(e.last,(t.status&&t.status.block_time)||0);
+            });
+          });
+          return {cps:cps,txs:list.length,inSum:inSum,outSum:outSum,failed:false,chain:'btc'};
+        });
+      });
   }
 
-  function fly(x,y){
-    if(flying||arrived) return; flying=true;
+  /* behaviour -> craft type. Read from the data, never decorative. */
+  function classify(c,now){
+    var both=c.in>0&&c.out>0, dormant=c.last&&(now-c.last)>365*86400;
+    if(dormant) return {t:'derelict',label:'DERELICT',sub:'dormant over a year'};
+    if(both&&c.n>=8) return {t:'cloaked',label:'CLOAKED',sub:'in and out, '+c.n+' times'};
+    if(both) return {t:'freighter',label:'FREIGHTER',sub:'passed through'};
+    if(c.out>0) return {t:'freighter',label:'FREIGHTER',sub:usd(c.out)+' out'};
+    return {t:'source',label:'SOURCE',sub:usd(c.in)+' in'};
+  }
 
+  function renderArrival(d){
+    var now=Math.floor(Date.now()/1000);
+    var list=Object.keys(d.cps).map(function(k){return d.cps[k]})
+      .sort(function(a,b){return (b.in+b.out)-(a.in+a.out)}).slice(0,7);
+    var W=400,H=800,cx=200,cy=398,max=list.length?(list[0].in+list[0].out):1;
+    var svg=['<defs>',
+      '<radialGradient id="wglow" cx="50%" cy="50%"><stop offset="0%" stop-color="#27c4de" stop-opacity=".5"/><stop offset="100%" stop-color="#27c4de" stop-opacity="0"/></radialGradient>',
+      '<radialGradient id="wcore" cx="42%" cy="34%"><stop offset="0%" stop-color="#8fe9ff"/><stop offset="70%" stop-color="#1272a8"/><stop offset="100%" stop-color="#06304a"/></radialGradient>',
+      '</defs>'];
+    var labels='';
+    list.forEach(function(c,i){
+      var ang=(-90+(i*(360/Math.max(list.length,1))))*Math.PI/180;
+      var rad=118+((i%3)*30), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.78;
+      var k=classify(c,now), sz=8+12*Math.sqrt((c.in+c.out)/max);
+      var col=c.in>=c.out?'#3ddc97':'#ff8a5c';
+      svg.push('<path d="M'+x.toFixed(0)+' '+y.toFixed(0)+' L'+cx+' '+cy+'" stroke="'+col+
+               '" stroke-width="'+(1.4+2.2*Math.sqrt((c.in+c.out)/max)).toFixed(1)+'" opacity=".9" fill="none"/>');
+      if(k.t==='source'){
+        svg.push('<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+(sz*1.5).toFixed(0)+'" ry="'+(sz*0.5).toFixed(0)+'" fill="#E8A33D" stroke="#0b131c"/>');
+      } else if(k.t==='derelict'){
+        svg.push('<rect x="'+(x-sz).toFixed(0)+'" y="'+(y-sz*0.4).toFixed(0)+'" width="'+(sz*2).toFixed(0)+'" height="'+(sz*0.8).toFixed(0)+'" rx="3" fill="#4a5a68" opacity=".7" transform="rotate(22 '+x.toFixed(0)+' '+y.toFixed(0)+')"/>');
+      } else if(k.t==='cloaked'){
+        svg.push('<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+sz.toFixed(0)+'" ry="'+(sz*0.7).toFixed(0)+'" fill="#2b3a46" stroke="#7A6250" stroke-dasharray="4 3"/>');
+      } else {
+        svg.push('<rect x="'+(x-sz).toFixed(0)+'" y="'+(y-sz*0.35).toFixed(0)+'" width="'+(sz*2).toFixed(0)+'" height="'+(sz*0.7).toFixed(0)+'" rx="3" fill="#cfe6f2" stroke="#0b131c"/>');
+      }
+      labels+='<div class="nodelabel" style="left:'+(x/W*100).toFixed(1)+'%;top:'+(y/H*100-3).toFixed(1)+'%'+
+              (k.t==='source'?';color:#ffdf9e':'')+'">'+k.label+'<small>'+k.sub+'</small></div>';
+    });
+    svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="74" fill="url(#wglow)"/>');
+    svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="30" fill="url(#wcore)" stroke="#7fe6ff" stroke-width="1.8"/>');
+    arrival.innerHTML='<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">'+svg.join('')+'</svg>'+
+      '<div class="nodelabel" style="left:50%;top:44.5%">YOUR WALLET<small>'+
+      (d.addr.slice(0,6)+'…'+d.addr.slice(-4))+'</small></div>'+labels;
+
+    document.querySelector('.card .addr').textContent=d.addr;
+    var rows=document.querySelectorAll('.rows .v');
+    rows[0].textContent=usd(d.inSum); rows[1].textContent=usd(d.outSum);
+    rows[2].textContent=d.txs.toLocaleString('en-US');
+    rows[3].textContent=Object.keys(d.cps).length.toLocaleString('en-US');
+  }
+
+  function showNote(t,b){note.querySelector('b').textContent=t;note.querySelector('span').textContent=b;
+    note.classList.add('show');setTimeout(function(){note.classList.remove('show')},4200);}
+
+  /* ---------- the flight (warp covers the API latency) ---------- */
+  function fly(x,y,addr){
+    if(flying||arrived) return; flying=true;
     var px=(x/window.innerWidth*100), py=(y/window.innerHeight*100);
     invite.style.opacity='0';
 
-    /* PHASE 1 — outline the section of sky */
+    var pending=null;
+    if(addr){
+      pending = (ETH.test(addr)?loadEth(addr):loadBtc(addr))
+        .then(function(d){d.addr=addr;return d}).catch(function(){return null});
+    }
+
     var w=Math.min(190,window.innerWidth*0.46), h=w*0.78;
     outline.style.width=w+'px'; outline.style.height=h+'px';
     outline.style.left=(x-w/2)+'px'; outline.style.top=(y-h/2)+'px';
-    tag.textContent='sector located';
-    outline.style.opacity='1';
-    outline.style.animation='pulse 1s ease-in-out 2';
-
-    /* warp origin = where they clicked */
-    sky.style.transformOrigin=px+'% '+py+'%';
-    canopy.style.transformOrigin=px+'% '+py+'%';
+    tag.textContent = addr ? 'locating your wallet' : 'sector located';
+    outline.style.opacity='1'; outline.style.animation='pulse 1s ease-in-out 2';
+    sky.style.transformOrigin=px+'% '+py+'%'; canopy.style.transformOrigin=px+'% '+py+'%';
 
     setTimeout(function(){
-      /* PHASE 2 — WARP: fast acceleration outward */
       outline.style.animation='';
       outline.style.transition='opacity .5s ease, transform 2.6s cubic-bezier(.24,.9,.32,1)';
-      outline.style.transform='scale(3.4)';
-      outline.style.opacity='0';
-
+      outline.style.transform='scale(3.4)'; outline.style.opacity='0';
       warp.style.opacity='1';
-      sky.style.transition='transform 2.6s cubic-bezier(.24,.9,.32,1)';   /* fast, then eases out */
+      sky.style.transition='transform 2.6s cubic-bezier(.24,.9,.32,1)';
       canopy.style.transition='transform 1.5s cubic-bezier(.2,.95,.3,1)';
-      sky.style.transform='scale(9)';
-      canopy.style.transform='scale(6)';     /* canopy rushes past first — parallax */
-      space.style.opacity='1';               /* atmosphere thins to space */
-
-      /* PHASE 3 — decelerate + arrive */
-      setTimeout(function(){ warp.style.opacity='0'; }, 1500);
+      sky.style.transform='scale(9)'; canopy.style.transform='scale(6)';
+      space.style.opacity='1';
+      setTimeout(function(){warp.style.opacity='0'},1500);
       setTimeout(function(){
-        arrival.classList.add('show');
-        searchbar.classList.add('hide');
-        hud.classList.add('show');
-        arrived=true; flying=false;
-      }, 2200);
-    }, 1150);
+        function land(){arrival.classList.add('show');searchbar.classList.add('hide');
+          hud.classList.add('show');arrived=true;flying=false;}
+        if(!pending){ land(); return; }
+        pending.then(function(d){
+          if(!d||d.failed&&d.txs===0){
+            showNote('THE SOURCE IS BUSY','A data source limited the request. Your address was not the problem — wait a minute and flash it again.');
+            flying=false; softReset(); return;
+          }
+          if(d.txs===0){
+            showNote('NOTHING UP THERE YET','That address is valid but has no activity we can see. Check it, or try the wallet you sent funds FROM.');
+            flying=false; softReset(); return;
+          }
+          renderArrival(d); land();
+        });
+      },2200);
+    },1150);
+  }
+  function softReset(){
+    sky.style.transition='transform 1.2s ease';canopy.style.transition='transform 1.2s ease';
+    sky.style.transform='scale(1)';canopy.style.transform='scale(1)';
+    space.style.opacity='0';invite.style.opacity='1';
   }
 
-  var searchbar=document.getElementById('searchbar');
-  function flyFromSearch(){
-    if(flying||arrived) return;
-    // launch toward a point in the sky rather than the button
-    fly(window.innerWidth*0.5, window.innerHeight*0.34);
+  function launch(){
+    var v=(document.getElementById('saddr').value||'').trim();
+    if(!v){ showNote('PASTE AN ADDRESS','Any Bitcoin or Ethereum wallet address. We read public chains only.'); return; }
+    if(!ETH.test(v)&&!BTC.test(v)){
+      showNote('THAT IS NOT A WALLET','Bitcoin starts with 1, 3, or bc1. Ethereum starts with 0x. Copy it character for character.');
+      return;
+    }
+    fly(window.innerWidth*0.5, window.innerHeight*0.34, v);
   }
-  document.getElementById('sgo').addEventListener('click', flyFromSearch);
-  document.getElementById('saddr').addEventListener('keydown', function(e){
-    if(e.key==='Enter') flyFromSearch();
+  document.getElementById('sgo').addEventListener('click',launch);
+  document.getElementById('saddr').addEventListener('keydown',function(e){if(e.key==='Enter')launch()});
+  stage.addEventListener('click',function(e){
+    if(e.target.closest('#hud')||e.target.closest('#searchbar'))return;
+    if(arrived)return; fly(e.clientX,e.clientY,null);
   });
-  stage.addEventListener('click', function(e){
-    if(e.target.closest('#hud')||e.target.closest('#searchbar')) return;
-    if(arrived) return;
-    fly(e.clientX, e.clientY);
-  });
-
-  document.getElementById('deeper').addEventListener('click', function(){
-    note.classList.add('show');
-    setTimeout(function(){ note.classList.remove('show'); }, 3200);
-  });
-  document.getElementById('replay').addEventListener('click', function(){ location.reload(); });
-
-  /* the honest note about a morning sky, once, early */
-  setTimeout(function(){ if(!flying&&!arrived){ note.classList.add('show');
-    setTimeout(function(){ note.classList.remove('show'); },4200);} }, 1200);
+  document.getElementById('deeper').addEventListener('click',function(){
+    showNote('ZOOM IN','Next level of detail: every movement, every counterparty, and what the pattern means.');});
+  document.getElementById('replay').addEventListener('click',function(){location.reload()});
+  setTimeout(function(){if(!flying&&!arrived)
+    showNote('THE MORNING SKY LOOKS EMPTY','You cannot see stars at dawn. The wallets are up there either way — that is what the flight is for.');},1200);
 })();
 </script>
 </body>

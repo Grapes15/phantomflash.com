@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Phantom Flash Owlchained Report — Is Your Crypto Investment Real? PFLASH It.</title>
 <meta name="description" content="Is your crypto investment real? PFLASH the wallet — a free 60-second on-chain scan that shows where your money actually lives on the blockchain. Verify before you send another dollar.">
-<meta name="theme-color" content="#06131b">
+<meta name="theme-color" content="#FFF3E9">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,7 +29,59 @@
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
 <link rel="stylesheet" href="assets/style.css">
-<script src="assets/i18n.js?v=20260722a" defer></script>
+<style id="peach-theme">
+/* ===== PEACH DAYLIGHT THEME — same artwork, same fonts, warm palette =====
+   Palette ported from Sable's reviewed mockup (mockup-recolor / mockup-peach).
+   Rule: the READING layers go warm cream; the hero art and the scan universe
+   stay noir — walk into the warm office, then step into the observatory. */
+:root{
+  --bg:#FFF3E9;             /* warm cream daylight */
+  --bg2:#FFE9D9;
+  --panel:#FFF9F2;
+  --panel2:#FFEEDF;
+  --line:#F0D6C2;
+  --line2:#E2B896;
+  --edge:#2B1D14;           /* comic ink edges stay ink */
+  --ink:#2B2320;            /* text flips dark */
+  --muted:#7A6250;
+  --muted2:#9A8068;
+  --cyan:#0B7F8A;           /* cyan grows up into deep teal on light bg */
+  --cyan-dim:#0FA3B1;
+  --cyan-glow:rgba(15,163,177,.30);
+  --amber:#D97A2E;          /* amber deepens for contrast on cream */
+  --amber-glow:rgba(217,122,46,.28);
+  --green:#1F9E6E;
+  --red:#D93A4C;
+  --coral:#F4693B;          /* peach-theme CTA */
+}
+body{
+  background:
+    radial-gradient(1100px 520px at 50% -120px, rgba(255,154,108,.22), transparent 60%),
+    radial-gradient(900px 560px at 88% 26%, rgba(217,122,46,.10), transparent 60%),
+    radial-gradient(800px 500px at 8% 70%, rgba(255,180,138,.12), transparent 60%),
+    var(--bg) !important;
+}
+body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparent 1.4px) !important; }
+/* cream header; hero stays noir (the artwork IS the panel) */
+.site-header{background:rgba(255,243,233,.92) !important}
+.site-header .logo{color:#2B2320 !important}
+.nav-links a{color:#7A6250 !important}
+.nav-links a:hover{color:#0B7F8A !important}
+.hero h1{color:#F3E9DC !important}
+.hero h1 .glow{color:#00e5ff !important;text-shadow:3px 3px 0 #05090c, 0 0 32px rgba(0,229,255,.45) !important}
+.hero .lede{color:#e9f3f6 !important}
+.hero .lede strong{color:#00e5ff !important}
+.hero .eyebrow{color:#00e5ff !important;border-color:#23536b !important}
+/* coral CTAs on the cream surfaces (hero/scan buttons keep the electric look) */
+.btn.primary{background:linear-gradient(135deg,#F4693B,#D9502A) !important;color:#fff !important;border-color:#2B1D14 !important}
+.sun-box .btn.primary{background:linear-gradient(135deg,#00c4dd,#0077a8) !important;color:#021018 !important}
+/* trust row under the scan box */
+.trustline{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:13px;color:#cfe6f2}
+.trustline span{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.seednote{margin-top:10px;font-size:13px;color:#9fb7c6;text-align:center;max-width:620px;margin-left:auto;margin-right:auto}
+@media(max-width:640px){ .trustline{gap:10px 16px;font-size:12px} }
+</style>
+<script src="assets/i18n.js?v=20260727a" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
@@ -61,10 +113,9 @@
     <div class="bg"></div>
     <div class="fg" id="scan">
       <div class="eyebrow">⚡ Owlchained — Instant Cryptocurrency Tracing</div>
-      <h1>Where did your crypto go?<br><span class="glow">Find out in 60 seconds.</span></h1>
+      <h1>It's your crypto. <span class="glow">PFLASH it.</span> Find it.</h1>
       <p class="lede">
-        Your money leaves a trail on the blockchain — public, permanent, impossible to fake.
-        <strong>This is what a wallet really looks like. Now look at yours.</strong>
+        Paste the wallet. Sixty seconds. <strong>See where it went.</strong>
       </p>
     </div>
 
@@ -92,6 +143,13 @@
         <div class="scan-error" id="scanError"></div>
         <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, USDT &amp; USDC</div>
         <div class="scan-ledger-note">🔗 Every wallet you scan strengthens the Phantom Flash tracing network.</div>
+        <p class="seednote" id="seedNote">We read public blockchains only. <strong>We will never ask for your seed phrase or private keys.</strong></p>
+        <div class="trustline" id="trustLine">
+          <span>🔎 Reads public data only</span>
+          <span>🔐 Never touches your wallet</span>
+          <span>🇺🇸 Based in the USA</span>
+          <span>⚡ Most reports same-day</span>
+        </div>
       </div>
     </div>
   </section>
@@ -137,22 +195,22 @@
   <!-- HOW IT WORKS -->
   <section class="block wrap" id="how">
     <h2 class="section-title">How it works</h2>
-    <p class="section-sub">Three steps. The first one is free, takes sixty seconds, and shows you what's actually on the chain.</p>
+    <p class="section-sub">Three steps. The first one is free and takes sixty seconds.</p>
     <div class="grid cols-3">
       <div class="card halftone">
         <div class="num">STEP 01</div>
         <h3>Paste the address</h3>
-        <p>The wallet address you've been sending funds to — from your exchange, your broker, your trading platform, or your own wallet that funded it. Phantom Flash pulls the live blockchain record on the spot.</p>
+        <p>One wallet address. That's all.</p>
       </div>
       <div class="card halftone">
         <div class="num">STEP 02</div>
         <h3>PFLASH it — free</h3>
-        <p>Seconds later, the wallet is rendered as an interactive 3D system: your target at the center, every first-hop counterparty orbiting it, real transactions on every connection. Fly around. See for yourself.</p>
+        <p>Your wallet, rendered as a universe. Real transactions on every route. Fly through it.</p>
       </div>
       <div class="card halftone">
         <div class="num">STEP 03</div>
         <h3>Choose your report</h3>
-        <p>The PFLASH-IT Report ($271) traces your money through every hop at machine speed from one upload — interactive web report, tracing board, exchanges named. Most reports delivered same day.</p>
+        <p>Every hop traced. Exchanges named. Most delivered same day.</p>
       </div>
     </div>
   </section>

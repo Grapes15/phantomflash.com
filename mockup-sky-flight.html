@@ -82,7 +82,7 @@ html,body{height:100%;overflow:hidden;background:#000;
   color:rgba(255,255,255,.92);text-shadow:0 2px 18px rgba(0,0,0,.55);text-align:center}
 #invite .sm{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.8);
   text-shadow:0 1px 8px rgba(0,0,0,.6)}
-#brand{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 0;
+#brand{position:absolute;top:0;left:0;right:0;transition:opacity .4s ease;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 0;
   text-align:center;pointer-events:none;z-index:20}
 #brand .n{font-family:Bangers,"Arial Black",Impact,sans-serif;font-size:20px;letter-spacing:.06em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6)}
 #brand .t{font-size:9px;letter-spacing:.24em;font-weight:800;color:#ffdca8;text-shadow:0 1px 6px rgba(0,0,0,.7)}
@@ -447,7 +447,7 @@ html,body{height:100%;overflow:hidden;background:#000;
     var cardH=Math.min(300,H*0.46);            // room the HUD occupies
     var avail=Math.max(220,H-cardH-40);
     var cx=W/2, cy=40+avail/2;
-    var base=Math.min(W*0.42,avail*0.42);      // zoomed out: orbit scaled to the room
+    var base=Math.min(W*0.34,avail*0.38);      // zoomed out, but inside the frame
     var max=list.length?(list[0].in+list[0].out):1;
 
     var svg=[], labels='';
@@ -488,6 +488,7 @@ html,body{height:100%;overflow:hidden;background:#000;
 
     VIEW={x:0,y:0,k:1}; applyView();
     document.getElementById('back').classList.add('show');
+    document.getElementById('brand').style.opacity='0';
     document.getElementById('controls').classList.add('show');
     setTimeout(function(){document.getElementById('controls').classList.remove('show')},5000);
 
@@ -663,6 +664,7 @@ html,body{height:100%;overflow:hidden;background:#000;
     arrived=false; flying=false; CUR=null;
     arrival.classList.remove('show'); hud.classList.remove('show');
     document.getElementById('back').classList.remove('show');
+    document.getElementById('brand').style.opacity='1';
     document.getElementById('teaser').classList.remove('show');
     searchbar.classList.remove('hide');
     invite.style.opacity='1';

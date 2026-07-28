@@ -105,6 +105,22 @@ html,body{height:100%;overflow:hidden;background:#000;
   padding:16px 18px;max-width:300px;text-align:center;color:#eaf8ff;opacity:0;
   transition:opacity .5s ease;pointer-events:none}
 #note.show{opacity:1}
+/* ============ BACK BUTTON + CONTROL HINT ============ */
+#back{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:30;
+  display:none;align-items:center;gap:6px;border:1.5px solid rgba(255,255,255,.35);
+  background:rgba(6,12,22,.82);color:#e6f1ff;font:800 12px Inter;letter-spacing:.02em;
+  padding:9px 13px;border-radius:10px;cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#back.show{display:flex}
+#back:hover{border-color:#27c4de;color:#7fe6ff}
+#controls{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 58px);
+  z-index:19;text-align:center;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.55);opacity:0;transition:opacity .6s ease;pointer-events:none}
+#controls.show{opacity:1}
+#arrival{cursor:grab}
+#arrival.dragging{cursor:grabbing}
+.sat{cursor:pointer}
+.sat:hover .satglow{opacity:.55}
 /* ============ TEASER + PAY ============ */
 #teaser{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14);
   font-size:12px;line-height:1.5;color:#cfe6f2}
@@ -226,6 +242,10 @@ html,body{height:100%;overflow:hidden;background:#000;
   </div>
 
   <div id="brand"><div class="n">PHANTOM FLASH</div><div class="t">THE CRYPTO SKY</div></div>
+
+  <!-- explicit way out. Clicking the sky is for going deeper, never for going back. -->
+  <button id="back" aria-label="Back to the sky">&#8592; Back to the sky</button>
+  <div id="controls">drag to pan &middot; scroll to zoom &middot; tap a satellite</div>
 
   <div id="invite">
     <div class="big">CLICK ANYWHERE<br>TO EXPLORE</div>
@@ -366,68 +386,119 @@ html,body{height:100%;overflow:hidden;background:#000;
     return {t:'source',label:'SOURCE',sub:usd(c.in)+' in'};
   }
 
+  /* ---------- realistic satellite geometry ----------
+     A real satellite silhouette: metallic bus, two solar arrays with cell lines,
+     a dish and an antenna. Not a planet, not a pill. */
+  function satSvg(id,x,y,sz,kind,tilt,isMine){
+    var w=sz, h=sz*0.62, pw=sz*1.05, ph=sz*0.42;   // bus + panel dims
+    var body = kind==='source' ? '#E8A33D' : (kind==='derelict' ? '#55636e' : '#c9dae6');
+    var edge = isMine ? '#7fe6ff' : '#0b131c';
+    var panel = kind==='derelict' ? '#2b3d4a' : '#1d3f63';
+    var g=[];
+    g.push('<g class="sat" data-id="'+id+'" transform="translate('+x.toFixed(1)+','+y.toFixed(1)+') rotate('+tilt.toFixed(1)+')">');
+    g.push('<circle class="satglow" cx="0" cy="0" r="'+(sz*1.9).toFixed(1)+'" fill="'+(isMine?'#27c4de':'#9fd8ff')+'" opacity="'+(isMine?'.30':'0')+'"/>');
+    // solar arrays
+    ['-1','1'].forEach(function(sgn){
+      var dir=Number(sgn), px=dir*(w*0.62+pw*0.5);
+      g.push('<rect x="'+(px-pw/2).toFixed(1)+'" y="'+(-ph/2).toFixed(1)+'" width="'+pw.toFixed(1)+'" height="'+ph.toFixed(1)+'" rx="1.2" fill="'+panel+'" stroke="'+edge+'" stroke-width=".7"/>');
+      for(var c=1;c<4;c++){
+        var lx=(px-pw/2)+(pw/4)*c;
+        g.push('<line x1="'+lx.toFixed(1)+'" y1="'+(-ph/2).toFixed(1)+'" x2="'+lx.toFixed(1)+'" y2="'+(ph/2).toFixed(1)+'" stroke="#5b9ad1" stroke-width=".4" opacity=".8"/>');
+      }
+      g.push('<line x1="'+(dir*w*0.5).toFixed(1)+'" y1="0" x2="'+(px-dir*pw/2).toFixed(1)+'" y2="0" stroke="'+edge+'" stroke-width=".9"/>');
+    });
+    // bus
+    g.push('<rect x="'+(-w/2).toFixed(1)+'" y="'+(-h/2).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+(sz*0.14).toFixed(1)+'" fill="'+body+'" stroke="'+edge+'" stroke-width="1"/>');
+    g.push('<rect x="'+(-w/2+w*0.12).toFixed(1)+'" y="'+(-h/2+h*0.16).toFixed(1)+'" width="'+(w*0.3).toFixed(1)+'" height="'+(h*0.24).toFixed(1)+'" rx="1" fill="#ffffff" opacity=".35"/>');
+    // dish + antenna
+    g.push('<path d="M'+(w*0.10).toFixed(1)+' '+(-h/2).toFixed(1)+' a'+(sz*0.26).toFixed(1)+' '+(sz*0.2).toFixed(1)+' 0 0 1 '+(sz*0.5).toFixed(1)+' 0 z" fill="#eef6fb" stroke="'+edge+'" stroke-width=".7"/>');
+    g.push('<line x1="'+(-w*0.28).toFixed(1)+'" y1="'+(-h/2).toFixed(1)+'" x2="'+(-w*0.42).toFixed(1)+'" y2="'+(-h*1.05).toFixed(1)+'" stroke="'+edge+'" stroke-width=".8"/>');
+    g.push('<circle cx="'+(-w*0.42).toFixed(1)+'" cy="'+(-h*1.05).toFixed(1)+'" r="'+(sz*0.07).toFixed(1)+'" fill="#ff8a5c"/>');
+    g.push('</g>');
+    return g.join('');
+  }
+
+  var VIEW={x:0,y:0,k:1}, SATS=[], CUR=null;
+  function applyView(){
+    var g=document.getElementById('skyview');
+    if(g) g.setAttribute('transform','translate('+VIEW.x+','+VIEW.y+') scale('+VIEW.k+')');
+    var lay=document.getElementById('labelLayer');
+    if(lay){ lay.style.transform='translate('+VIEW.x+'px,'+VIEW.y+'px) scale('+VIEW.k+')';
+             lay.style.transformOrigin='0 0'; }
+  }
+
   function renderArrival(d){
     var now=Math.floor(Date.now()/1000);
     var all=Object.keys(d.cps).map(function(k){return d.cps[k]})
       .sort(function(a,b){return (b.in+b.out)-(a.in+a.out)});
     var top=all.length?(all[0].in+all[0].out):1;
-    // Drop trace-level dust only. This floor must be ABSOLUTE, never relative to the
-    // largest counterparty: a percentage floor would hide the whole case for a victim
-    // who lost $2,000 while looking fine on a $600,000 one. $25 kills spam and dust,
-    // and the top-7 cap already handles readability.
+    // absolute floor: never hide a small victim's whole case behind a percentage
     var floorV=25;
     var kept=all.filter(function(c){return (c.in+c.out)>=floorV});
     var hidden=all.length-kept.length;
     var list=kept.slice(0,7);
-    var W=400,H=800,cx=200,cy=398,max=list.length?(list[0].in+list[0].out):1;
-    var svg=['<defs>',
-      '<radialGradient id="wglow" cx="50%" cy="50%"><stop offset="0%" stop-color="#27c4de" stop-opacity=".5"/><stop offset="100%" stop-color="#27c4de" stop-opacity="0"/></radialGradient>',
-      '<radialGradient id="wcore" cx="42%" cy="34%"><stop offset="0%" stop-color="#8fe9ff"/><stop offset="70%" stop-color="#1272a8"/><stop offset="100%" stop-color="#06304a"/></radialGradient>',
-      '</defs>'];
-    var labels='';
+    var W=400,H=800,cx=200,cy=400,max=list.length?(list[0].in+list[0].out):1;
+
+    // ZOOMED OUT: wider orbit + smaller craft so you can see what surrounds you
+    var svg=[], labels='';
+    SATS=[];
     list.forEach(function(c,i){
       var ang=(-90+(i*(360/Math.max(list.length,1))))*Math.PI/180;
-      var rad=118+((i%3)*30), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.78;
+      var rad=140+((i%3)*34), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.80;
       var k=classify(c,now), v=c.in+c.out;
-      var sz=7+13*(Math.log10(1+v)/Math.log10(1+max));
+      var sz=9+11*(Math.log10(1+v)/Math.log10(1+max));
       var col=c.in>=c.out?'#3ddc97':'#ff8a5c';
       svg.push('<path d="M'+x.toFixed(0)+' '+y.toFixed(0)+' L'+cx+' '+cy+'" stroke="'+col+
-               '" stroke-width="'+(1.2+2.6*(Math.log10(1+v)/Math.log10(1+max))).toFixed(1)+'" opacity=".9" fill="none"/>');
-      if(k.t==='source'){
-        svg.push('<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+(sz*1.5).toFixed(0)+'" ry="'+(sz*0.5).toFixed(0)+'" fill="#E8A33D" stroke="#0b131c"/>');
-      } else if(k.t==='derelict'){
-        svg.push('<rect x="'+(x-sz).toFixed(0)+'" y="'+(y-sz*0.4).toFixed(0)+'" width="'+(sz*2).toFixed(0)+'" height="'+(sz*0.8).toFixed(0)+'" rx="3" fill="#4a5a68" opacity=".7" transform="rotate(22 '+x.toFixed(0)+' '+y.toFixed(0)+')"/>');
-      } else if(k.t==='cloaked'){
-        svg.push('<ellipse cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" rx="'+sz.toFixed(0)+'" ry="'+(sz*0.7).toFixed(0)+'" fill="#2b3a46" stroke="#7A6250" stroke-dasharray="4 3"/>');
-      } else {
-        svg.push('<rect x="'+(x-sz).toFixed(0)+'" y="'+(y-sz*0.35).toFixed(0)+'" width="'+(sz*2).toFixed(0)+'" height="'+(sz*0.7).toFixed(0)+'" rx="3" fill="#cfe6f2" stroke="#0b131c"/>');
-      }
-      labels+='<div class="nodelabel" style="left:'+(x/W*100).toFixed(1)+'%;top:'+(y/H*100-3).toFixed(1)+'%'+
+               '" stroke-width="'+(1+2.4*(Math.log10(1+v)/Math.log10(1+max))).toFixed(1)+
+               '" opacity=".85" fill="none"/>');
+      svg.push(satSvg('s'+i,x,y,sz,k.t,(i*37)%50-25,false));
+      SATS.push({id:'s'+i,c:c,k:k,x:x,y:y});
+      labels+='<div class="nodelabel" data-for="s'+i+'" style="left:'+x.toFixed(0)+'px;top:'+(y-sz*1.9).toFixed(0)+'px'+
               (k.t==='source'?';color:#ffdf9e':'')+'">'+k.label+'<small>'+k.sub+'</small></div>';
     });
-    // LOCKED: the free flight stops at the first hop. Shrouded craft sit beyond it.
-    // These carry NO invented data — they represent "there is more, and it is charted".
-    var lockN=5;
-    for(var L=0;L<lockN;L++){
-      var la=(-58+L*(300/lockN))*Math.PI/180, lr=252+((L%2)*26);
-      var lx=cx+Math.cos(la)*lr, ly=cy+Math.sin(la)*lr*0.62;
-      svg.push('<ellipse cx="'+lx.toFixed(0)+'" cy="'+ly.toFixed(0)+'" rx="11" ry="7" fill="#2a2418" stroke="#6b5a33" stroke-width="1.3" stroke-dasharray="4 3" opacity=".85"/>');
-      svg.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+4).toFixed(0)+'" text-anchor="middle" font-family="Inter" font-size="9" font-weight="800" fill="#f0c560">?</text>');
-      svg.push('<path d="M'+lx.toFixed(0)+' '+ly.toFixed(0)+' L'+cx+' '+cy+'" stroke="#6b5a33" stroke-width="1" stroke-dasharray="3 5" opacity=".4" fill="none"/>');
-    }
-    svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="74" fill="url(#wglow)"/>');
-    svg.push('<circle cx="'+cx+'" cy="'+cy+'" r="30" fill="url(#wcore)" stroke="#7fe6ff" stroke-width="1.8"/>');
-    arrival.innerHTML='<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">'+svg.join('')+'</svg>'+
-      '<div class="nodelabel" style="left:50%;top:44.5%">YOUR WALLET<small>'+
-      (d.addr.slice(0,6)+'…'+d.addr.slice(-4))+'</small></div>'+labels;
 
+    // locked craft beyond the first hop — no invented data, just "there is more"
+    for(var L=0;L<5;L++){
+      var la=(-58+L*(300/5))*Math.PI/180, lr=278+((L%2)*30);
+      var lx=cx+Math.cos(la)*lr, ly=cy+Math.sin(la)*lr*0.62;
+      svg.push('<path d="M'+lx.toFixed(0)+' '+ly.toFixed(0)+' L'+cx+' '+cy+'" stroke="#6b5a33" stroke-width="1" stroke-dasharray="3 5" opacity=".35" fill="none"/>');
+      svg.push('<g opacity=".8">'+satSvg('lk'+L,lx,ly,8,'derelict',(L*29)%40-20,false)+'</g>');
+      svg.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+3.5).toFixed(0)+'" text-anchor="middle" font-family="Inter" font-size="9" font-weight="800" fill="#f0c560">?</text>');
+    }
+
+    // YOUR satellite — same family, brighter and larger. Not a planet.
+    svg.push(satSvg('me',cx,cy,26,'mine',0,true));
+    labels+='<div class="nodelabel" data-for="me" style="left:'+cx+'px;top:'+(cy-54)+'px;color:#7fe6ff">YOUR WALLET<small>'+
+            (d.addr.slice(0,6)+'…'+d.addr.slice(-4))+'</small></div>';
+
+    arrival.innerHTML=
+      '<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid meet">'+
+        '<g id="skyview">'+svg.join('')+'</g></svg>'+
+      '<div id="labelLayer" style="position:absolute;inset:0;pointer-events:none">'+labels+'</div>';
+
+    // labels are positioned in SVG user units; scale the layer to match the viewBox
+    var lay=document.getElementById('labelLayer');
+    lay.style.width=W+'px'; lay.style.height=H+'px';
+    lay.style.left='50%'; lay.style.top='50%';
+    lay.style.marginLeft=(-W/2)+'px'; lay.style.marginTop=(-H/2)+'px';
+
+    VIEW={x:0,y:0,k:1}; applyView();
+    document.getElementById('back').classList.add('show');
+    document.getElementById('controls').classList.add('show');
+    setTimeout(function(){document.getElementById('controls').classList.remove('show')},5000);
+
+    showWalletCard(d,hidden,floorV);
+    D=d; DH=hidden; DF=floorV;
+  }
+
+  var D=null, DH=0, DF=25;
+  function showWalletCard(d,hidden,floorV){
+    document.querySelector('.card h3').textContent='YOUR WALLET';
     document.querySelector('.card .addr').textContent=d.addr;
     var rows=document.querySelectorAll('.rows .v');
     rows[0].textContent=usd(d.inSum); rows[1].textContent=usd(d.outSum);
     rows[2].textContent=d.txs.toLocaleString('en-US');
     rows[3].textContent=Object.keys(d.cps).length.toLocaleString('en-US');
-
-    // THE TEASER — honest about exactly what the free flight cannot see
     var t=document.getElementById('teaser');
     t.innerHTML='<span class="lk">&#128274; The free flight stops at the first hop.</span>'+
       'Where each of these went <b>next</b>, who is behind the source, and where it '+
@@ -435,8 +506,20 @@ html,body{height:100%;overflow:hidden;background:#000;
       (hidden>0?'<span class="dust">'+hidden+' trace-level movement'+(hidden===1?'':'s')+
                 ' under '+usd(floorV)+' hidden to keep the sky readable.</span>':'');
     t.classList.add('show');
-    var pay=document.getElementById('pay');
-    pay.href='checkout.html?product=pflash&addr='+encodeURIComponent(d.addr);
+    document.getElementById('pay').href='checkout.html?product=pflash&addr='+encodeURIComponent(d.addr);
+  }
+  function showSatCard(s){
+    document.querySelector('.card h3').textContent=s.k.label;
+    document.querySelector('.card .addr').textContent=s.c.addr;
+    var rows=document.querySelectorAll('.rows .v');
+    rows[0].textContent=usd(s.c.in); rows[1].textContent=usd(s.c.out);
+    rows[2].textContent=s.c.n.toLocaleString('en-US');
+    rows[3].textContent=s.k.sub;
+    var t=document.getElementById('teaser');
+    t.innerHTML='<span class="lk">&#128274; This is where the free flight ends.</span>'+
+      'Where this satellite sent the money <b>next</b> — and the exchange or service '+
+      'it finally reached — is in the full trace.';
+    t.classList.add('show');
   }
 
   function showNote(t,b){note.querySelector('b').textContent=t;note.querySelector('span').textContent=b;
@@ -511,6 +594,70 @@ html,body{height:100%;overflow:hidden;background:#000;
     if(arrived)return; fly(e.clientX,e.clientY,null);
   });
   document.getElementById('replay').addEventListener('click',function(){location.reload()});
+
+  /* ---------- interactive sky: drag to pan, wheel/pinch to zoom, tap to inspect ---------- */
+  (function(){
+    var down=false, moved=0, sx=0, sy=0, ox=0, oy=0, pinch=null;
+    function pt(e){return e.touches?e.touches[0]:e}
+    arrival.addEventListener('pointerdown',function(e){
+      if(!arrived) return;
+      down=true; moved=0; sx=e.clientX; sy=e.clientY; ox=VIEW.x; oy=VIEW.y;
+      arrival.classList.add('dragging');
+    });
+    window.addEventListener('pointermove',function(e){
+      if(!down) return;
+      var dx=e.clientX-sx, dy=e.clientY-sy;
+      moved=Math.max(moved,Math.abs(dx)+Math.abs(dy));
+      VIEW.x=ox+dx; VIEW.y=oy+dy; applyView();
+    });
+    window.addEventListener('pointerup',function(e){
+      if(!down) return; down=false; arrival.classList.remove('dragging');
+      if(moved>6) return;                       // a drag, not a tap
+      var g=e.target.closest && e.target.closest('.sat');
+      if(!g) return;
+      var id=g.getAttribute('data-id');
+      if(id==='me'){ if(D) showWalletCard(D,DH,DF); return; }
+      var hit=SATS.filter(function(s){return s.id===id})[0];
+      if(hit){ CUR=hit; showSatCard(hit); }
+      else { showNote('LOCKED','This craft sits beyond the first hop. The full trace identifies it.'); }
+    });
+    arrival.addEventListener('wheel',function(e){
+      if(!arrived) return;
+      e.preventDefault();
+      var f=e.deltaY<0?1.12:0.89;
+      VIEW.k=Math.min(4,Math.max(0.45,VIEW.k*f));
+      applyView();
+    },{passive:false});
+    // two-finger pinch
+    arrival.addEventListener('touchstart',function(e){
+      if(e.touches.length===2){
+        pinch={d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                            e.touches[0].clientY-e.touches[1].clientY),k:VIEW.k};
+      }
+    },{passive:true});
+    arrival.addEventListener('touchmove',function(e){
+      if(pinch&&e.touches.length===2){
+        var nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                          e.touches[0].clientY-e.touches[1].clientY);
+        VIEW.k=Math.min(4,Math.max(0.45,pinch.k*(nd/pinch.d))); applyView();
+      }
+    },{passive:true});
+    arrival.addEventListener('touchend',function(e){ if(e.touches.length<2) pinch=null; },{passive:true});
+  })();
+
+  /* explicit exit — the sky itself is for going deeper, never for going back */
+  document.getElementById('back').addEventListener('click',function(e){
+    e.stopPropagation();
+    arrived=false; flying=false; CUR=null;
+    arrival.classList.remove('show'); hud.classList.remove('show');
+    document.getElementById('back').classList.remove('show');
+    document.getElementById('teaser').classList.remove('show');
+    searchbar.classList.remove('hide');
+    invite.style.opacity='1';
+    sky.style.transition='transform 1.3s ease'; canopy.style.transition='transform 1.3s ease';
+    sky.style.transform='scale(1)'; canopy.style.transform='scale(1)';
+    space.style.opacity='0';
+  });
   setTimeout(function(){if(!flying&&!arrived)
     showNote('THE MORNING SKY LOOKS EMPTY','You cannot see stars at dawn. The wallets are up there either way — that is what the flight is for.');},1200);
 })();

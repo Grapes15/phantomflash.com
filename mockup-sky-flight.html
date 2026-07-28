@@ -437,14 +437,21 @@ html,body{height:100%;overflow:hidden;background:#000;
     var kept=all.filter(function(c){return (c.in+c.out)>=floorV});
     var hidden=all.length-kept.length;
     var list=kept.slice(0,7);
-    var W=400,H=800,cx=200,cy=400,max=list.length?(list[0].in+list[0].out):1;
+    // Lay out in REAL screen pixels so the sky fills whatever shape the window is,
+    // and centre it in the room ABOVE the card instead of behind it.
+    var st=document.getElementById('stage');
+    var W=st.clientWidth, H=st.clientHeight;
+    var cardH=Math.min(300,H*0.46);            // room the HUD occupies
+    var avail=Math.max(220,H-cardH-40);
+    var cx=W/2, cy=40+avail/2;
+    var base=Math.min(W*0.42,avail*0.42);      // zoomed out: orbit scaled to the room
+    var max=list.length?(list[0].in+list[0].out):1;
 
-    // ZOOMED OUT: wider orbit + smaller craft so you can see what surrounds you
     var svg=[], labels='';
     SATS=[];
     list.forEach(function(c,i){
       var ang=(-90+(i*(360/Math.max(list.length,1))))*Math.PI/180;
-      var rad=140+((i%3)*34), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.80;
+      var rad=base*(0.72+((i%3)*0.16)), x=cx+Math.cos(ang)*rad, y=cy+Math.sin(ang)*rad*0.78;
       var k=classify(c,now), v=c.in+c.out;
       var sz=9+11*(Math.log10(1+v)/Math.log10(1+max));
       var col=c.in>=c.out?'#3ddc97':'#ff8a5c';
@@ -459,28 +466,22 @@ html,body{height:100%;overflow:hidden;background:#000;
 
     // locked craft beyond the first hop — no invented data, just "there is more"
     for(var L=0;L<5;L++){
-      var la=(-58+L*(300/5))*Math.PI/180, lr=278+((L%2)*30);
-      var lx=cx+Math.cos(la)*lr, ly=cy+Math.sin(la)*lr*0.62;
+      var la=(-58+L*(300/5))*Math.PI/180, lr=base*(1.34+((L%2)*0.14));
+      var lx=cx+Math.cos(la)*lr, ly=cy+Math.sin(la)*lr*0.6;
       svg.push('<path d="M'+lx.toFixed(0)+' '+ly.toFixed(0)+' L'+cx+' '+cy+'" stroke="#6b5a33" stroke-width="1" stroke-dasharray="3 5" opacity=".35" fill="none"/>');
       svg.push('<g opacity=".8">'+satSvg('lk'+L,lx,ly,8,'derelict',(L*29)%40-20,false)+'</g>');
       svg.push('<text x="'+lx.toFixed(0)+'" y="'+(ly+3.5).toFixed(0)+'" text-anchor="middle" font-family="Inter" font-size="9" font-weight="800" fill="#f0c560">?</text>');
     }
 
     // YOUR satellite — same family, brighter and larger. Not a planet.
-    svg.push(satSvg('me',cx,cy,26,'mine',0,true));
+    svg.push(satSvg('me',cx,cy,Math.max(20,base*0.17),'mine',0,true));
     labels+='<div class="nodelabel" data-for="me" style="left:'+cx+'px;top:'+(cy-54)+'px;color:#7fe6ff">YOUR WALLET<small>'+
             (d.addr.slice(0,6)+'…'+d.addr.slice(-4))+'</small></div>';
 
     arrival.innerHTML=
-      '<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid meet">'+
+      '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
         '<g id="skyview">'+svg.join('')+'</g></svg>'+
       '<div id="labelLayer" style="position:absolute;inset:0;pointer-events:none">'+labels+'</div>';
-
-    // labels are positioned in SVG user units; scale the layer to match the viewBox
-    var lay=document.getElementById('labelLayer');
-    lay.style.width=W+'px'; lay.style.height=H+'px';
-    lay.style.left='50%'; lay.style.top='50%';
-    lay.style.marginLeft=(-W/2)+'px'; lay.style.marginTop=(-H/2)+'px';
 
     VIEW={x:0,y:0,k:1}; applyView();
     document.getElementById('back').classList.add('show');

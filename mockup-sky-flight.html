@@ -440,7 +440,10 @@ html,body{height:100%;overflow:hidden;background:#000;
     // Lay out in REAL screen pixels so the sky fills whatever shape the window is,
     // and centre it in the room ABOVE the card instead of behind it.
     var st=document.getElementById('stage');
-    var W=st.clientWidth, H=st.clientHeight;
+    // never trust a zero measurement — a collapsed stage would stack every
+    // satellite on one point. Fall back through viewport then a phone default.
+    var W=st.clientWidth||window.innerWidth||390;
+    var H=st.clientHeight||window.innerHeight||780;
     var cardH=Math.min(300,H*0.46);            // room the HUD occupies
     var avail=Math.max(220,H-cardH-40);
     var cx=W/2, cy=40+avail/2;
@@ -645,6 +648,14 @@ html,body{height:100%;overflow:hidden;background:#000;
     },{passive:true});
     arrival.addEventListener('touchend',function(e){ if(e.touches.length<2) pinch=null; },{passive:true});
   })();
+
+  /* re-lay out when the window changes shape (phone rotation, window resize) */
+  var reflow=null;
+  window.addEventListener('resize',function(){
+    if(!arrived||!D) return;
+    clearTimeout(reflow);
+    reflow=setTimeout(function(){ renderArrival(D); },180);
+  });
 
   /* explicit exit — the sky itself is for going deeper, never for going back */
   document.getElementById('back').addEventListener('click',function(e){

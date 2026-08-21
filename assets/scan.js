@@ -1489,6 +1489,12 @@
       .then(function () { PDF_LIBS_LOADED = true; });
   }
 
+  // jsPDF's built-in fonts are WinAnsi-only — map the unicode we use to safe glyphs
+  function pdfSafe(s) {
+    return String(s)
+      .replace(/\u2248/g, '~').replace(/\u2192/g, '->').replace(/\u26a1/g, '')
+      .replace(/\u00b7/g, '\u00b7');
+  }
   function buildPdf() {
     var st = PDF_STATE;
     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
@@ -1502,7 +1508,7 @@
     doc.rect(0, 0, W, 86, 'F');
     doc.setTextColor(0, 229, 255);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-    doc.text('\u26a1 PHANTOM FLASH', 40, 36);
+    doc.text('PHANTOM FLASH', 40, 36);
     doc.setTextColor(236, 225, 200); doc.setFontSize(12);
     doc.text('WALLET PFLASH REPORT \u2014 FREE EDITION', 40, 56);
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
@@ -1520,15 +1526,15 @@
     var range = '\u2014';
     if (times.length) {
       var mn = Math.min.apply(null, times), mx = Math.max.apply(null, times);
-      range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : '  \u2192  ' + fmtDate(mx));
+      range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : '  ->  ' + fmtDate(mx));
       if (d.txs.length < d.txCount) range += '   (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
     }
     doc.autoTable({
       startY: 144,
       head: [['SUMMARY', '']],
       body: [
-        ['Total received', fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : '')],
-        ['Total sent out', fmtBtc(d.spentSum) + (priceOk ? '   (' + fmtUsd(d.spentSum, st.price) + ')' : '')],
+        ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : ''))],
+        ['Total sent out', pdfSafe(fmtBtc(d.spentSum) + (priceOk ? '   (' + fmtUsd(d.spentSum, st.price) + ')' : ''))],
         ['Transactions on-chain', d.txCount.toLocaleString('en-US')],
         ['Counterparties (first hop)', String(st.cps.length)],
         ['Activity window', range]
@@ -1561,7 +1567,7 @@
     var txRows = d.txs.map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
       var cp = t.counterparties.length ? t.counterparties[0].addr + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) : '') : '(script / non-standard)';
-      return [fmtDate(t.time), t.direction === 'in' ? 'IN' : 'OUT', t.assetLabel || fmtBtc(amt), cp, t.txid];
+      return [fmtDate(t.time), t.direction === 'in' ? 'IN' : 'OUT', pdfSafe(t.assetLabel || fmtBtc(amt)), cp, t.txid];
     });
     var moreTx = d.txCount - d.txs.length;
     doc.autoTable({
@@ -1583,8 +1589,8 @@
       doc.setPage(p);
       var H = doc.internal.pageSize.getHeight();
       doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
-      doc.text('Free first-hop scan of public blockchain data, presented as-is \u00b7 informational only \u2014 not legal, financial, or investment advice \u00b7 no recovery promised or implied.', 40, H - 30, { maxWidth: W - 150 });
-      doc.text('phantomflash.com \u00b7 page ' + p + ' of ' + pages, W - 40, H - 30, { align: 'right' });
+      doc.text('Free first-hop scan of public blockchain data, presented as-is \u00b7 informational only \u2014 not legal, financial, or investment advice \u00b7 no recovery promised or implied.', 40, H - 34, { maxWidth: W - 80 });
+      doc.text('phantomflash.com \u00b7 page ' + p + ' of ' + pages, W - 40, H - 18, { align: 'right' });
     }
 
     doc.save('PFLASH-report-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');

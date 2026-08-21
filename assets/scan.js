@@ -38,10 +38,11 @@
   // keep the historical "sats" spelling but mean "base units of the active coin."
   var COIN = { chain: 'btc', ticker: 'BTC', divisor: 1e8 };
   // OPERATOR full-trace view: unlocks every counterparty + all transactions.
-  // Activated by ?full=1 but ONLY on localhost (see runScan) — inert/ignored on
-  // the public site, so the paywall can never be bypassed in production.
+  // Activated by ?full=1 but ONLY on localhost (see runScan).
+  // v11 (2026-08-21, Dan's call): the public scan is FREE FOR EVERYBODY —
+  // the whole universe, every planet, every fetched transaction. No paywall.
   var FULL_MODE = false;
-  var MAX_TX_TABLE = 10; // v10: 10 most recent free; the rest are counted and locked
+  var MAX_TX_TABLE = 10; // legacy cap; v11 shows all fetched txs (see renderTable)
   // small screens get a lower node cap so the 3D system stays smooth on phones
   var IS_SMALL = Math.min(window.innerWidth, window.innerHeight) <= 600 ||
                  (window.matchMedia && window.matchMedia('(max-width:880px)').matches);
@@ -879,7 +880,8 @@
   // Counterparty addresses are shown ONLY for unlocked counterparties;
   // a locked counterparty's address never reaches the DOM.
   function renderTable(data, unlockedSet) {
-    var cap = FULL_MODE ? data.txs.length : MAX_TX_TABLE;
+    var cap = data.txs.length; // v11: everything we fetched, free
+
     var shown = Math.min(data.txs.length, cap);
     var rows = data.txs.slice(0, cap).map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
@@ -900,11 +902,12 @@
         '</tr>';
     }).join('');
     var more = data.txCount - shown;
-    if (more > 0 && !FULL_MODE) {
-      rows += '<tr class="tx-locked-row"><td colspan="5">' +
-        '<a href="' + esc(curCheckout) + '">\uD83D\uDD12 ' +
-        esc(T('txMoreLocked').replace('{n}', more.toLocaleString('en-US'))) +
-        '</a></td></tr>';
+    if (more > 0) {
+      // v11: honest disclosure, nothing locked — the chain simply has more
+      // history than one fetch returns.
+      rows += '<tr class="tx-locked-row"><td colspan="5">+ ' +
+        more.toLocaleString('en-US') + ' earlier transactions on-chain \u2014 showing the ' +
+        shown.toLocaleString('en-US') + ' most recent</td></tr>';
     }
     $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
   }
@@ -973,25 +976,17 @@
   //   autoOrbit  — slow auto-rotate camera (demo)
   //   noPaywall  — skip the unlocked/locked split (demo supplies its own mix)
   //   lockedExtra— explicit ring-one locked placeholder count (demo)
-  // ---- v10 paywall split — shared by the system renderer AND the tx table ----
-  // N = min(8, ceil(40% of counterparties)) fully unlocked (top by volume,
-  // so the Walker canon holds). Everything else becomes a COUNT — the
-  // locked counterparties' real data never enters a render object.
+  // ---- v11: no paywall. Everything unlocks for everybody. ----
+  // The only cap left is MAX_PLANETS, a pure render-performance ceiling;
+  // when a wallet has more counterparties than that, the top ones by
+  // volume render and the capNote discloses it.
   function paywallSplit(cps) {
-    if (FULL_MODE) {                          // operator view — nothing locked
-      var setAll = {};
-      cps.forEach(function (c) { setAll[c.addr] = true; });
-      return { planets: cps.slice(0, MAX_PLANETS), unlockedSet: setAll, lockedCpCount: 0 };
-    }
-    var unlockedN = Math.min(8, Math.ceil(cps.length * 0.4));
-    var planets = cps.slice(0, Math.min(unlockedN, MAX_PLANETS));
-    var unlockedSet = {};
-    planets.forEach(function (c) { unlockedSet[c.addr] = true; });
-    return {
-      planets: planets,
-      unlockedSet: unlockedSet,
-      lockedCpCount: cps.length - planets.length
-    };
+    var setAll = {};
+    cps.forEach(function (c) { setAll[c.addr] = true; });
+    var planets = cps.slice(0, MAX_PLANETS);
+    var capNote = $('capNote');
+    if (capNote && cps.length > MAX_PLANETS) capNote.style.display = 'inline';
+    return { planets: planets, unlockedSet: setAll, lockedCpCount: 0 };
   }
 
   function renderSystem(data, cps, price, opts) {
@@ -1119,7 +1114,7 @@
     var anchorPool = outPlanetIdx.length ? outPlanetIdx
       : (planets.length ? planets.map(function (_, i) { return i; }) : null);
 
-    var lockedCount = FULL_MODE ? 0 : (opts.demo ? 0 : (planets.length ? LOCKED_PLANETS : 6));
+    var lockedCount = 0; // v11: free for everybody — no shrouded decorative ring
     for (var L = 0; L < lockedCount; L++) {
       var label = lockedLabels[L % lockedLabels.length];
       nodes.push({

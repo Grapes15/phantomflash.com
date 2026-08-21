@@ -29,7 +29,7 @@
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
 <link rel="stylesheet" href="assets/style.css">
-<script src="assets/i18n.js?v=20260722a" defer></script>
+<script src="assets/i18n.js?v=20260821a" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
@@ -47,7 +47,7 @@
     <a class="logo" href="index.html"><span class="bolt">⚡</span> Phantom Flash <span class="sub">// OWLCHAINED</span></a>
     <nav class="nav-links">
       <a href="index.html" class="hide-m">Home</a>
-      <a href="checkout.html" class="btn primary">Unlock Full Report</a>
+      <a href="index.html#scan" class="btn primary">PFLASH another wallet</a>
     </nav>
   </div>
 </header>
@@ -89,17 +89,15 @@
       The wallet you PFLASHED is the sun. Every planet is a real wallet it transacted with —
       sized by volume, each with a name, a resident, and a history written by your own transactions.
       Drag to orbit, scroll to zoom, <strong>click any planet</strong> to fly to it: you'll get the
-      hard numbers <em>and</em> the planet's story. <strong>Some worlds are already charted. The
-      shrouded ones — and everything beyond — unlock with the PFLASH-IT Report.</strong>
+      hard numbers <em>and</em> the planet's story. <strong>All of it — every world — free.</strong>
       <span id="capNote" style="display:none;color:var(--amber)">Showing top counterparties by volume.</span>
     </p>
     <div class="stage3d" id="stage3d">
-      <div class="hud"><span class="live">●</span> FIRST HOP — LIVE · INHABITED &nbsp;·&nbsp; <span style="color:var(--amber)">🔒 SHROUDED WORLDS — LOCKED</span></div>
+      <div class="hud"><span class="live">●</span> FIRST HOP — LIVE · INHABITED · FREE</div>
       <div class="legend">
         Sun = PFLASHED wallet <span class="sw" style="background:#00e5ff;box-shadow:0 0 8px #00e5ff"></span><br>
         Money in <span class="sw" style="background:#3ddc97"></span><br>
         Money out <span class="sw" style="background:#ff4d5e"></span><br>
-        Locked worlds <span class="sw" style="background:#6b5a33"></span><br>
         <span class="bag-key">💰 = share of your money’s traffic</span>
       </div>
       <div class="bag-key bag-key-m">💰 = share of your money’s traffic</div>
@@ -113,49 +111,8 @@
       </div>
     </div>
 
-    <!-- LOCKED FINDINGS -->
-    <h2 class="section-title" style="font-size:30px;margin-top:44px">Deep-trace findings <span style="color:var(--amber);font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)">🔒 LOCKED</span></h2>
-    <p class="section-sub" style="margin-bottom:14px">
-      The free PFLASH stops at the first hop. Phantom Flash sees the rest — the PFLASH-IT Report
-      follows your money through every hop after that: relay wallets, consolidation hubs, the
-      exchanges and services where it actually landed.
-    </p>
-    <div class="grid cols-3" style="margin-top:6px">
-      <div class="card locked-card">
-        <div class="blurred">
-          <div class="label">Exchange exposure</div>
-          <div class="kpi cyan">████</div>
-          <p>Deposit clusters consistent with custodial exchange infrastructure — the named services where your money actually landed, and where action is possible.</p>
-        </div>
-        <div class="mini-lock"><div class="ico">🔒</div><div class="t">Exchange identification — locked</div></div>
-      </div>
-      <div class="card locked-card">
-        <div class="blurred">
-          <div class="label">Convergence analysis</div>
-          <div class="kpi cyan">████</div>
-          <p>Do the fund paths flow where a legitimate platform's would — or converge into common downstream infrastructure controlled by a single operator?</p>
-        </div>
-        <div class="mini-lock"><div class="ico">🔒</div><div class="t">Hub &amp; cluster analysis — locked</div></div>
-      </div>
-      <div class="card locked-card">
-        <div class="blurred">
-          <div class="label">Risk signals</div>
-          <div class="kpi cyan">████</div>
-          <p>Velocity, structuring, and counterparty-reuse heuristics scored against baselines from prior traces — how this wallet really behaves.</p>
-        </div>
-        <div class="mini-lock"><div class="ico">🔒</div><div class="t">Risk scoring — locked</div></div>
-      </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="cta-band">
-      <h2>You've seen the first hop. Phantom Flash sees the rest.</h2>
-      <p>The PFLASH-IT Report follows your money through every hop at machine speed — one upload, delivered fast, $271. Time matters — crypto moves in days, not months.</p>
-      <a class="btn primary big" id="unlockBtn2" href="checkout.html">Get the PFLASH-IT Report — $271 →</a>
-    </div>
-
     <!-- RECENT TRANSACTIONS -->
-    <h2 class="section-title" style="font-size:30px">Recent transactions <span style="color:var(--muted2);font-size:13px;font-weight:400;font-family:var(--sans)">(10 most recent — free)</span></h2>
+    <h2 class="section-title" style="font-size:30px">Recent transactions <span style="color:var(--muted2);font-size:13px;font-weight:400;font-family:var(--sans)">(most recent — free, like everything here)</span></h2>
     <div class="tx-table-wrap" style="margin-bottom:50px">
       <table class="tx">
         <thead><tr><th>Date</th><th>Direction</th><th>Amount (BTC)</th><th>Counterparty (first hop)</th><th>TXID</th></tr></thead>
@@ -182,14 +139,7 @@
   </div>
 </footer>
 
-<script src="assets/scan.js?v=20260725a"></script>
-<script>
-/* GA4 key-event wiring */
-(function(){
-  function track(n,p){ try{ if(window.gtag) gtag('event', n, p||{}); }catch(e){} }
-  var u=document.getElementById('unlockBtn2'); if(u) u.addEventListener('click', function(){ track('unlock_click',{product:'pflash_it', value:271, currency:'USD'}); });
-})();
-</script>
+<script src="assets/scan.js?v=20260821a"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });

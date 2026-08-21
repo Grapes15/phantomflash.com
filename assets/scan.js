@@ -1528,31 +1528,46 @@
     var st = PDF_STATE;
     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
     var W = doc.internal.pageSize.getWidth();
-    var navy = [6, 19, 27], cyan = [0, 172, 193], amber = [214, 138, 34], ink = [30, 40, 50], muted = [110, 125, 140];
+    var H0 = doc.internal.pageSize.getHeight();
+    var navy = [6, 19, 27], ink = [28, 39, 51], muted = [107, 118, 131];
+    // v13.2: the PDF IS the web paper — cream stock, typewriter body
+    var cream = [236, 225, 200], creamDark = [222, 209, 182], creamLine = [185, 172, 143];
     var now = new Date();
     var priceOk = st.price && st.chain !== 'eth';
 
-    // header band
-    doc.setFillColor(navy[0], navy[1], navy[2]);
-    doc.rect(0, 0, W, 86, 'F');
-    doc.setTextColor(0, 229, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-    doc.text('PHANTOM FLASH', 40, 36);
-    doc.setTextColor(236, 225, 200); doc.setFontSize(12);
-    doc.text('WALLET PFLASH REPORT \u2014 FREE EDITION', 40, 56);
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-    doc.text('Generated ' + now.toLocaleString('en-US') + '  \u00b7  phantomflash.com  \u00b7  live public blockchain data', 40, 72);
+    // cream stock on every page (page 1 by hand; table pages via willDrawPage)
+    var painted = {};
+    function paintPage() {
+      var n = doc.internal.getCurrentPageInfo().pageNumber;
+      if (painted[n]) return;
+      painted[n] = true;
+      doc.setFillColor(cream[0], cream[1], cream[2]);
+      doc.rect(0, 0, W, H0, 'F');
+    }
+    paintPage();
+
+    // masthead — display-weight heading over the double rule, like the paper
+    doc.setTextColor(ink[0], ink[1], ink[2]);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(27);
+    doc.text('PHANTOM FLASH', 40, 52);
+    doc.setDrawColor(ink[0], ink[1], ink[2]);
+    doc.setLineWidth(1.6); doc.line(40, 62, W - 40, 62);
+    doc.setLineWidth(0.5); doc.line(40, 66, W - 40, 66);
+    doc.setFont('courier', 'bold'); doc.setFontSize(11);
+    doc.text('WALLET PFLASH REPORT \u2014 FREE EDITION', 40, 84);
+    doc.setFont('courier', 'normal'); doc.setFontSize(8);
+    doc.setTextColor(muted[0], muted[1], muted[2]);
+    doc.text('Generated ' + now.toLocaleString('en-US') + '  \u00b7  phantomflash.com  \u00b7  live public blockchain data', 40, 98);
 
     // the transmission — right up at the top
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(9.5);
-    doc.setTextColor(muted[0], muted[1], muted[2]);
-    doc.text(PDF_EPIGRAPH, W / 2, 103, { align: 'center' });
+    doc.setFont('courier', 'italic'); doc.setFontSize(9.5);
+    doc.text(PDF_EPIGRAPH, W / 2, 122, { align: 'center' });
 
     doc.setTextColor(ink[0], ink[1], ink[2]);
     doc.setFont('courier', 'bold'); doc.setFontSize(11);
-    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 128);
+    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 146);
     doc.setFont('courier', 'normal'); doc.setFontSize(10);
-    doc.text(st.addr, 40, 144, { maxWidth: W - 80 });
+    doc.text(st.addr, 40, 162, { maxWidth: W - 80 });
 
     // summary table
     var d = st.data;
@@ -1563,8 +1578,18 @@
       range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : '  ->  ' + fmtDate(mx));
       if (d.txs.length < d.txCount) range += '   (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
     }
-    doc.autoTable({
-      startY: 162,
+    var tableTheme = {
+      theme: 'grid',
+      headStyles: { fillColor: creamDark, textColor: ink, fontStyle: 'bold', font: 'courier', lineColor: creamLine, lineWidth: 0.5 },
+      styles: { font: 'courier', textColor: ink, lineColor: creamLine, lineWidth: 0.5, fillColor: cream },
+      alternateRowStyles: { fillColor: [229, 218, 192] },
+      margin: { left: 40, right: 40 },
+      willDrawPage: paintPage
+    };
+    function themed(o) { var t = {}; var k; for (k in tableTheme) t[k] = tableTheme[k]; for (k in o) { if (k === 'headStyles' || k === 'styles') { var m = {}; var j; for (j in tableTheme[k]) m[j] = tableTheme[k][j]; for (j in o[k]) m[j] = o[k][j]; t[k] = m; } else t[k] = o[k]; } return t; }
+
+    doc.autoTable(themed({
+      startY: 180,
       head: [['SUMMARY', '']],
       body: [
         ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : ''))],
@@ -1573,29 +1598,24 @@
         ['Counterparties (first hop)', String(st.cps.length)],
         ['Activity window', range]
       ],
-      theme: 'grid',
-      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 5, textColor: ink },
-      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 170 } },
-      margin: { left: 40, right: 40 }
-    });
+      styles: { fontSize: 9, cellPadding: 5 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 170 } }
+    }));
 
     // counterparties
     var CP_CAP = 200;
     var cpRows = st.cps.slice(0, CP_CAP).map(function (c, i) {
       return [String(i + 1), c.addr, fmtBtc(c.inSats), fmtBtc(c.outSats), String(c.txCount)];
     });
-    doc.autoTable({
+    doc.autoTable(themed({
       startY: doc.lastAutoTable.finalY + 18,
       head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 5 }],
              ['#', 'Wallet address', 'Sent to you', 'Received from you', 'Shared tx']],
       body: cpRows,
-      theme: 'striped',
-      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontSize: 8, fontStyle: 'bold' },
-      styles: { fontSize: 7, cellPadding: 4, textColor: ink, font: 'courier' },
-      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 250 } },
-      margin: { left: 40, right: 40 }
-    });
+      headStyles: { fontSize: 8 },
+      styles: { fontSize: 7, cellPadding: 4 },
+      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 250 } }
+    }));
 
     // transactions
     var txRows = d.txs.map(function (t) {
@@ -1604,18 +1624,16 @@
       return [fmtDate(t.time), t.direction === 'in' ? 'IN' : 'OUT', pdfSafe(t.assetLabel || fmtBtc(amt)), cp, t.txid];
     });
     var moreTx = d.txCount - d.txs.length;
-    doc.autoTable({
+    doc.autoTable(themed({
       startY: doc.lastAutoTable.finalY + 18,
       head: [[{ content: 'TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' (of ' + d.txCount.toLocaleString('en-US') + ' on-chain)' : ''), colSpan: 5 }],
              ['Date', 'Dir', 'Amount', 'Counterparty (first hop)', 'TXID']],
       body: txRows,
-      theme: 'striped',
-      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontSize: 8, fontStyle: 'bold' },
-      styles: { fontSize: 6, cellPadding: 3, textColor: ink, font: 'courier', overflow: 'linebreak' },
+      headStyles: { fontSize: 8 },
+      styles: { fontSize: 6, cellPadding: 3, overflow: 'linebreak' },
       columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 26 }, 2: { cellWidth: 70 } },
-      margin: { left: 40, right: 40 },
-      didParseCell: function (h) { if (h.section === 'body' && h.column.index === 1) h.cell.styles.textColor = h.cell.raw === 'IN' ? [22, 140, 90] : [190, 40, 55]; }
-    });
+      didParseCell: function (h) { if (h.section === 'body' && h.column.index === 1) h.cell.styles.textColor = h.cell.raw === 'IN' ? [22, 122, 80] : [176, 42, 60]; }
+    }));
 
     // ---- v12.2: the closing page — the word from Phantom Flash ----
     doc.addPage();
@@ -1688,13 +1706,17 @@
   // PDF button lives inside the (dynamically rendered) paper view — delegate.
   document.addEventListener('click', function (ev) {
     var btn = ev.target && ev.target.closest ? ev.target.closest('#pdfBtn') : null;
-    if (!btn || !PDF_STATE) return;
+    if (!btn || !PDF_STATE || btn.disabled) return;
     var orig = btn.textContent;
-    btn.textContent = 'Building your report\u2026';
+    btn.textContent = '\u26a1 Pflash Loading \u26a1';
     btn.disabled = true;
     try { if (window.gtag) gtag('event', 'pdf_download', { address_kind: PDF_STATE.chain }); } catch (e) {}
     Promise.all([loadPdfLibs(), loadWatermark()])
-      .then(function (r) { buildPdf(r[1]); btn.textContent = orig; btn.disabled = false; })
+      .then(function (r) {
+        buildPdf(r[1]);
+        btn.textContent = '\u26a1 Successful Pflash Export \u26a1';
+        setTimeout(function () { btn.textContent = orig; btn.disabled = false; }, 4000);
+      })
       .catch(function () {
         // CDN blocked/offline — the browser's own PDF printer still works
         btn.textContent = orig; btn.disabled = false;
@@ -1736,7 +1758,7 @@
         '<div class="pd-head">' +
           '<div><div class="pd-brand">PHANTOM FLASH</div>' +
           '<div class="pd-sub">WALLET PFLASH REPORT \u2014 FREE EDITION \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
-          '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Take the paper with you \u2014 PDF</button>' +
+          '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Don\u2019t Forget to Download this Report and Take it With You!</button>' +
         '</div>' +
         '<div class="pd-epigraph">' + PDF_EPIGRAPH + '</div>' +
         '<div class="pd-wallet">Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +

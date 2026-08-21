@@ -919,3 +919,6 @@ html,body{max-width:100%;overflow-x:hidden}
 .pd-section{font-family:inherit;font-weight:700;letter-spacing:.06em}
 .pd-sign{font-family:inherit;font-weight:700}
 .pd-sub,.pd-epigraph,.pd-close p,.pd-legal{font-family:inherit}
+
+/* v13.2: the masthead pops back to display type against the courier body (Dan) */
+.pd-brand{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.05em}

@@ -940,3 +940,16 @@ html,body{max-width:100%;overflow-x:hidden}
 .pane-pick{align-items:center;padding-top:0}
 #viewWrap.split #universeView > .section-title,#viewWrap.split #universeView > .section-sub{display:none}
 #viewWrap.split .view-pane .paper-doc{padding-top:16px}
+
+/* v14: FAQ — plain answers, newsprint accents */
+.faq-list{max-width:820px;margin:0 auto}
+.faq-item{border:2px solid var(--line);border-radius:10px;background:rgba(11,32,44,.7);margin-bottom:10px;box-shadow:3px 3px 0 var(--edge)}
+.faq-item summary{cursor:pointer;list-style:none;font-family:var(--display);font-size:19px;letter-spacing:.05em;padding:15px 18px;color:var(--paper,#ece1c8);min-height:44px;display:flex;align-items:center;gap:10px}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::before{content:"⚡";color:var(--cyan);font-size:15px;transition:transform .15s}
+.faq-item[open] summary::before{transform:rotate(90deg)}
+.faq-item[open] summary{color:var(--cyan)}
+.faq-item p{margin:0;padding:0 18px 16px 43px;color:var(--muted);font-size:15px;line-height:1.65}
+.faq-item strong{color:#dbeafe}
+.faq-code{font-family:var(--mono);font-size:13px;color:var(--amber);background:rgba(5,9,12,.6);padding:1px 6px;border-radius:5px;white-space:nowrap}
+@media(max-width:600px){.faq-item summary{font-size:16px;padding:13px 14px}.faq-item p{padding:0 14px 14px 36px}}

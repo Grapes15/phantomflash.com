@@ -1,10 +1,10 @@
 /* Phantom Flash PWA service worker — v1 (2026-07-25)
    Strategy: network-first for everything, cache fallback for offline.
    Never caches cross-origin (blockchain APIs, GA, Stripe) — those pass through untouched. */
-var CACHE = 'pflash-v7';
+var CACHE = 'pflash-v8';
 var SHELL = [
   '/', '/index.html', '/scan.html',
-  '/assets/style.css?v=20260821c', '/assets/scan.js?v=20260821e', '/assets/i18n.js?v=20260821a',
+  '/assets/style.css?v=20260821d', '/assets/scan.js?v=20260821f', '/assets/i18n.js?v=20260821a',
   '/assets/icon-192.png', '/assets/icon-512.png', '/assets/favicon.svg'
 ];
 self.addEventListener('install', function(e){

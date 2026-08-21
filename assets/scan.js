@@ -1495,7 +1495,35 @@
       .replace(/\u2248/g, '~').replace(/\u2192/g, '->').replace(/\u26a1/g, '')
       .replace(/\u00b7/g, '\u00b7');
   }
-  function buildPdf() {
+  // v12.3: the ghost — grayscale desk-panel watermark for every data page.
+  // Loaded once from our own assets, grayed via canvas; if anything fails,
+  // the report simply ships without the ghost.
+  var WM_CACHE;
+  function loadWatermark() {
+    if (WM_CACHE !== undefined) return Promise.resolve(WM_CACHE);
+    return new Promise(function (resolve) {
+      try {
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            var x = c.getContext('2d');
+            x.filter = 'grayscale(1)';
+            x.drawImage(img, 0, 0);
+            WM_CACHE = { data: c.toDataURL('image/jpeg', 0.55), w: c.width, h: c.height };
+            resolve(WM_CACHE);
+          } catch (e) { WM_CACHE = null; resolve(null); }
+        };
+        img.onerror = function () { WM_CACHE = null; resolve(null); };
+        img.src = 'assets/hero-desk-panel.jpg';
+      } catch (e) { WM_CACHE = null; resolve(null); }
+    });
+  }
+
+  var PDF_EPIGRAPH = '\u201cWhat makes the difference? These shapes align \u2014 and electromagnetic.\u201d';
+
+  function buildPdf(wm) {
     var st = PDF_STATE;
     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
     var W = doc.internal.pageSize.getWidth();
@@ -1514,11 +1542,16 @@
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.text('Generated ' + now.toLocaleString('en-US') + '  \u00b7  phantomflash.com  \u00b7  live public blockchain data', 40, 72);
 
+    // the transmission — right up at the top
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(9.5);
+    doc.setTextColor(muted[0], muted[1], muted[2]);
+    doc.text(PDF_EPIGRAPH, W / 2, 103, { align: 'center' });
+
     doc.setTextColor(ink[0], ink[1], ink[2]);
     doc.setFont('courier', 'bold'); doc.setFontSize(11);
-    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 110);
+    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 128);
     doc.setFont('courier', 'normal'); doc.setFontSize(10);
-    doc.text(st.addr, 40, 126, { maxWidth: W - 80 });
+    doc.text(st.addr, 40, 144, { maxWidth: W - 80 });
 
     // summary table
     var d = st.data;
@@ -1530,7 +1563,7 @@
       if (d.txs.length < d.txCount) range += '   (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
     }
     doc.autoTable({
-      startY: 144,
+      startY: 162,
       head: [['SUMMARY', '']],
       body: [
         ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : ''))],
@@ -1627,11 +1660,20 @@
     doc.text('A free first-hop reading of the public blockchain, presented as-is.', cx, 600, { align: 'center' });
     doc.text('No recovery promised or implied. The chain keeps the receipts \u2014 we just read them back.', cx, 615, { align: 'center' });
 
-    // footer on every data page (skip the closing page — it speaks for itself)
+    // footer + the ghost on every data page (skip the closing page — it speaks for itself)
     var pages = doc.internal.getNumberOfPages();
     for (var p = 1; p <= pages; p++) {
       doc.setPage(p);
       var H = doc.internal.pageSize.getHeight();
+      if (p < pages && wm) {
+        try {
+          var iw = 470, ih = iw * (wm.h / wm.w);
+          doc.saveGraphicsState();
+          doc.setGState(new doc.GState({ opacity: 0.055 }));
+          doc.addImage(wm.data, 'JPEG', (W - iw) / 2, (H - ih) / 2, iw, ih);
+          doc.restoreGraphicsState();
+        } catch (e) { try { doc.restoreGraphicsState(); } catch (e2) {} }
+      }
       if (p < pages) {
         doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
         doc.text('Not legal advice \u00b7 not financial advice \u00b7 not for law-enforcement purposes \u00b7 free reading of public blockchain data, as-is \u00b7 no recovery promised or implied.', 40, H - 34, { maxWidth: W - 80 });
@@ -1651,8 +1693,8 @@
       btn.textContent = 'Building your report\u2026';
       btn.disabled = true;
       try { if (window.gtag) gtag('event', 'pdf_download', { address_kind: PDF_STATE.chain }); } catch (e) {}
-      loadPdfLibs()
-        .then(function () { buildPdf(); btn.textContent = orig; btn.disabled = false; })
+      Promise.all([loadPdfLibs(), loadWatermark()])
+        .then(function (r) { buildPdf(r[1]); btn.textContent = orig; btn.disabled = false; })
         .catch(function () {
           // CDN blocked/offline — the browser's own PDF printer still works
           btn.textContent = orig; btn.disabled = false;

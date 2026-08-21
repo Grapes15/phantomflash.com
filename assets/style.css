@@ -953,3 +953,12 @@ html,body{max-width:100%;overflow-x:hidden}
 .faq-item strong{color:#dbeafe}
 .faq-code{font-family:var(--mono);font-size:13px;color:var(--amber);background:rgba(5,9,12,.6);padding:1px 6px;border-radius:5px;white-space:nowrap}
 @media(max-width:600px){.faq-item summary{font-size:16px;padding:13px 14px}.faq-item p{padding:0 14px 14px 36px}}
+
+/* v14.1: FAQ = the report. Cream stock, ink type, typewriter — opaque so it reads in ANY browser theme */
+.faq-item{background:#ece1c8;border:2px solid #05090c;box-shadow:4px 4px 0 var(--edge);font-family:"Courier Prime","Courier New",Courier,monospace}
+.faq-item summary{font-family:inherit;font-weight:700;font-size:15.5px;letter-spacing:.03em;color:#1c2733;text-transform:uppercase;border-bottom:0}
+.faq-item[open] summary{color:#0a5b66;border-bottom:2px solid #1c2733}
+.faq-item summary::before{content:"⚡";color:#b06e14}
+.faq-item p{color:#3a4550;font-family:inherit;font-size:13.5px;line-height:1.7}
+.faq-item strong{color:#1c2733}
+.faq-code{background:rgba(5,9,12,.88);color:#f2a950}

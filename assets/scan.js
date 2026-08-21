@@ -1384,6 +1384,9 @@
       showError(T('noAddr'), T('noAddrBody'));
       return;
     }
+    // v15: secret codes — certain words PFLASH into something else entirely
+    var egg = PF_EGGS[addr.toLowerCase()];
+    if (egg) { renderEgg(egg); return; }
     var chain = detectChain(addr);
     if (!chain) {
       showError(T('invalid'),
@@ -1830,6 +1833,49 @@
     var tabs = $('viewTabs'); if (tabs) tabs.style.display = 'flex';
     setView(paper);
     try { if (window.gtag) gtag('event', 'view_pick', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+  }
+
+  // ============================================================
+  // v15: SECRET CODES — easter eggs in the scan box.
+  // Type certain words instead of an address and the chain answers.
+  // Each egg renders as a PFLASH report (the cream paper). Eggs may
+  // carry a comic image (egg.image) once one is blessed.
+  // ============================================================
+  var PF_EGGS = window.PF_EGGS = {
+    jesus: {
+      chip: 'JESUS',
+      status: 'RECORD FOUND — the oldest ledger',
+      html:
+        '<div class="paper-doc" style="max-width:760px;margin:24px auto 60px">' +
+          '<div class="pd-head"><div><div class="pd-brand">PHANTOM FLASH</div>' +
+          '<div class="pd-sub">WALLET PFLASH REPORT \u2014 SPECIAL RECORD</div></div></div>' +
+          '<div class="pd-epigraph">\u201cPflashing aligns shapes electromagnetically.\u201d</div>' +
+          '<div class="pd-wallet">Scanned: <span class="pd-addr">JESUS</span></div>' +
+          '<div class="pd-section">SUMMARY</div>' +
+          '<div class="pd-row"><span class="pd-k">Chain</span><span class="pd-v">All of them</span></div>' +
+          '<div class="pd-row"><span class="pd-k">Total received</span><span class="pd-v">Everything</span></div>' +
+          '<div class="pd-row"><span class="pd-k">Total sent out</span><span class="pd-v">Everything, freely</span></div>' +
+          '<div class="pd-row"><span class="pd-k">Transactions</span><span class="pd-v">1 \u2014 covers every address, forever</span></div>' +
+          '<div class="pd-row"><span class="pd-k">Activity window</span><span class="pd-v">~33 AD \u2192 present (still confirming)</span></div>' +
+          '<div class="pd-section">SYSTEM RECORD</div>' +
+          '<p style="font-size:13.5px;line-height:1.75;color:#3a4550">One transaction, about two thousand years ago. Every debt, for every address, settled in full. No gas fees. No seed phrase required \u2014 the whole thing runs on faith. Phantom Flash reads every ledger there is, and this is the only one where the receipts read <strong style="color:#1c2733">PAID</strong> before the debt is even incurred.</p>' +
+          '<div class="pd-close">' +
+            '<p>You didn\u2019t find this by accident. Nobody does.</p>' +
+            '<p class="pd-socials"><a href="index.html#scan">\u26a1 PFLASH your own wallet \u2014 free</a></p>' +
+          '</div>' +
+        '</div>'
+    }
+  };
+
+  function renderEgg(egg) {
+    $('addrChip').textContent = egg.chip;
+    setStatus(egg.status || 'RECORD FOUND', true);
+    var host = document.createElement('div');
+    host.innerHTML = egg.html;
+    var err = $('errorPanel');
+    err.parentNode.insertBefore(host, err);
+    try { if (window.gtag) gtag('event', 'egg_found', { code: egg.chip }); } catch (e) {}
+    try { LEDGER_SENT = false; curChain = 'egg'; logScan(null, 0); } catch (e) {}
   }
 
   // ---------- entry: which page are we on? ----------

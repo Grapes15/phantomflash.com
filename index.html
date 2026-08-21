@@ -377,6 +377,8 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   var err = document.getElementById('scanError');
   err.textContent = '';
   if(!addr){ err.textContent = 'Paste a wallet address first.'; return; }
+  // v15: secret codes pass straight through — the scan page knows what to do
+  if(window.PF_EGGS && window.PF_EGGS[addr.toLowerCase()]){ window.location.href='scan.html?addr='+encodeURIComponent(addr.toLowerCase()); return; }
   // light client-side sanity check; scan.html does full validation against the API
   var isEth = /^0x[0-9a-fA-F]{40}$/.test(addr);
   var isBtc = /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr);
@@ -389,7 +391,7 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
 });
 </script>
-<script src="assets/scan.js?v=20260821n"></script>
+<script src="assets/scan.js?v=20260821p"></script>
 <script>
 /* GA4 key-event wiring */
 (function(){

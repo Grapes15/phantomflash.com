@@ -962,3 +962,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .faq-item p{color:#3a4550;font-family:inherit;font-size:13.5px;line-height:1.7}
 .faq-item strong{color:#1c2733}
 .faq-code{background:rgba(5,9,12,.88);color:#f2a950}
+
+/* v16: the letter */
+.story-p{font-size:14px;line-height:1.8;color:#3a4550;margin:0 0 14px}
+.story-p strong{color:#1c2733}

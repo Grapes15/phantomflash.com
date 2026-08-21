@@ -912,3 +912,10 @@ html,body{max-width:100%;overflow-x:hidden}
 .pd-sign span{font-family:var(--sans);font-size:11px;letter-spacing:.08em;color:#4a5560}
 .pd-legal{color:#6b7683;font-size:10.5px;line-height:1.6}
 @media(max-width:600px){.paper-doc{padding:18px 14px}.pd-head{flex-direction:column}.pd-brand{font-size:21px}}
+
+/* v13.1: the typewriter — everything on the paper is Courier, like it was struck, not set */
+.paper-doc{font-family:"Courier Prime","Courier New",Courier,monospace}
+.pd-brand{font-family:inherit;font-weight:700;letter-spacing:.1em}
+.pd-section{font-family:inherit;font-weight:700;letter-spacing:.06em}
+.pd-sign{font-family:inherit;font-weight:700}
+.pd-sub,.pd-epigraph,.pd-close p,.pd-legal{font-family:inherit}

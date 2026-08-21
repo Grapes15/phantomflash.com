@@ -1521,7 +1521,8 @@
     });
   }
 
-  var PDF_EPIGRAPH = '\u201cWhat makes the difference? These shapes align \u2014 and electromagnetic.\u201d';
+  var PDF_EPIGRAPH = '\u201cPflashing aligns shapes electromagnetically.\u201d';
+  var PDF_CLOSER = 'This is a free Pflash tracing. We think it\u2019s good. But you get what you pay for.';
 
   function buildPdf(wm) {
     var st = PDF_STATE;
@@ -1634,8 +1635,8 @@
 
     doc.setFontSize(11);
     doc.setTextColor(236, 225, 200);
-    doc.text('The tracing is free. So is the laughter \u2014', cx, 290, { align: 'center' });
-    doc.text('and everybody needs a little of both when they\u2019re looking for their money.', cx, 306, { align: 'center' });
+    doc.text('This is a free Pflash tracing. We think it\u2019s good.', cx, 290, { align: 'center' });
+    doc.text('But you get what you pay for.', cx, 306, { align: 'center' });
 
     // socials — prominent, clickable
     doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(0, 229, 255);
@@ -1737,7 +1738,7 @@
           '<div class="pd-sub">WALLET PFLASH REPORT \u2014 FREE EDITION \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
           '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Take the paper with you \u2014 PDF</button>' +
         '</div>' +
-        '<div class="pd-epigraph">\u201cWhat makes the difference? These shapes align \u2014 and electromagnetic.\u201d</div>' +
+        '<div class="pd-epigraph">' + PDF_EPIGRAPH + '</div>' +
         '<div class="pd-wallet">Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +
         '<div class="pd-section">SUMMARY</div>' +
         row('Total received', esc(fmtBtc(d.fundedSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.fundedSum, st.price)) + '</span>' : '')) +
@@ -1750,7 +1751,7 @@
         '<div class="pd-section">TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' of ' + d.txCount.toLocaleString('en-US') + ' on-chain' : '') + '</div>' +
         '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>Date</th><th>Dir</th><th>Amount</th><th>Counterparty</th><th>TXID</th></tr></thead><tbody>' + txRows + '</tbody></table></div>' +
         '<div class="pd-close">' +
-          '<p>The tracing is free. So is the laughter \u2014 and everybody needs a little of both when they\u2019re looking for their money.</p>' +
+          '<p>' + PDF_CLOSER + '</p>' +
           '<p class="pd-socials"><a href="https://x.com/PhantomFlashHQ" target="_blank" rel="noopener">X \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://www.youtube.com/@PhantomFlashHQ" target="_blank" rel="noopener">YouTube \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://phantomflash.com">phantomflash.com</a></p>' +
           '<p class="pd-sign">Daniel Irwin<br><span>Phantom Flash HQ</span></p>' +
           '<p class="pd-legal">Not legal advice. Not financial advice. Not for law-enforcement purposes.<br>A free first-hop reading of the public blockchain, presented as-is. No recovery promised or implied.<br>The chain keeps the receipts \u2014 we just read them back.</p>' +

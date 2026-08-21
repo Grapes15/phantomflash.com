@@ -1440,8 +1440,7 @@
         $('results').style.display = 'block';
         // v12: stash the finished scan so the free PDF / paper view can be built on demand
         PDF_STATE = { data: data, cps: cps, price: price, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
-        var tabs = $('viewTabs');
-        if (tabs) tabs.style.display = 'flex';
+        initSplitChooser(); // v13.3: land on BOTH views side by side; tabs appear after first pick
         // v10: one split decides what the system AND the table may reveal
         var split = paywallSplit(cps);
         renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
@@ -1782,21 +1781,56 @@
     PAPER_RENDERED = true;
   }
 
-  function initViewTabs() {
+  function setView(paper) {
     var tU = $('tabUniverse'), tP = $('tabPaper'), vU = $('universeView'), vP = $('paperView');
-    if (!tU || !tP || !vU || !vP) return;
-    function activate(paper) {
-      if (paper && !PAPER_RENDERED) renderPaperView();
-      vU.style.display = paper ? 'none' : 'block';
-      vP.style.display = paper ? 'block' : 'none';
-      tU.className = 'view-tab' + (paper ? '' : ' active');
-      tP.className = 'view-tab' + (paper ? ' active' : '');
-      try { if (window.gtag) gtag('event', 'view_switch', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
-    }
-    tU.addEventListener('click', function () { activate(false); });
-    tP.addEventListener('click', function () { activate(true); });
+    if (!vU || !vP) return;
+    if (paper && !PAPER_RENDERED) renderPaperView();
+    vU.style.display = paper ? 'none' : 'block';
+    vP.style.display = paper ? 'block' : 'none';
+    if (tU) tU.className = 'view-tab' + (paper ? '' : ' active');
+    if (tP) tP.className = 'view-tab' + (paper ? ' active' : '');
+    // the 3D stage must re-fit after any width change
+    if (!paper) setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, 60);
+    try { if (window.gtag) gtag('event', 'view_switch', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+  }
+
+  function initViewTabs() {
+    var tU = $('tabUniverse'), tP = $('tabPaper');
+    if (!tU || !tP) return;
+    tU.addEventListener('click', function () { setView(false); });
+    tP.addEventListener('click', function () { setView(true); });
   }
   initViewTabs();
+
+  // v13.3: the first landing shows BOTH views side by side (universe left,
+  // paper right). People don't find tabs — so the site teaches them there
+  // are two views by showing both, then collapses to tabs after the pick.
+  function initSplitChooser() {
+    var wrap = $('viewWrap'), vU = $('universeView'), vP = $('paperView');
+    if (!wrap || !vU || !vP) { var t = $('viewTabs'); if (t) t.style.display = 'flex'; return; }
+    renderPaperView();
+    vP.style.display = 'block';
+    wrap.className = 'split';
+    vU.className = 'view-pane'; vP.className = 'view-pane';
+    [[false, vU, '\ud83e\ude90 UNIVERSE VIEW'], [true, vP, '\ud83d\udcc4 PAPER VIEW']].forEach(function (cfg) {
+      var ov = document.createElement('div');
+      ov.className = 'pane-pick';
+      ov.innerHTML = '<div class="pp-label">' + cfg[2] + '<span>click to open</span></div>';
+      ov.addEventListener('click', function () { chooseView(cfg[0]); });
+      cfg[1].appendChild(ov);
+    });
+    try { if (window.gtag) gtag('event', 'view_split_shown', {}); } catch (e) {}
+  }
+
+  function chooseView(paper) {
+    var wrap = $('viewWrap'), vU = $('universeView'), vP = $('paperView');
+    if (wrap) wrap.className = '';
+    document.querySelectorAll('.pane-pick').forEach(function (el) { el.parentNode.removeChild(el); });
+    if (vU) vU.className = ''; if (vP) vP.className = '';
+    var tabs = $('viewTabs'); if (tabs) tabs.style.display = 'flex';
+    setView(paper);
+    try { if (window.gtag) gtag('event', 'view_pick', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+  }
 
   // ---------- entry: which page are we on? ----------
   if ($('addrChip')) {

@@ -767,7 +767,16 @@ form.lead .mono-input{font-family:var(--mono);font-size:16px}
 .lang-switcher option{background:#07111b;color:#f6e7c4}
 .footer-langs{margin-top:14px;font-size:12px;letter-spacing:.02em;color:var(--muted)}
 .footer-langs a{color:var(--cyan);text-decoration:none;margin:0 2px}
-@media(max-width:720px){.lang-switcher{order:9;width:100%;justify-content:center}.lang-switcher select{max-width:none}.nav-links{gap:8px}}
+@media(max-width:720px){
+  /* v11.2 mobile header fix: pill was width:100% inside a non-wrapping flex row — it clipped
+     off-screen. Compact pill + hide the OWLCHAINED sub so logo/CTA/switcher all fit. */
+  .site-header .inner{padding:10px 12px;gap:8px}
+  .nav-links{gap:8px;flex-shrink:0}
+  .logo{font-size:17px}
+  .logo .sub{display:none}
+  .lang-switcher{min-height:38px;padding:0 6px;gap:3px}
+  .lang-switcher select{max-width:52px;font-size:12px}
+}
 /* v8 minor: translated labels can be wider; never let a 5px mobile bleed create side-scroll */
 html,body{max-width:100%;overflow-x:hidden}
 .lang-switcher{min-width:0}

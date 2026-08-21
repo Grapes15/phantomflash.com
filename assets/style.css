@@ -270,7 +270,10 @@ a:hover{text-decoration:underline}
   box-shadow:6px 6px 0 rgba(5,9,12,.7), 0 16px 48px rgba(0,0,0,.6), 0 0 40px rgba(0,229,255,.10);
 }
 .scan-box input{
-  flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--ink);
+  flex:1;min-width:0;background:transparent;border:0;outline:0;
+  /* v11.1: typed address must POP — bright brand blue, bold, subtle glow */
+  color:#00e5ff;font-weight:700;caret-color:#00e5ff;
+  text-shadow:0 0 10px rgba(0,229,255,.45);
   font-family:var(--mono);font-size:16px;padding:13px 12px;min-height:48px;
 }
 .scan-box .btn{min-height:48px}

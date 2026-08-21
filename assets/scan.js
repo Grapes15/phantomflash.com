@@ -1438,6 +1438,10 @@
         stampLastSeen(data, cps);
         setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
         $('results').style.display = 'block';
+        // v12: stash the finished scan so the free PDF report can be built on demand
+        PDF_STATE = { data: data, cps: cps, price: price, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
+        var pdfBtn = $('pdfBtn');
+        if (pdfBtn) { pdfBtn.style.display = 'inline-flex'; }
         // v10: one split decides what the system AND the table may reveal
         var split = paywallSplit(cps);
         renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
@@ -1461,6 +1465,150 @@
         }
       });
   }
+
+  // ============================================================
+  // v12: FREE PDF REPORT — built entirely client-side from the
+  // scan data already in memory. jsPDF loads lazily on first click;
+  // if the CDN is unreachable we fall back to window.print().
+  // ============================================================
+  var PDF_STATE = null;
+  var PDF_LIBS_LOADED = false;
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = function () { reject(new Error('load failed: ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function loadPdfLibs() {
+    if (PDF_LIBS_LOADED) return Promise.resolve();
+    return loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      .then(function () { return loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'); })
+      .then(function () { PDF_LIBS_LOADED = true; });
+  }
+
+  function buildPdf() {
+    var st = PDF_STATE;
+    var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+    var W = doc.internal.pageSize.getWidth();
+    var navy = [6, 19, 27], cyan = [0, 172, 193], amber = [214, 138, 34], ink = [30, 40, 50], muted = [110, 125, 140];
+    var now = new Date();
+    var priceOk = st.price && st.chain !== 'eth';
+
+    // header band
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(0, 0, W, 86, 'F');
+    doc.setTextColor(0, 229, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    doc.text('\u26a1 PHANTOM FLASH', 40, 36);
+    doc.setTextColor(236, 225, 200); doc.setFontSize(12);
+    doc.text('WALLET PFLASH REPORT \u2014 FREE EDITION', 40, 56);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.text('Generated ' + now.toLocaleString('en-US') + '  \u00b7  phantomflash.com  \u00b7  live public blockchain data', 40, 72);
+
+    doc.setTextColor(ink[0], ink[1], ink[2]);
+    doc.setFont('courier', 'bold'); doc.setFontSize(11);
+    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 110);
+    doc.setFont('courier', 'normal'); doc.setFontSize(10);
+    doc.text(st.addr, 40, 126, { maxWidth: W - 80 });
+
+    // summary table
+    var d = st.data;
+    var times = d.txs.map(function (t) { return t.time; }).filter(Boolean);
+    var range = '\u2014';
+    if (times.length) {
+      var mn = Math.min.apply(null, times), mx = Math.max.apply(null, times);
+      range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : '  \u2192  ' + fmtDate(mx));
+      if (d.txs.length < d.txCount) range += '   (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
+    }
+    doc.autoTable({
+      startY: 144,
+      head: [['SUMMARY', '']],
+      body: [
+        ['Total received', fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : '')],
+        ['Total sent out', fmtBtc(d.spentSum) + (priceOk ? '   (' + fmtUsd(d.spentSum, st.price) + ')' : '')],
+        ['Transactions on-chain', d.txCount.toLocaleString('en-US')],
+        ['Counterparties (first hop)', String(st.cps.length)],
+        ['Activity window', range]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 5, textColor: ink },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 170 } },
+      margin: { left: 40, right: 40 }
+    });
+
+    // counterparties
+    var CP_CAP = 200;
+    var cpRows = st.cps.slice(0, CP_CAP).map(function (c, i) {
+      return [String(i + 1), c.addr, fmtBtc(c.inSats), fmtBtc(c.outSats), String(c.txCount)];
+    });
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 18,
+      head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 5 }],
+             ['#', 'Wallet address', 'Sent to you', 'Received from you', 'Shared tx']],
+      body: cpRows,
+      theme: 'striped',
+      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontSize: 8, fontStyle: 'bold' },
+      styles: { fontSize: 7, cellPadding: 4, textColor: ink, font: 'courier' },
+      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 250 } },
+      margin: { left: 40, right: 40 }
+    });
+
+    // transactions
+    var txRows = d.txs.map(function (t) {
+      var amt = t.direction === 'in' ? t.inSats : t.outSats;
+      var cp = t.counterparties.length ? t.counterparties[0].addr + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) : '') : '(script / non-standard)';
+      return [fmtDate(t.time), t.direction === 'in' ? 'IN' : 'OUT', t.assetLabel || fmtBtc(amt), cp, t.txid];
+    });
+    var moreTx = d.txCount - d.txs.length;
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 18,
+      head: [[{ content: 'TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' (of ' + d.txCount.toLocaleString('en-US') + ' on-chain)' : ''), colSpan: 5 }],
+             ['Date', 'Dir', 'Amount', 'Counterparty (first hop)', 'TXID']],
+      body: txRows,
+      theme: 'striped',
+      headStyles: { fillColor: navy, textColor: [0, 229, 255], fontSize: 8, fontStyle: 'bold' },
+      styles: { fontSize: 6, cellPadding: 3, textColor: ink, font: 'courier', overflow: 'linebreak' },
+      columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 26 }, 2: { cellWidth: 70 } },
+      margin: { left: 40, right: 40 },
+      didParseCell: function (h) { if (h.section === 'body' && h.column.index === 1) h.cell.styles.textColor = h.cell.raw === 'IN' ? [22, 140, 90] : [190, 40, 55]; }
+    });
+
+    // footer on every page
+    var pages = doc.internal.getNumberOfPages();
+    for (var p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      var H = doc.internal.pageSize.getHeight();
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
+      doc.text('Free first-hop scan of public blockchain data, presented as-is \u00b7 informational only \u2014 not legal, financial, or investment advice \u00b7 no recovery promised or implied.', 40, H - 30, { maxWidth: W - 150 });
+      doc.text('phantomflash.com \u00b7 page ' + p + ' of ' + pages, W - 40, H - 30, { align: 'right' });
+    }
+
+    doc.save('PFLASH-report-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');
+  }
+
+  function initPdfButton() {
+    var btn = $('pdfBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!PDF_STATE) return;
+      var orig = btn.textContent;
+      btn.textContent = 'Building your report\u2026';
+      btn.disabled = true;
+      try { if (window.gtag) gtag('event', 'pdf_download', { address_kind: PDF_STATE.chain }); } catch (e) {}
+      loadPdfLibs()
+        .then(function () { buildPdf(); btn.textContent = orig; btn.disabled = false; })
+        .catch(function () {
+          // CDN blocked/offline — the browser's own PDF printer still works
+          btn.textContent = orig; btn.disabled = false;
+          window.print();
+        });
+    });
+  }
+  initPdfButton();
 
   // ---------- entry: which page are we on? ----------
   if ($('addrChip')) {

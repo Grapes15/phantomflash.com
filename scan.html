@@ -82,6 +82,11 @@
       <div class="stat"><div class="label">Activity window</div><div class="v" id="statRange" style="font-size:15px;line-height:1.5">—</div></div>
     </div>
 
+    <!-- v12: FREE PDF REPORT -->
+    <div style="display:flex;justify-content:flex-end;margin:14px 0 6px">
+      <button class="btn primary" id="pdfBtn" style="display:none;min-height:48px;cursor:pointer" type="button">⬇ Download your PDF report — free</button>
+    </div>
+
     <!-- 3D SOLAR SYSTEM -->
     <h2 class="section-title" style="font-size:30px">The System <span style="color:var(--green);font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)">● LIVE BLOCKCHAIN DATA</span></h2>
     <p class="section-sub" style="margin-bottom:14px">
@@ -139,7 +144,7 @@
   </div>
 </footer>
 
-<script src="assets/scan.js?v=20260821a"></script>
+<script src="assets/scan.js?v=20260821c"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });

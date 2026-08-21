@@ -1757,7 +1757,7 @@
         '<div class="pd-head">' +
           '<div><div class="pd-brand">PHANTOM FLASH</div>' +
           '<div class="pd-sub">WALLET PFLASH REPORT \u2014 FREE EDITION \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
-          '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Don\u2019t forget to take this Pflash with you.</button>' +
+          '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Don\u2019t Forget! Take this With You!</button>' +
         '</div>' +
         '<div class="pd-epigraph">' + PDF_EPIGRAPH + '</div>' +
         '<div class="pd-wallet">Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +

@@ -1438,10 +1438,10 @@
         stampLastSeen(data, cps);
         setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
         $('results').style.display = 'block';
-        // v12: stash the finished scan so the free PDF report can be built on demand
+        // v12: stash the finished scan so the free PDF / paper view can be built on demand
         PDF_STATE = { data: data, cps: cps, price: price, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
-        var pdfBtn = $('pdfBtn');
-        if (pdfBtn) { pdfBtn.style.display = 'inline-flex'; }
+        var tabs = $('viewTabs');
+        if (tabs) tabs.style.display = 'flex';
         // v10: one split decides what the system AND the table may reveal
         var split = paywallSplit(cps);
         renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
@@ -1684,25 +1684,96 @@
     doc.save('PFLASH-report-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');
   }
 
-  function initPdfButton() {
-    var btn = $('pdfBtn');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      if (!PDF_STATE) return;
-      var orig = btn.textContent;
-      btn.textContent = 'Building your report\u2026';
-      btn.disabled = true;
-      try { if (window.gtag) gtag('event', 'pdf_download', { address_kind: PDF_STATE.chain }); } catch (e) {}
-      Promise.all([loadPdfLibs(), loadWatermark()])
-        .then(function (r) { buildPdf(r[1]); btn.textContent = orig; btn.disabled = false; })
-        .catch(function () {
-          // CDN blocked/offline — the browser's own PDF printer still works
-          btn.textContent = orig; btn.disabled = false;
-          window.print();
-        });
-    });
+  // PDF button lives inside the (dynamically rendered) paper view — delegate.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest ? ev.target.closest('#pdfBtn') : null;
+    if (!btn || !PDF_STATE) return;
+    var orig = btn.textContent;
+    btn.textContent = 'Building your report\u2026';
+    btn.disabled = true;
+    try { if (window.gtag) gtag('event', 'pdf_download', { address_kind: PDF_STATE.chain }); } catch (e) {}
+    Promise.all([loadPdfLibs(), loadWatermark()])
+      .then(function (r) { buildPdf(r[1]); btn.textContent = orig; btn.disabled = false; })
+      .catch(function () {
+        // CDN blocked/offline — the browser's own PDF printer still works
+        btn.textContent = orig; btn.disabled = false;
+        window.print();
+      });
+  });
+
+  // ============================================================
+  // v13: PAPER VIEW — the written report, on the page, free
+  // (named like the thing people pay for; the joke is it isn't)
+  // ============================================================
+  var PAPER_RENDERED = false;
+
+  function renderPaperView() {
+    var st = PDF_STATE, box = $('paperView');
+    if (!st || !box) return;
+    var d = st.data;
+    var priceOk = st.price && st.chain !== 'eth';
+    var now = new Date();
+    var times = d.txs.map(function (t) { return t.time; }).filter(Boolean);
+    var range = '\u2014';
+    if (times.length) {
+      var mn = Math.min.apply(null, times), mx = Math.max.apply(null, times);
+      range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : ' \u2192 ' + fmtDate(mx));
+      if (d.txs.length < d.txCount) range += ' (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
+    }
+    function row(k, v) { return '<div class="pd-row"><span class="pd-k">' + k + '</span><span class="pd-v">' + v + '</span></div>'; }
+    var cpRows = st.cps.map(function (c, i) {
+      return '<tr><td>' + (i + 1) + '</td><td class="pd-addr">' + esc(c.addr) + '</td><td>' + esc(fmtBtc(c.inSats)) + '</td><td>' + esc(fmtBtc(c.outSats)) + '</td><td>' + c.txCount + '</td></tr>';
+    }).join('');
+    var txRows = d.txs.map(function (t) {
+      var amt = t.direction === 'in' ? t.inSats : t.outSats;
+      var cp = t.counterparties.length ? esc(shortAddr(t.counterparties[0].addr)) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) : '') : '(script / non-standard)';
+      return '<tr><td>' + fmtDate(t.time) + '</td><td class="pd-' + t.direction + '">' + (t.direction === 'in' ? 'IN' : 'OUT') + '</td><td>' + esc(t.assetLabel || fmtBtc(amt)) + '</td><td class="pd-addr">' + cp + '</td><td class="pd-addr">' + esc(t.txid.slice(0, 14)) + '\u2026</td></tr>';
+    }).join('');
+    var moreTx = d.txCount - d.txs.length;
+    box.innerHTML =
+      '<div class="paper-doc">' +
+        '<div class="pd-head">' +
+          '<div><div class="pd-brand">PHANTOM FLASH</div>' +
+          '<div class="pd-sub">WALLET PFLASH REPORT \u2014 FREE EDITION \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
+          '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Take the paper with you \u2014 PDF</button>' +
+        '</div>' +
+        '<div class="pd-epigraph">\u201cWhat makes the difference? These shapes align \u2014 and electromagnetic.\u201d</div>' +
+        '<div class="pd-wallet">Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +
+        '<div class="pd-section">SUMMARY</div>' +
+        row('Total received', esc(fmtBtc(d.fundedSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.fundedSum, st.price)) + '</span>' : '')) +
+        row('Total sent out', esc(fmtBtc(d.spentSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.spentSum, st.price)) + '</span>' : '')) +
+        row('Transactions on-chain', d.txCount.toLocaleString('en-US')) +
+        row('Counterparties (first hop)', String(st.cps.length)) +
+        row('Activity window', esc(range)) +
+        '<div class="pd-section">FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with</div>' +
+        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>#</th><th>Wallet address</th><th>Sent to you</th><th>Received from you</th><th>Tx</th></tr></thead><tbody>' + cpRows + '</tbody></table></div>' +
+        '<div class="pd-section">TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' of ' + d.txCount.toLocaleString('en-US') + ' on-chain' : '') + '</div>' +
+        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>Date</th><th>Dir</th><th>Amount</th><th>Counterparty</th><th>TXID</th></tr></thead><tbody>' + txRows + '</tbody></table></div>' +
+        '<div class="pd-close">' +
+          '<p>The tracing is free. So is the laughter \u2014 and everybody needs a little of both when they\u2019re looking for their money.</p>' +
+          '<p class="pd-socials"><a href="https://x.com/PhantomFlashHQ" target="_blank" rel="noopener">X \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://www.youtube.com/@PhantomFlashHQ" target="_blank" rel="noopener">YouTube \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://phantomflash.com">phantomflash.com</a></p>' +
+          '<p class="pd-sign">Daniel Irwin<br><span>Phantom Flash HQ</span></p>' +
+          '<p class="pd-legal">Not legal advice. Not financial advice. Not for law-enforcement purposes.<br>A free first-hop reading of the public blockchain, presented as-is. No recovery promised or implied.<br>The chain keeps the receipts \u2014 we just read them back.</p>' +
+        '</div>' +
+      '</div>';
+    PAPER_RENDERED = true;
   }
-  initPdfButton();
+
+  function initViewTabs() {
+    var tU = $('tabUniverse'), tP = $('tabPaper'), vU = $('universeView'), vP = $('paperView');
+    if (!tU || !tP || !vU || !vP) return;
+    function activate(paper) {
+      if (paper && !PAPER_RENDERED) renderPaperView();
+      vU.style.display = paper ? 'none' : 'block';
+      vP.style.display = paper ? 'block' : 'none';
+      tU.className = 'view-tab' + (paper ? '' : ' active');
+      tP.className = 'view-tab' + (paper ? ' active' : '');
+      try { if (window.gtag) gtag('event', 'view_switch', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+    }
+    tU.addEventListener('click', function () { activate(false); });
+    tP.addEventListener('click', function () { activate(true); });
+  }
+  initViewTabs();
 
   // ---------- entry: which page are we on? ----------
   if ($('addrChip')) {

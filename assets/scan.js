@@ -1583,14 +1583,60 @@
       didParseCell: function (h) { if (h.section === 'body' && h.column.index === 1) h.cell.styles.textColor = h.cell.raw === 'IN' ? [22, 140, 90] : [190, 40, 55]; }
     });
 
-    // footer on every page
+    // ---- v12.2: the closing page — the word from Phantom Flash ----
+    doc.addPage();
+    var H2 = doc.internal.pageSize.getHeight();
+    doc.setFillColor(navy[0], navy[1], navy[2]);
+    doc.rect(0, 0, W, H2, 'F');
+    var cx = W / 2;
+    // thin cyan rules top and bottom
+    doc.setDrawColor(0, 229, 255); doc.setLineWidth(1.2);
+    doc.line(cx - 90, 150, cx + 90, 150);
+    doc.setTextColor(0, 229, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(24);
+    doc.text('PHANTOM FLASH', cx, 195, { align: 'center' });
+    doc.setTextColor(236, 225, 200);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+    doc.text('The chain never sleeps. Neither does Phantom Flash.', cx, 222, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.setTextColor(236, 225, 200);
+    doc.text('The tracing is free. So is the laughter \u2014', cx, 290, { align: 'center' });
+    doc.text('and everybody needs a little of both when they\u2019re looking for their money.', cx, 306, { align: 'center' });
+
+    // socials — prominent, clickable
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(0, 229, 255);
+    doc.textWithLink('X \u00b7 @PhantomFlashHQ', cx, 356, { align: 'center', url: 'https://x.com/PhantomFlashHQ' });
+    doc.textWithLink('YouTube \u00b7 @PhantomFlashHQ', cx, 380, { align: 'center', url: 'https://www.youtube.com/@PhantomFlashHQ' });
+    doc.textWithLink('phantomflash.com', cx, 404, { align: 'center', url: 'https://phantomflash.com' });
+
+    doc.setDrawColor(0, 229, 255); doc.setLineWidth(1.2);
+    doc.line(cx - 90, 440, cx + 90, 440);
+
+    // the signature
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(236, 225, 200);
+    doc.text('This reading was generated for whoever needed it.', cx, 480, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(242, 169, 80);
+    doc.text('Daniel Irwin', cx, 504, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(236, 225, 200);
+    doc.text('Phantom Flash HQ', cx, 519, { align: 'center' });
+
+    // the disclaimer, said our way
+    doc.setFontSize(9); doc.setTextColor(126, 147, 179);
+    doc.text('Not legal advice. Not financial advice. Not for law-enforcement purposes.', cx, 585, { align: 'center' });
+    doc.text('A free first-hop reading of the public blockchain, presented as-is.', cx, 600, { align: 'center' });
+    doc.text('No recovery promised or implied. The chain keeps the receipts \u2014 we just read them back.', cx, 615, { align: 'center' });
+
+    // footer on every data page (skip the closing page — it speaks for itself)
     var pages = doc.internal.getNumberOfPages();
     for (var p = 1; p <= pages; p++) {
       doc.setPage(p);
       var H = doc.internal.pageSize.getHeight();
-      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
-      doc.text('Free first-hop scan of public blockchain data, presented as-is \u00b7 informational only \u2014 not legal, financial, or investment advice \u00b7 no recovery promised or implied.', 40, H - 34, { maxWidth: W - 80 });
-      doc.text('phantomflash.com \u00b7 page ' + p + ' of ' + pages, W - 40, H - 18, { align: 'right' });
+      if (p < pages) {
+        doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
+        doc.text('Not legal advice \u00b7 not financial advice \u00b7 not for law-enforcement purposes \u00b7 free reading of public blockchain data, as-is \u00b7 no recovery promised or implied.', 40, H - 34, { maxWidth: W - 80 });
+        doc.text('phantomflash.com \u00b7 @PhantomFlashHQ \u00b7 page ' + p + ' of ' + pages, W - 40, H - 18, { align: 'right' });
+      }
     }
 
     doc.save('PFLASH-report-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');

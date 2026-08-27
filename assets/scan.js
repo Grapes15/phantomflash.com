@@ -1439,6 +1439,10 @@
         }
         var cps = aggregateCounterparties(data);
         stampLastSeen(data, cps);
+        // v16: THE COMMONS — this scan feeds the shared map and reads it back.
+        // Non-blocking and fail-open by construction: if the Commons is down,
+        // absent, or slow, everything below renders exactly as it always has.
+        try { if (window.PF_COMMONS) window.PF_COMMONS.run(COIN.chain, addr, data, cps); } catch (e) {}
         setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
         $('results').style.display = 'block';
         // v12: stash the finished scan so the free PDF / paper view can be built on demand

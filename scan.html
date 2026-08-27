@@ -153,6 +153,10 @@
   </div>
 </footer>
 
+<!-- THE COMMONS: shared-map read/write. Loads BEFORE scan.js (which runs at
+     parse time) and is a hard no-op until PF_API is switched on below. -->
+<script>window.PF_API = "https://phantomflash-api.irwin-c61.workers.dev";</script>
+<script src="assets/commons.js?v=20260826a"></script>
 <script src="assets/scan.js?v=20260821p"></script>
 <script>
 if ('serviceWorker' in navigator) {

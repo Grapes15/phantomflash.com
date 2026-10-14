@@ -829,6 +829,157 @@
     cps.forEach(function (e) { e.lastSeen = seen[e.addr] || 0; });
   }
 
+  // ============================================================
+  // v18: ATTRIBUTION — WHO owns the wallet.
+  // The free scan always showed WHERE the money went. This names the door:
+  // which first-hop address is Binance, Coinbase, a Tornado.Cash router, an
+  // OFAC-listed exploiter — or an unlabeled wallet nobody has tagged.
+  // Data arrives asynchronously from the API (commons.js → PF_ATTRIB_APPLY),
+  // fail-open: nothing here is required for the scan to render.
+  // ============================================================
+  var ATTRIB = {};        // normalized addr -> {name, entity, kind, source, conf, wallet_ref, wallet_tx, tags}
+  var ATTRIB_RES = null;  // last API response: tally, pending, sources
+  var LAST_SPLIT = null;
+  var KIND_META = {
+    exchange:   { word: 'EXCHANGE',  cls: 'att-exchange', blurb: 'A known exchange. Money that lands here lands at a company with a customer on file — a subpoena target, not a dead end.' },
+    defi:       { word: 'CONTRACT',  cls: 'att-defi',     blurb: 'A known protocol or smart contract — a DEX, bridge, token contract, or similar. Code, not a person.' },
+    service:    { word: 'SERVICE',   cls: 'att-service',  blurb: 'A service-scale wallet — a payment processor, custodian, or exchange nobody has named yet. Far too busy to be one person.' },
+    gambling:   { word: 'GAMBLING',  cls: 'att-service',  blurb: 'A known gambling service.' },
+    mixer:      { word: 'MIXER',     cls: 'att-mixer',    blurb: 'A known mixing service — where trails are meant to go cold. Money entering here was being hidden on purpose.' },
+    sanctioned: { word: 'SANCTIONED', cls: 'att-scam',    blurb: 'On a government sanctions list. Transacting with it is a legal event in itself.' },
+    scam:       { word: 'FLAGGED',   cls: 'att-scam',     blurb: 'Publicly tagged as an exploit, phishing, or scam address.' },
+    named:      { word: 'NAMED',     cls: 'att-named',    blurb: 'A publicly named address.' }
+  };
+  function attribKey(a) { return curChain === 'eth' ? String(a).toLowerCase() : String(a); }
+  function attribOf(a) {
+    var n = ATTRIB[attribKey(a)];
+    return (n && n.kind && n.kind !== 'unknown') ? n : null;
+  }
+  function attribLabel(n) { return n.name || (KIND_META[n.kind] ? KIND_META[n.kind].word : 'NAMED'); }
+  function attribSource(n) {
+    return n.source === 'blockscout' ? 'Blockscout public labels'
+         : n.source === 'walletexplorer' ? 'walletexplorer.com'
+         : n.source === 'curated' ? 'Phantom Flash case files' : String(n.source || '');
+  }
+  function attribBadge(a) {
+    var n = attribOf(a); if (!n) return '';
+    var m = KIND_META[n.kind] || KIND_META.named;
+    return '<span class="att ' + m.cls + '" title="' + esc(m.word + ' · ' + attribSource(n)) + '">' + esc(attribLabel(n)) + '</span>';
+  }
+  function attribKindBadge(a) { // kind only — for headings that already carry the name
+    var n = attribOf(a); if (!n) return '';
+    var m = KIND_META[n.kind] || KIND_META.named;
+    return '<span class="att ' + m.cls + '" title="' + esc(attribSource(n)) + '">' + esc(m.word) + '</span>';
+  }
+  function attribSentence(n) {
+    var m = KIND_META[n.kind] || KIND_META.named;
+    var who = n.name ? n.name + (n.entity && n.entity !== n.name && n.name.indexOf(n.entity) === -1 ? ' (' + n.entity + ')' : '') : null;
+    var s = who ? 'Identified: ' + who + ' — ' + m.word.toLowerCase() + '.' : 'Identified as a ' + m.word.toLowerCase() + ' wallet.';
+    if (!who && n.wallet_tx) s += ' Its wallet cluster has ' + Number(n.wallet_tx).toLocaleString('en-US') + ' transactions on record.';
+    return s + ' ' + m.blurb;
+  }
+  function attribRows(a) { // extra rows for the node card
+    var n = attribOf(a); if (!n) return '';
+    return '<div class="r"><span class="k">Identified as</span><span class="val">' + attribBadge(a) + '</span></div>' +
+      (n.entity && n.entity !== n.name ? '<div class="r"><span class="k">Entity</span><span class="val">' + esc(n.entity) + '</span></div>' : '') +
+      (n.wallet_tx ? '<div class="r"><span class="k">Wallet cluster</span><span class="val">' + Number(n.wallet_tx).toLocaleString('en-US') + ' tx</span></div>' : '') +
+      '<div class="r"><span class="k">Source</span><span class="val" style="font-family:var(--sans);font-size:12px">' + esc(attribSource(n)) + '</span></div>';
+  }
+  function attribPlain(a) { // for paper view / PDF
+    var n = attribOf(a); if (!n) return '';
+    var m = KIND_META[n.kind] || KIND_META.named;
+    return n.name ? n.name + ' (' + m.word.toLowerCase() + ')' : m.word.toLowerCase() + (n.wallet_tx ? ' · ' + Number(n.wallet_tx).toLocaleString('en-US') + ' tx cluster' : '');
+  }
+
+  // "Who's who" — the identified counterparties, one table, above the views.
+  function renderWhoPanel(cps) {
+    var host = $('results'); if (!host) return;
+    var ided = [], groups = {};
+    cps.forEach(function (c) {
+      var n = attribOf(c.addr); if (n) ided.push({ cp: c, n: n });
+      var raw = ATTRIB[attribKey(c.addr)];
+      if (raw && raw.wallet_ref) (groups[raw.wallet_ref] = groups[raw.wallet_ref] || []).push(c.addr);
+    });
+    var shared = Object.keys(groups).filter(function (k) { return groups[k].length >= 2; });
+    var tally = {};
+    ided.forEach(function (x) { tally[x.n.kind] = (tally[x.n.kind] || 0) + 1; });
+    var parts = Object.keys(tally).map(function (k) {
+      var w = (KIND_META[k] ? KIND_META[k].word : k).toLowerCase();
+      return tally[k] + ' ' + w + (tally[k] > 1 && /^(exchange|mixer|contract|service)$/.test(w) ? 's' : '');
+    });
+    var pending = (ATTRIB_RES && ATTRIB_RES.pending) ? ATTRIB_RES.pending.length : 0;
+    var headline = ided.length
+      ? ided.length + ' of ' + cps.length + ' first-hop counterpart' + (cps.length === 1 ? 'y' : 'ies') + ' identified' + (parts.length ? ': ' + parts.join(', ') : '') + '.'
+      : 'None of the ' + cps.length + ' first-hop counterpart' + (cps.length === 1 ? 'y' : 'ies') + ' carries a public label.';
+    var sub = ided.length
+      ? 'Everything else is an unlabeled wallet — a private wallet, or a service nobody has tagged yet.'
+      : 'That is normal for personal wallets. Exchanges, mixers, and sanctioned addresses are the ones that get named.';
+    if (pending) sub += ' ' + pending + ' smaller counterpart' + (pending === 1 ? 'y is' : 'ies are') + ' still being checked — PFLASH again in a minute and they will be in.';
+    var rows = ided.map(function (x) {
+      var c = x.cp;
+      var dir = c.inSats && c.outSats ? 'both directions' : c.inSats ? '↓ paid your wallet' : '↑ received from your wallet';
+      return '<tr><td>' + attribBadge(c.addr) + '</td>' +
+        '<td style="font-family:var(--mono);font-size:12px" title="' + esc(c.addr) + '">' + esc(shortAddr(c.addr)) + '</td>' +
+        '<td>' + esc(dir) + '</td><td>' + esc(fmtBtc(c.total)) + '</td></tr>';
+    }).join('');
+    var sharedHtml = shared.length
+      ? '<p style="margin:12px 0 0"><strong>' + shared.length + ' group' + (shared.length > 1 ? 's' : '') + ' of these counterparties share one wallet.</strong> ' +
+        shared.map(function (k) { return groups[k].map(shortAddr).join(' + '); }).join('; ') + '. Addresses that spend together are controlled together.</p>'
+      : '';
+    var html = '<section id="whoPanel">' +
+      '<h2 class="section-title" style="font-size:30px">Who’s who <span style="color:var(--amber);font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)">● ATTRIBUTION</span></h2>' +
+      '<p class="section-sub" style="margin-bottom:10px"><strong>' + esc(headline) + '</strong> ' + esc(sub) + '</p>' +
+      (rows ? '<div class="tx-table-wrap"><table class="tx"><thead><tr><th>Identified as</th><th>Address</th><th>Direction</th><th>Volume</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '') +
+      sharedHtml +
+      '<p style="margin:10px 0 0;font-size:.82em;opacity:.6">Labels come from public attribution sources (' + esc(((ATTRIB_RES && ATTRIB_RES.sources) || []).join(', ')) + '), cached by Phantom Flash. A label is a public claim about an address, not a verdict — the chain shows the movement; the label names the door.</p>' +
+      '</section>';
+    var old = $('whoPanel'); if (old) old.parentNode.removeChild(old);
+    var wrap = document.createElement('div'); wrap.innerHTML = html;
+    var before = $('viewTabs') || $('viewWrap');
+    if (before) host.insertBefore(wrap.firstChild, before); else host.appendChild(wrap.firstChild);
+  }
+
+  // If the SCANNED wallet itself is an exchange / mixer / sanctioned address, say so up top.
+  function renderSunAttrib() {
+    var host = $('results'); if (!host) return;
+    var old = $('sunAttrib'); if (old) old.parentNode.removeChild(old);
+    var n = attribOf(curAddr); if (!n) return;
+    var m = KIND_META[n.kind] || KIND_META.named;
+    var who = n.name || m.word.toLowerCase();
+    var text = n.kind === 'exchange'
+      ? 'The wallet you PFLASHED is <strong>' + esc(who) + '</strong> — a shared exchange address, not a personal wallet. Thousands of customers’ money moves through it; the counterparties below are the exchange’s, not one person’s.'
+      : n.kind === 'mixer'
+      ? 'The wallet you PFLASHED is <strong>' + esc(who) + '</strong> — a mixing service. Everything below is money being deliberately obscured.'
+      : (n.kind === 'sanctioned' || n.kind === 'scam')
+      ? 'The wallet you PFLASHED is publicly tagged: <strong>' + esc(who) + '</strong>. ' + esc(m.blurb)
+      : 'The wallet you PFLASHED is publicly identified as <strong>' + esc(who) + '</strong> (' + esc(m.word.toLowerCase()) + ').';
+    var el = document.createElement('div');
+    el.id = 'sunAttrib';
+    el.className = 'callout';
+    el.style.borderLeftColor = (n.kind === 'mixer' || n.kind === 'sanctioned' || n.kind === 'scam') ? 'var(--red)' : 'var(--cyan)';
+    el.innerHTML = text + ' <span style="opacity:.6;font-size:.85em">Source: ' + esc(attribSource(n)) + '.</span>';
+    host.insertBefore(el, host.firstChild);
+  }
+
+  // Entry point — commons.js calls this when the API answers. Idempotent.
+  window.PF_ATTRIB_APPLY = function (res) {
+    if (!res || !res.nodes) return;
+    ATTRIB_RES = res;
+    Object.keys(res.nodes).forEach(function (a) { ATTRIB[a] = res.nodes[a]; });
+    if (!PDF_STATE) return;
+    var cps = PDF_STATE.cps, n = 0;
+    cps.forEach(function (c) { if (attribOf(c.addr)) n++; });
+    if ($('statId')) {
+      $('statId').textContent = n + ' / ' + cps.length;
+      $('statIdSub').textContent = n ? 'named counterpart' + (n === 1 ? 'y' : 'ies') : 'no public labels';
+    }
+    renderTable(PDF_STATE.data, LAST_SPLIT ? LAST_SPLIT.unlockedSet : null);
+    renderWhoPanel(cps);
+    renderSunAttrib();
+    if (window.__pflash && window.__pflash.decorateAttrib) { try { window.__pflash.decorateAttrib(); } catch (e) {} }
+    if (PAPER_RENDERED) { try { renderPaperView(); } catch (e) {} }
+  };
+
   // ---------- Scan Ledger: log each PUBLIC scan to a private Google Form ----------
   // Fire-and-forget (no-cors); never blocks or errors a scan. Skipped on
   // localhost / operator so internal traces and testing stay out of the ledger.
@@ -885,19 +1036,20 @@
     var shown = Math.min(data.txs.length, cap);
     var rows = data.txs.slice(0, cap).map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
-      var cp;
+      var cp, badge = '';
       if (!t.counterparties.length) {
         cp = '(script / non-standard)';
       } else if (unlockedSet && !unlockedSet[t.counterparties[0].addr]) {
         cp = '\uD83D\uDD12 ' + T('txCpLocked');
       } else {
         cp = shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '');
+        badge = attribBadge(t.counterparties[0].addr); // v18: who owns it
       }
       return '<tr>' +
         '<td>' + fmtDate(t.time) + '</td>' +
         '<td class="dir-' + t.direction + '">' + (t.direction === 'in' ? '↓ IN' : '↑ OUT') + '</td>' +
         '<td>' + esc(t.assetLabel || fmtBtc(amt)) + '</td>' +
-        '<td>' + esc(cp) + '</td>' +
+        '<td>' + esc(cp) + badge + '</td>' +
         '<td>' + esc(t.txid.slice(0, 10)) + '…</td>' +
         '</tr>';
     }).join('');
@@ -931,9 +1083,11 @@
       '<div class="r"><span class="k">Total received</span><span class="val green">' + esc(fmtBtc(data.fundedSum)) + (price ? ' · ' + esc(fmtUsd(data.fundedSum, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Total sent</span><span class="val red">' + esc(fmtBtc(data.spentSum)) + (price ? ' · ' + esc(fmtUsd(data.spentSum, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Transactions</span><span class="val">' + data.txCount.toLocaleString('en-US') + '</span></div>' +
+      attribRows(curAddr) +
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
-      '<p>Your sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
+      '<p>' + (attribOf(curAddr) ? esc(attribSentence(attribOf(curAddr))) + ' ' : '') +
+      'Your sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
   }
 
   function showPlanetCard(cp, price, lore) {
@@ -941,13 +1095,14 @@
     nodeCard.className = 'node-card show';
     var demo = (curAddr === 'DEMO');
     var html =
-      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + '</h4>' +
+      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
       (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : 'First-hop wallet') + '</div>' : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (price && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Shared transactions</span><span class="val">' + cp.txCount + '</span></div>' +
+      (demo ? '' : attribRows(cp.addr)) +
       (lore && lore.bags ? '<div class="r"><span class="k">' + esc(T('bagShare')) + '</span><span class="val nc-bags">' + bagEmojis(lore.bags) + '</span></div>' : '') +
       '</div>' +
       (lore && lore.bags ? '<div class="nc-bagnote">' + esc(T('bagHonesty')) + '</div>' : '');
@@ -1172,6 +1327,31 @@
         return lore.map(function (e) { return { name: e.name, creature: e.creature.name, history: e.history }; });
       }
     };
+
+    // ---- v18: attribution decorates the planets that are already on screen ----
+    // Idempotent per node; runs now (labels may have landed before the render)
+    // and again from PF_ATTRIB_APPLY (labels may land after). Planet name,
+    // hover label, and story all pick up the identity; mixers, flagged and
+    // sanctioned worlds turn amber.
+    function decorateAttrib() {
+      if (opts.demo) return;
+      var changed = false;
+      ringNodes.forEach(function (nd) {
+        if (nd.kind !== 'planet' || nd.attribbed) return;
+        var n = attribOf(nd.cp.addr); if (!n) return;
+        nd.attribbed = true; changed = true;
+        var m = KIND_META[n.kind] || KIND_META.named;
+        nd.lore.name = attribLabel(n);
+        nd.lore.history = attribSentence(n) + ' ' + nd.lore.history;
+        var rest = nd.labelHtml.slice(nd.labelHtml.indexOf('<br>'));
+        nd.labelHtml = '<b>' + esc(nd.lore.name) + '</b> <span style="color:#f2a950;font-weight:700">' + esc(m.word) + '</span> ' +
+          '<span style="letter-spacing:-2px">' + bagEmojis(nd.lore.bags) + '</span>' + rest;
+        if (n.kind === 'mixer' || n.kind === 'scam' || n.kind === 'sanctioned') nd.color = '#f2a950';
+      });
+      if (changed) { try { graph.nodeColor('color'); } catch (e) {} }
+    }
+    window.__pflash.decorateAttrib = decorateAttrib;
+    decorateAttrib();
 
     // dim the locked nodes (semi-transparent material) once objects exist
     graph.nodeThreeObjectExtend(true);
@@ -1450,6 +1630,7 @@
         initSplitChooser(); // v13.3: land on BOTH views side by side; tabs appear after first pick
         // v10: one split decides what the system AND the table may reveal
         var split = paywallSplit(cps);
+        LAST_SPLIT = split; // v18: attribution re-renders the table once labels land
         renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
         renderTable(data, split.unlockedSet);
         try {
@@ -1611,16 +1792,16 @@
     // counterparties
     var CP_CAP = 200;
     var cpRows = st.cps.slice(0, CP_CAP).map(function (c, i) {
-      return [String(i + 1), c.addr, fmtBtc(c.inSats), fmtBtc(c.outSats), String(c.txCount)];
+      return [String(i + 1), c.addr, pdfSafe(attribPlain(c.addr) || '\u2014'), fmtBtc(c.inSats), fmtBtc(c.outSats), String(c.txCount)];
     });
     doc.autoTable(themed({
       startY: doc.lastAutoTable.finalY + 18,
-      head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 5 }],
-             ['#', 'Wallet address', 'Sent to you', 'Received from you', 'Shared tx']],
+      head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 6 }],
+             ['#', 'Wallet address', 'Identified as', 'Sent to you', 'Received from you', 'Shared tx']],
       body: cpRows,
       headStyles: { fontSize: 8 },
       styles: { fontSize: 7, cellPadding: 4 },
-      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 250 } }
+      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 215 }, 2: { cellWidth: 95 } }
     }));
 
     // transactions
@@ -1751,8 +1932,9 @@
     }
     function row(k, v) { return '<div class="pd-row"><span class="pd-k">' + k + '</span><span class="pd-v">' + v + '</span></div>'; }
     var cpRows = st.cps.map(function (c, i) {
-      return '<tr><td>' + (i + 1) + '</td><td class="pd-addr">' + esc(c.addr) + '</td><td>' + esc(fmtBtc(c.inSats)) + '</td><td>' + esc(fmtBtc(c.outSats)) + '</td><td>' + c.txCount + '</td></tr>';
+      return '<tr><td>' + (i + 1) + '</td><td class="pd-addr">' + esc(c.addr) + '</td><td>' + (attribPlain(c.addr) ? esc(attribPlain(c.addr)) : '—') + '</td><td>' + esc(fmtBtc(c.inSats)) + '</td><td>' + esc(fmtBtc(c.outSats)) + '</td><td>' + c.txCount + '</td></tr>';
     }).join('');
+    var idedN = st.cps.filter(function (c) { return !!attribOf(c.addr); }).length;
     var txRows = d.txs.map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
       var cp = t.counterparties.length ? esc(shortAddr(t.counterparties[0].addr)) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) : '') : '(script / non-standard)';
@@ -1773,9 +1955,10 @@
         row('Total sent out', esc(fmtBtc(d.spentSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.spentSum, st.price)) + '</span>' : '')) +
         row('Transactions on-chain', d.txCount.toLocaleString('en-US')) +
         row('Counterparties (first hop)', String(st.cps.length)) +
+        row('Identified counterparties', idedN + ' of ' + st.cps.length + (idedN ? '' : ' \u2014 no public labels')) +
         row('Activity window', esc(range)) +
         '<div class="pd-section">FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with</div>' +
-        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>#</th><th>Wallet address</th><th>Sent to you</th><th>Received from you</th><th>Tx</th></tr></thead><tbody>' + cpRows + '</tbody></table></div>' +
+        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>#</th><th>Wallet address</th><th>Identified as</th><th>Sent to you</th><th>Received from you</th><th>Tx</th></tr></thead><tbody>' + cpRows + '</tbody></table></div>' +
         '<div class="pd-section">TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' of ' + d.txCount.toLocaleString('en-US') + ' on-chain' : '') + '</div>' +
         '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>Date</th><th>Dir</th><th>Amount</th><th>Counterparty</th><th>TXID</th></tr></thead><tbody>' + txRows + '</tbody></table></div>' +
         '<div class="pd-close">' +

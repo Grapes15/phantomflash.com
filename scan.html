@@ -28,7 +28,7 @@
 <link rel="alternate" hreflang="pt" href="https://phantomflash.com/?lang=pt">
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
-<link rel="stylesheet" href="assets/style.css?v=20260821m">
+<link rel="stylesheet" href="assets/style.css?v=20261014a">
 <script src="assets/i18n.js?v=20260821a" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
@@ -80,6 +80,7 @@
       <div class="stat"><div class="label">Transactions</div><div class="v" id="statTx">—</div></div>
       <div class="stat"><div class="label">Counterparties (1st hop)</div><div class="v" id="statCp">—</div></div>
       <div class="stat"><div class="label">Activity window</div><div class="v" id="statRange" style="font-size:15px;line-height:1.5">—</div></div>
+      <div class="stat"><div class="label">Identified</div><div class="v amber" id="statId">…</div><div class="label" id="statIdSub">checking public labels</div></div>
     </div>
 
     <!-- v13: the two views — switch freely -->
@@ -156,8 +157,8 @@
 <!-- THE COMMONS: shared-map read/write. Loads BEFORE scan.js (which runs at
      parse time) and is a hard no-op until PF_API is switched on below. -->
 <script>window.PF_API = "https://phantomflash-api.irwin-c61.workers.dev";</script>
-<script src="assets/commons.js?v=20260826a"></script>
-<script src="assets/scan.js?v=20260821p"></script>
+<script src="assets/commons.js?v=20261014a"></script>
+<script src="assets/scan.js?v=20261014a"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });

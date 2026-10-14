@@ -26,10 +26,10 @@
 
   function log() { if (window.PF_DEBUG) console.log.apply(console, arguments); }
 
-  function post(path, body) {
+  function post(path, body, timeoutMs) {
     if (!API) return Promise.reject(new Error('no api'));
     var ctl = window.AbortController ? new AbortController() : null;
-    var t = setTimeout(function () { if (ctl) ctl.abort(); }, TIMEOUT);
+    var t = setTimeout(function () { if (ctl) ctl.abort(); }, timeoutMs || TIMEOUT);
     return fetch(API + path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -72,6 +72,17 @@
       // optional: lets the server record ONE coverage sample per real scan
       scan_id: scanId || null
     });
+  }
+
+  /* ------------------------------ READ: attrib --------------------------- */
+  // v18: WHO owns the wallet. The server fronts two public label sources
+  // (Blockscout for ETH, walletexplorer for BTC) with a D1 cache. Largest
+  // counterparties go first because BTC lookups are resolved in order and
+  // the server may leave the tail `pending` for the next scan. Longer timeout
+  // than the rest: a cold BTC batch can take several seconds upstream.
+  function attrib(chain, subject, cps) {
+    var addrs = cps.slice(0, 60).map(function (c) { return c.addr; });
+    return post('/attrib', { chain: chain, subject: subject, addrs: addrs }, 15000);
   }
 
   /* ----------------------------- WRITE: contribute ------------------------ */
@@ -209,6 +220,32 @@
   function run(chain, subject, data, cps) {
     if (!API) return;
     try {
+      // ATTRIBUTION — independent of the gate, never blocks the universe.
+      // scan.js registers PF_ATTRIB_APPLY and decorates whatever is on screen.
+      // The server bounds live BTC lookups per call and hands back the tail
+      // as `pending`; keep asking for just that tail (a few rounds, spaced
+      // out) so a big wallet fills in on its own instead of asking the
+      // person to rescan. Each answer is merged into what is on screen.
+      var ATTRIB_ROUNDS = 4, ATTRIB_GAP = 6000;
+      function applyAttrib(res) {
+        if (typeof window.PF_ATTRIB_APPLY === 'function') {
+          try { window.PF_ATTRIB_APPLY(res); } catch (e) { log('attrib apply failed', e); }
+        }
+      }
+      function attribRound(list, round) {
+        return attrib(chain, round === 0 ? subject : null, list).then(function (res) {
+          log('attrib round ' + round, res);
+          applyAttrib(res);
+          var left = (res && res.pending) || [];
+          if (left.length && round + 1 < ATTRIB_ROUNDS) {
+            setTimeout(function () {
+              attribRound(left.map(function (a) { return { addr: a }; }), round + 1);
+            }, ATTRIB_GAP);
+          }
+        }, function (e) { log('attrib skipped', String(e)); });
+      }
+      attribRound(cps, 0);
+
       // The gate comes first — it is one fast call, and both halves of the loop
       // want its scan_id (contribute requires it; enrich uses it to record one
       // coverage sample per real scan). If the gate is unreachable we still try
@@ -236,5 +273,5 @@
     } catch (e) { log('commons run failed', String(e)); }
   }
 
-  window.PF_COMMONS = { run: run, enrich: enrich, contribute: contribute, gate: gate, renderPanel: renderPanel };
+  window.PF_COMMONS = { run: run, enrich: enrich, attrib: attrib, contribute: contribute, gate: gate, renderPanel: renderPanel };
 })();

@@ -914,7 +914,7 @@
     var sub = ided.length
       ? 'Everything else is an unlabeled wallet — a private wallet, or a service nobody has tagged yet.'
       : 'That is normal for personal wallets. Exchanges, mixers, and sanctioned addresses are the ones that get named.';
-    if (pending) sub += ' ' + pending + ' smaller counterpart' + (pending === 1 ? 'y is' : 'ies are') + ' still being checked — PFLASH again in a minute and they will be in.';
+    if (pending) sub += ' ' + pending + ' smaller counterpart' + (pending === 1 ? 'y is' : 'ies are') + ' still being checked and will fill in here as the answers come back.';
     var rows = ided.map(function (x) {
       var c = x.cp;
       var dir = c.inSats && c.outSats ? 'both directions' : c.inSats ? '↓ paid your wallet' : '↑ received from your wallet';

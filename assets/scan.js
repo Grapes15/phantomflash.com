@@ -1059,7 +1059,7 @@
           (memoText(o.agent_no, 20) ? '<div class="ag-k">Agent #</div><div class="ag-v ag-name">' + esc(memoText(o.agent_no, 20)) + '</div>' : '') +
           '<div class="ag-k">Agent</div><div class="ag-v ag-name">' + esc(memoText(o.agent, 80) || '—') + '</div>' +
           '<div class="ag-k">Answers to</div><div class="ag-v">' + esc(memoText(o.answers_to, 80) || '—') +
-            (cur.dest ? ' · ' + acctLink(cur.dest) : '') + '</div>' +
+            (cur.dest && cur.dest !== XRPL_NOOWNER ? ' · ' + acctLink(cur.dest) : '') + '</div>' +
           (memoText(o.aka, 80) ? '<div class="ag-k">Alias</div><div class="ag-v">' + esc(memoText(o.aka, 80)) + '</div>' : '') +
           lawyerRow +
           (licHtml ? '<div class="ag-k">Licenses</div><div class="ag-v">' + licHtml + '</div>' : '') +

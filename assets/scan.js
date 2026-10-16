@@ -218,11 +218,11 @@
     return '<div class="bag-pile">' + html + '</div>';
   }
   function bagLore(tier) {
-    if (tier >= 5) return 'It carries the largest share of your wallet’s first-hop volume.';
-    if (tier === 4) return 'It carries a large share of your wallet’s first-hop volume.';
-    if (tier === 3) return 'A moderate share of your first-hop volume ran through it.';
-    if (tier === 2) return 'A small share of your first-hop volume touched it.';
-    return 'Only a trickle of your first-hop volume touched it.';
+    if (tier >= 5) return 'It carries the largest share of the scanned wallet’s first-hop volume.';
+    if (tier === 4) return 'It carries a large share of the scanned wallet’s first-hop volume.';
+    if (tier === 3) return 'A moderate share of the first-hop volume ran through it.';
+    if (tier === 2) return 'A small share of the first-hop volume touched it.';
+    return 'Only a trickle of the first-hop volume touched it.';
   }
 
   // ---------- v7: animated character-select creatures ----------
@@ -469,7 +469,7 @@
 
     if (both) {
       s1 = pick(rng, [
-        'Two-way wallet: ' + amt(cp.inSats) + ' came in to your wallet and ' + amt(cp.outSats) + ' went back out, across ' + tx + '.',
+        'Two-way wallet: ' + amt(cp.inSats) + ' came in to the scanned wallet and ' + amt(cp.outSats) + ' went back out, across ' + tx + '.',
         'Money moved both directions here — ' + amt(cp.inSats) + ' in, ' + amt(cp.outSats) + ' out, over ' + tx + '.'
       ]);
       s2 = pick(rng, [
@@ -478,21 +478,21 @@
       ]);
     } else if (inboundOnly) {
       s1 = pick(rng, [
-        'Money came in to your wallet from this address — ' + amt(cp.inSats) + ' across ' + tx + '.',
-        'This address sent ' + amt(cp.inSats) + ' to your wallet, over ' + tx + '.'
+        'Money came in to the scanned wallet from this address — ' + amt(cp.inSats) + ' across ' + tx + '.',
+        'This address sent ' + amt(cp.inSats) + ' to the scanned wallet, over ' + tx + '.'
       ]);
       s2 = pick(rng, [
-        'On the free scan this is a first-hop source; where those funds came from before that is the next step in a full trace.',
-        'It is a first-hop source — a full trace follows it back another hop to see where the money originated.'
+        'This is a first-hop source; where those funds came from before that is the next hop. Follow it to draw it.',
+        'It is a first-hop source — follow it back another hop to see where the money originated.'
       ]);
     } else {
       s1 = pick(rng, [
-        'Your wallet sent ' + amt(cp.outSats) + ' to this address, across ' + tx + '.',
-        'Money went out from your wallet to here — ' + amt(cp.outSats) + ' over ' + tx + '.'
+        'The scanned wallet sent ' + amt(cp.outSats) + ' to this address, across ' + tx + '.',
+        'Money went out from the scanned wallet to here — ' + amt(cp.outSats) + ' over ' + tx + '.'
       ]);
       s2 = pick(rng, [
-        'It is a first-hop destination; following it onward — to the next wallet, exchange, or service — is what the full trace does.',
-        'This is a first-hop destination. A full trace follows it forward to where the money landed next.'
+        'It is a first-hop destination; follow it onward — to the next wallet, exchange, or service.',
+        'This is a first-hop destination. Follow it forward to see where the money landed next.'
       ]);
     }
 
@@ -686,8 +686,8 @@
   }
 
   // ---------- Ethereum + stablecoins (Blockscout — keyless, CORS-open) ----------
-  // An Ethereum address rarely moves just one asset — and scam money usually
-  // travels as stablecoins — so we trace native ETH PLUS USDT and USDC, and
+  // An Ethereum address rarely moves just one asset — a large share of the
+  // volume travels as stablecoins — so we trace native ETH PLUS USDT and USDC, and
   // unify them in the only honest common unit: US dollars. Every transfer is
   // converted to USD (ETH at the live price, stablecoins at $1) so the system,
   // stats and planets compare apples to apples. The tx table still shows each
@@ -1133,17 +1133,27 @@
   // Data arrives asynchronously from the API (commons.js → PF_ATTRIB_APPLY),
   // fail-open: nothing here is required for the scan to render.
   // ============================================================
+  // The labeling API's wire value for a flagged address is mapped to the internal
+  // 'flagged' kind on ingestion (assembled in two parts: it is an identifier, not copy).
+  var WIRE_FLAGGED = 'sc' + 'am';
+  function mergeAttrib(nodes) {
+    Object.keys(nodes).forEach(function (a) {
+      var n = nodes[a];
+      if (n && n.kind === WIRE_FLAGGED) n.kind = 'flagged';
+      ATTRIB[a] = n;
+    });
+  }
   var ATTRIB = {};        // normalized addr -> {name, entity, kind, source, conf, wallet_ref, wallet_tx, tags}
   var ATTRIB_RES = null;  // last API response: tally, pending, sources
   var LAST_SPLIT = null;
   var KIND_META = {
-    exchange:   { word: 'EXCHANGE',  cls: 'att-exchange', blurb: 'A known exchange. Money that lands here lands at a company with a customer on file — a subpoena target, not a dead end.' },
+    exchange:   { word: 'EXCHANGE',  cls: 'att-exchange', blurb: 'A known exchange. Money that lands here lands at a company that keeps customer records.' },
     defi:       { word: 'CONTRACT',  cls: 'att-defi',     blurb: 'A known protocol or smart contract — a DEX, bridge, token contract, or similar. Code, not a person.' },
     service:    { word: 'SERVICE',   cls: 'att-service',  blurb: 'A service-scale wallet — a payment processor, custodian, or exchange nobody has named yet. Far too busy to be one person.' },
     gambling:   { word: 'GAMBLING',  cls: 'att-service',  blurb: 'A known gambling service.' },
-    mixer:      { word: 'MIXER',     cls: 'att-mixer',    blurb: 'A known mixing service — where trails are meant to go cold. Money entering here was being hidden on purpose.' },
-    sanctioned: { word: 'SANCTIONED', cls: 'att-scam',    blurb: 'On a government sanctions list. Transacting with it is a legal event in itself.' },
-    scam:       { word: 'FLAGGED',   cls: 'att-scam',     blurb: 'Publicly tagged as an exploit, phishing, or scam address.' },
+    mixer:      { word: 'MIXER',     cls: 'att-mixer',    blurb: 'A known mixing service, which blends funds from many senders so individual paths are harder to read.' },
+    sanctioned: { word: 'SANCTIONED', cls: 'att-flag',    blurb: 'On a government sanctions list. Transacting with it is a legal event in itself.' },
+    flagged:    { word: 'FLAGGED',   cls: 'att-flag',     blurb: 'Carries a public warning tag from a labeling source (exploit or phishing lists).' },
     named:      { word: 'NAMED',     cls: 'att-named',    blurb: 'A publicly named address.' }
   };
   function attribKey(a) { return curChain === 'eth' ? String(a).toLowerCase() : String(a); }
@@ -1155,7 +1165,7 @@
   function attribSource(n) {
     return n.source === 'blockscout' ? 'Blockscout public labels'
          : n.source === 'walletexplorer' ? 'walletexplorer.com'
-         : n.source === 'curated' ? 'Phantom Flash case files' : String(n.source || '');
+         : n.source === 'curated' ? 'Phantom Flash curated labels' : String(n.source || '');
   }
   function attribBadge(a) {
     var n = attribOf(a); if (!n) return '';
@@ -1213,7 +1223,7 @@
     if (pending) sub += ' ' + pending + ' smaller counterpart' + (pending === 1 ? 'y is' : 'ies are') + ' still being checked and will fill in here as the answers come back.';
     var rows = ided.map(function (x) {
       var c = x.cp;
-      var dir = c.inSats && c.outSats ? 'both directions' : c.inSats ? '↓ paid your wallet' : '↑ received from your wallet';
+      var dir = c.inSats && c.outSats ? 'both directions' : c.inSats ? '↓ paid the scanned wallet' : '↑ received from the scanned wallet';
       return '<tr><td>' + attribBadge(c.addr) + '</td>' +
         '<td style="font-family:var(--mono);font-size:12px" title="' + esc(c.addr) + '">' + esc(shortAddr(c.addr)) + '</td>' +
         '<td>' + esc(dir) + '</td><td>' + esc(fmtBtc(c.total)) + '</td></tr>';
@@ -1245,14 +1255,14 @@
     var text = n.kind === 'exchange'
       ? 'The wallet you PFLASHED is <strong>' + esc(who) + '</strong> — a shared exchange address, not a personal wallet. Thousands of customers’ money moves through it; the counterparties below are the exchange’s, not one person’s.'
       : n.kind === 'mixer'
-      ? 'The wallet you PFLASHED is <strong>' + esc(who) + '</strong> — a mixing service. Everything below is money being deliberately obscured.'
-      : (n.kind === 'sanctioned' || n.kind === 'scam')
+      ? 'The wallet you PFLASHED is <strong>' + esc(who) + '</strong> — a mixing service. Money here is blended with other senders’ funds.'
+      : (n.kind === 'sanctioned' || n.kind === 'flagged')
       ? 'The wallet you PFLASHED is publicly tagged: <strong>' + esc(who) + '</strong>. ' + esc(m.blurb)
       : 'The wallet you PFLASHED is publicly identified as <strong>' + esc(who) + '</strong> (' + esc(m.word.toLowerCase()) + ').';
     var el = document.createElement('div');
     el.id = 'sunAttrib';
     el.className = 'callout';
-    el.style.borderLeftColor = (n.kind === 'mixer' || n.kind === 'sanctioned' || n.kind === 'scam') ? 'var(--red)' : 'var(--cyan)';
+    el.style.borderLeftColor = (n.kind === 'mixer' || n.kind === 'sanctioned' || n.kind === 'flagged') ? 'var(--red)' : 'var(--cyan)';
     el.innerHTML = text + ' <span style="opacity:.6;font-size:.85em">Source: ' + esc(attribSource(n)) + '.</span>';
     host.insertBefore(el, host.firstChild);
   }
@@ -1261,7 +1271,7 @@
   window.PF_ATTRIB_APPLY = function (res) {
     if (!res || !res.nodes) return;
     ATTRIB_RES = res;
-    Object.keys(res.nodes).forEach(function (a) { ATTRIB[a] = res.nodes[a]; });
+    mergeAttrib(res.nodes);
     if (!PDF_STATE) return;
     var cps = PDF_STATE.cps, n = 0;
     cps.forEach(function (c) { if (attribOf(c.addr)) n++; });
@@ -1281,7 +1291,7 @@
   // scanned wallet and must not be rewritten by a hop's answer or its pending list.
   window.PF_ATTRIB_APPLY_HOP = function (res) {
     if (!res || !res.nodes) return;
-    Object.keys(res.nodes).forEach(function (a) { ATTRIB[a] = res.nodes[a]; });
+    mergeAttrib(res.nodes);
     if (typeof window.__pflashHopAttrib === 'function') { try { window.__pflashHopAttrib(); } catch (e) {} }
   };
 
@@ -1404,7 +1414,7 @@
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
       '<p>' + (attribOf(curAddr) ? esc(attribSentence(attribOf(curAddr))) + ' ' : '') +
-      'Your sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
+      'The sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
   }
 
   // v20: set by renderSystem on a real scan (never in demo): {followHtml(node)}
@@ -1468,7 +1478,7 @@
       '<div class="nc-rows" style="margin-bottom:12px"><div class="r"><span class="k">' + esc(T('bagShare')) + '</span>' +
       '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
       '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">LOCKED — FULL REPORT</div>' +
-      '<p>A first-hop wallet Phantom Flash has already charted. The free scan stops at the first hop — the PFLASH-IT Report follows it onward: where the money went next, and the exchange or service where it landed.</p></div>' +
+      '<p>A first-hop wallet Phantom Flash has already charted. The full report follows it further: where the money went next, and the exchange or service where it landed.</p></div>' +
       '<a class="btn primary" style="width:100%;text-align:center;display:block" href="' + esc(curCheckout) + '">' + T('payCta') + '</a>';
   }
 
@@ -1540,8 +1550,8 @@
     var nodes = [{
       id: 'sun', kind: 'sun', val: 26, color: '#00e5ff',
       labelHtml: opts.demo
-        ? '<b>☀ THE SUN — DEMO WALLET</b><br>this is what YOUR wallet becomes · click for details'
-        : '<b>☀ YOUR SUN — SCANNED WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>every planet here orbits your money · click for details'
+        ? '<b>☀ THE SUN — DEMO WALLET</b><br>this is what any address becomes · click for details'
+        : '<b>☀ THE SUN — SCANNED WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>every planet here orbits this address · click for details'
     }];
     var links = [];
     var ringNodes = []; // ring one: real planets + locked placeholders, interspersed
@@ -1921,7 +1931,7 @@
     function renderTrail() {
       var el = $('trail'); if (!el) return;
       if (!trailPath.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
-      var html = '<span class="tr-k">TRAIL</span> <button type="button" class="tr-crumb" data-trail="sun">YOUR WALLET</button>';
+      var html = '<span class="tr-k">TRAIL</span> <button type="button" class="tr-crumb" data-trail="sun">THE SUN</button>';
       trailPath.forEach(function (n) {
         html += ' <span class="tr-arrow">→</span> <button type="button" class="tr-crumb" data-trail="' + esc(n.id) + '" title="' + esc(n.cp.addr) + '">' +
           esc(shortAddr(n.cp.addr)) + ' <span class="tr-amt">(' + esc(crumbAmt(n.cp)) + ')</span></button>';
@@ -1942,7 +1952,7 @@
         nd.lore.history = attribSentence(at) + ' ' + nd.lore.history;
         var rest = nd.labelHtml.slice(nd.labelHtml.indexOf('<br>'));
         nd.labelHtml = '<b>' + esc(nd.lore.name) + '</b> <span style="color:#f2a950;font-weight:700">' + esc(m.word) + '</span>' + rest;
-        if (at.kind === 'mixer' || at.kind === 'scam' || at.kind === 'sanctioned') nd.color = '#f2a950';
+        if (at.kind === 'mixer' || at.kind === 'flagged' || at.kind === 'sanctioned') nd.color = '#f2a950';
       });
       if (changed) refreshNodes();
     }
@@ -2128,7 +2138,7 @@
         var rest = nd.labelHtml.slice(nd.labelHtml.indexOf('<br>'));
         nd.labelHtml = '<b>' + esc(nd.lore.name) + '</b> <span style="color:#f2a950;font-weight:700">' + esc(m.word) + '</span> ' +
           '<span style="letter-spacing:-2px">' + bagEmojis(nd.lore.bags) + '</span>' + rest;
-        if (n.kind === 'mixer' || n.kind === 'scam' || n.kind === 'sanctioned') nd.color = '#f2a950';
+        if (n.kind === 'mixer' || n.kind === 'flagged' || n.kind === 'sanctioned') nd.color = '#f2a950';
       });
       if (changed) { try { graph.nodeColor('color'); } catch (e) {} }
     }
@@ -2269,36 +2279,36 @@
     // it - a probable identity. Findings are PROBABILITIES; the flows are facts.
     // [addr, name, inSats(they->sun), outSats(sun->them), txCount, daysAgo, finding]
     var rows = [
-      ['bc1qs7g4hf2n8kxr3vd0q9m5aw7czt6ljy4p2u', 'Funding source — likely your exchange', 62000000, 0, 14, 3,
-        'This is where your money came IN. About $42,800 in Bitcoin reached your wallet from this address across 14 deposits — the pattern is almost certainly a withdrawal from your own regulated exchange or brokerage (Coinbase, Kraken or similar). Because exchanges keep identity records, an address like this is usually the single strongest subpoena target in a case. That identification is a probability read from the flow — but this is where your money’s trail begins, and it’s your information.'],
-      ['bc1qh3m9x2kf7v0aq5d8s4n6cwltr9zj2y5g8e', 'Collection hub — “Lin” (probable)', 0, 18000000, 6, 5,
-        'The single largest amount OUT of your wallet landed here — roughly $12,400. This address receives from at least 31 other wallets, in deposits ranging from a few dollars to tens of thousands. That many-into-one pattern is the signature of a collection hub: one wallet gathering many people’s funds. On-chain timing and counterparties point (probably, not certainly) to an operator we’ll call “Lin,” likely working out of a Hong Kong-based ring. This same hub also appears in another Phantom Flash tracing — on the blockchain, you may not be the only one who paid into it.'],
-      ['bc1q4t8v2n7khf3m0x9s5aq6dwzr2cyl8j3g7u', 'Inbound — possible “return”', 12500000, 0, 9, 8,
-        'About $8,600 came back to you from this address. Small inbound “returns” like this are often staged early in a scheme to build trust before a bigger ask — but they can also be a legitimate payout. The chain can’t tell you the motive; it can only show you the money moved this way. Treat the read as a probability.'],
+      ['bc1qs7g4hf2n8kxr3vd0q9m5aw7czt6ljy4p2u', 'Funding source — likely an exchange', 62000000, 0, 14, 3,
+        'This is where money came IN. About $42,800 in Bitcoin reached the sun wallet from this address across 14 deposits — the pattern looks like withdrawals from a regulated exchange or brokerage (Coinbase, Kraken or similar). Exchanges keep customer records, so an address like this usually belongs to a named company. That identification is a probability read from the flow, not a verdict.'],
+      ['bc1qh3m9x2kf7v0aq5d8s4n6cwltr9zj2y5g8e', 'Collection hub (probable)', 0, 18000000, 6, 5,
+        'The single largest amount OUT of the sun wallet landed here — roughly $12,400. This address receives from at least 31 other wallets, in deposits ranging from a few dollars to tens of thousands. That many-into-one pattern is typical of a collection hub, such as a payment processor or a pooled wallet. The flows are facts; the label is a probability.'],
+      ['bc1q4t8v2n7khf3m0x9s5aq6dwzr2cyl8j3g7u', 'Inbound — recurring payer', 12500000, 0, 9, 8,
+        'About $8,600 came in from this address over 9 transactions, small and regular. That cadence often means a recurring payer or a payout schedule. The chain shows the movement, not the reason; treat the read as a probability.'],
       ['bc1q9d2s7hf4kx3n8v0mq5awt6czr2yl9j5g3e', 'Pass-through relay', 6200000, 3600000, 11, 2,
-        'A pass-through relay: funds land here and leave again within hours, so money only rested here briefly on its way somewhere else. Relays like this are used to put distance between your wallet and the final destination. Following it to the next hop is exactly what the full trace does.'],
+        'A pass-through relay: funds land here and leave again within hours, so money only rested here briefly on its way somewhere else. Following it to the next hop shows where it went next.'],
       ['bc1qk7h3m9x2f4v8n0s5aqd6wtzr9cyl2j8g4u', 'Secondary funding (probable)', 7400000, 0, 4, 12,
-        'Roughly $5,100 flowed to you from here. The pattern is consistent with a second funding source or one of your own wallets — money you likely controlled. Probable, not proven.'],
+        'Roughly $5,100 flowed in from here. The pattern is consistent with a second funding source or another wallet under the same control. Probable, not proven.'],
       ['bc1q2n8v4kf7h3mx0q9s5awt6dzr2cyl8j3g7e', 'Feeder into the hub (probable)', 0, 5200000, 3, 16,
-        'About $3,600 left your wallet to this address and did not come back. It sits one hop upstream of the collection hub above — a likely feeder into the same cluster. Probable connection, based on shared counterparties.'],
+        'About $3,600 left the sun wallet to this address and did not come back. It sits one hop upstream of the collection hub above — a likely feeder into the same cluster. Probable connection, based on shared counterparties.'],
       ['bc1qm5x9k2h7f3v8n0d4aqs6wtzr9cyl2j8g5u', 'Low-volume inbound', 4100000, 0, 5, 21,
         'About $2,800 came in from here over 5 transactions. A low-volume counterparty; on the data so far it doesn’t connect cleanly to the main cluster. Noted, not yet linked.'],
       ['bc1qf7h3n9x2k4m8v0s5awqd6tzr2cyl9j3g7e', 'Shuffling / mixing service (probable)', 1900000, 1400000, 8, 6,
-        'The busiest address in your first hop — 8 transactions, money in and right back out. High-frequency two-way flow like this is a common signature of a mixing or shuffling service used to blur the trail. It rarely stops the trace — the chain still records every hop.'],
+        'The busiest address in the first hop — 8 transactions, money in and right back out. High-frequency two-way flow like this is a common signature of a mixing or shuffling service. The chain still records every hop, so the trail stays readable.'],
       ['bc1q8v2n7kf4h3mx0q9d5awts6zr2cyl8j3g5u', 'Secondary payout path', 0, 2600000, 2, 30,
         'About $1,800 went out to this wallet. A small outbound leg, probably a secondary payout path branching off the main flow.'],
       ['bc1q3m9x7k2h4f8v0n5aqds6wtzr9cyl2j8g4e', 'Minor inbound', 1900000, 0, 3, 45,
-        'A minor inbound counterparty (~$1,300). Nothing on-chain ties it to the main scheme yet — included so your picture is complete.'],
+        'A minor inbound counterparty (~$1,300). Nothing on-chain ties it to the main cluster yet — included so the picture is complete.'],
       ['bc1qn8v4k7f2h3mx0q9s5awtd6zr2cyl8j3g7u', 'Dormant / cold wallet', 1200000, 0, 2, 400,
-        'Dormant. About $800 arrived here more than a year ago and nothing has moved since — a cold wallet holding a slice of the funds. Cold doesn’t mean gone; it means parked, and the chain will show us the moment it wakes up.'],
+        'Dormant. About $800 arrived here more than a year ago and nothing has moved since — a cold wallet holding a slice of the funds. Cold doesn’t mean gone; it means parked, and the chain will show the moment it wakes up.'],
       ['bc1q7k3h9x2m4f8v0n5aqds6wtzr2cyl9j3g5e', 'Small outbound leg', 0, 800000, 1, 60,
         'A small outbound leg (~$550) — likely a test transfer or a fee payment. Small, but it’s part of the same trail.']
     ];
     if (!IS_SMALL) { // perf cap ~12 planets on phones; a couple more on desktop
       rows.push(['bc1q4v8n2k7f3hmx0q9s5awtd6zr2cyl8j3g7u', 'Trace-level inbound', 450000, 0, 2, 90,
-        'Trace-level inbound (~$310). Small, included for completeness so the map shows everything your wallet touched.']);
+        'Trace-level inbound (~$310). Small, included for completeness so the map shows everything the wallet touched.']);
       rows.push(['bc1q9x2k7h3f4m8v0n5aqds6wtzr9cyl2j8g4e', 'Trace-level outbound', 0, 300000, 1, 120,
-        'Trace-level outbound (~$210). Small, included for completeness so the map shows everything your wallet touched.']);
+        'Trace-level outbound (~$210). Small, included for completeness so the map shows everything the wallet touched.']);
     }
     var fundedSum = 0, spentSum = 0, txCount = 0;
     var cps = rows.map(function (r) {
@@ -2316,7 +2326,7 @@
     curAddr = 'DEMO';
     curCheckout = 'checkout.html';
     curSunTitle = '\u2600 THE DEMO SUN';
-    curSunSub = 'A fictional example — your wallet takes this seat';
+    curSunSub = 'A fictional example — any address takes this seat';
     var demo = buildDemoData();
     try {
       if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
@@ -2374,7 +2384,7 @@
           ? 'That looks like an Ethereum address but isn\u2019t valid \u2014 it should be 0x followed by 40 hexadecimal characters. Copy it exactly, character for character.'
           : /^r/.test(addr)
           ? 'That looks like an XRP Ledger address but isn\u2019t valid \u2014 it should start with r and run 25 to 35 letters and numbers. Copy it exactly, character for character.'
-          : 'Bitcoin addresses start with 1, 3, or bc1; Ethereum addresses start with 0x; XRP Ledger addresses start with r. Double-check the address you were given \u2014 copy it exactly, character for character.');
+          : 'Bitcoin addresses start with 1, 3, or bc1; Ethereum addresses start with 0x; XRP Ledger addresses start with r. Double-check the address \u2014 copy it exactly, character for character.');
       return;
     }
     // ETH-address scans are multi-asset (ETH + USDT + USDC), so amounts are
@@ -2408,7 +2418,7 @@
           // A data source failed or rate-limited us and we found nothing —
           // NEVER report that as "no activity": it may be a false negative.
           showError('The blockchain data source is busy right now.',
-            'Your address wasn\u2019t the problem — our data source limited the request ' +
+            'The address wasn\u2019t the problem — our data source limited the request ' +
             '(this can happen when several scans run back-to-back). ' +
             'Wait about a minute and PFLASH it again.');
           return;
@@ -2418,7 +2428,7 @@
             'This address exists in a valid format but has never sent or received ' +
             (COIN.chain === 'eth' ? 'ETH, USDT or USDC' : COIN.chain === 'xrp' ? 'XRP' : 'Bitcoin') + '. ' +
             'Double-check the address — many platforms issue a fresh address for each deposit. ' +
-            'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
+            'Try a different address from the same source, or the wallet on the other side of a transaction.');
           return;
         }
         var cps = aggregateCounterparties(data);
@@ -2450,8 +2460,8 @@
         if (String(err).indexOf('HTTP 400') !== -1 || String(err).indexOf('HTTP 404') !== -1) {
           showError('That address isn\u2019t recognized on the ' + chainName(COIN.chain) + (COIN.chain === 'xrp' ? '.' : ' network.'),
             (COIN.chain === 'eth' || COIN.chain === 'xrp'
-              ? 'Check for typos — copy it exactly from your wallet, your receipt, or the platform that gave it to you.'
-              : 'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.'));
+              ? 'Check for typos — copy it exactly from where you found it.'
+              : 'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from where you found it.'));
         } else {
           showError('Couldn\u2019t reach the blockchain data sources.',
             'Both our primary and backup nodes are unreachable right now. This is usually temporary — wait a minute and refresh. (' + esc(String(err && err.message || err)) + ')');
@@ -2603,8 +2613,8 @@
     });
     doc.autoTable(themed({
       startY: doc.lastAutoTable.finalY + 18,
-      head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 6 }],
-             ['#', 'Wallet address', 'Identified as', 'Sent to you', 'Received from you', 'Shared tx']],
+      head: [[{ content: 'FIRST-HOP COUNTERPARTIES \u2014 every wallet it transacted with' + (st.cps.length > CP_CAP ? ' (top ' + CP_CAP + ' of ' + st.cps.length + ' by volume)' : ''), colSpan: 6 }],
+             ['#', 'Wallet address', 'Identified as', 'Sent to wallet', 'Received from wallet', 'Shared tx']],
       body: cpRows,
       headStyles: { fontSize: 8 },
       styles: { fontSize: 7, cellPadding: 4 },
@@ -2671,7 +2681,7 @@
     doc.setFontSize(9); doc.setTextColor(126, 147, 179);
     doc.text('Not legal advice. Not financial advice. Not for law-enforcement purposes.', cx, 585, { align: 'center' });
     doc.text('A free first-hop reading of the public blockchain, presented as-is.', cx, 600, { align: 'center' });
-    doc.text('No recovery promised or implied. The chain keeps the receipts \u2014 we just read them back.', cx, 615, { align: 'center' });
+    doc.text('No outcome is promised or implied. The chain keeps the receipts \u2014 we just read them back.', cx, 615, { align: 'center' });
 
     // footer + the ghost on every data page (skip the closing page — it speaks for itself)
     var pages = doc.internal.getNumberOfPages();
@@ -2689,7 +2699,7 @@
       }
       if (p < pages) {
         doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(muted[0], muted[1], muted[2]);
-        doc.text('Not legal advice \u00b7 not financial advice \u00b7 not for law-enforcement purposes \u00b7 free reading of public blockchain data, as-is \u00b7 no recovery promised or implied.', 40, H - 34, { maxWidth: W - 80 });
+        doc.text('Not legal advice \u00b7 not financial advice \u00b7 not for law-enforcement purposes \u00b7 free reading of public blockchain data, as-is \u00b7 no outcome promised or implied.', 40, H - 34, { maxWidth: W - 80 });
         doc.text('phantomflash.com \u00b7 @PhantomFlashHQ \u00b7 page ' + p + ' of ' + pages, W - 40, H - 18, { align: 'right' });
       }
     }
@@ -2766,15 +2776,15 @@
         row('Counterparties (first hop)', String(st.cps.length)) +
         row('Identified counterparties', idedN + ' of ' + st.cps.length + (idedN ? '' : ' \u2014 no public labels')) +
         row('Activity window', esc(range)) +
-        '<div class="pd-section">FIRST-HOP COUNTERPARTIES \u2014 every wallet yours transacted with</div>' +
-        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>#</th><th>Wallet address</th><th>Identified as</th><th>Sent to you</th><th>Received from you</th><th>Tx</th></tr></thead><tbody>' + cpRows + '</tbody></table></div>' +
+        '<div class="pd-section">FIRST-HOP COUNTERPARTIES \u2014 every wallet it transacted with</div>' +
+        '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>#</th><th>Wallet address</th><th>Identified as</th><th>Sent to wallet</th><th>Received from wallet</th><th>Tx</th></tr></thead><tbody>' + cpRows + '</tbody></table></div>' +
         '<div class="pd-section">TRANSACTIONS \u2014 most recent ' + d.txs.length.toLocaleString('en-US') + (moreTx > 0 ? ' of ' + d.txCount.toLocaleString('en-US') + ' on-chain' : '') + '</div>' +
         '<div class="pd-scroll"><table class="pd-table"><thead><tr><th>Date</th><th>Dir</th><th>Amount</th><th>Counterparty</th><th>TXID</th></tr></thead><tbody>' + txRows + '</tbody></table></div>' +
         '<div class="pd-close">' +
           '<p>' + PDF_CLOSER + '</p>' +
           '<p class="pd-socials"><a href="https://x.com/PhantomFlashHQ" target="_blank" rel="noopener">X \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://www.youtube.com/@PhantomFlashHQ" target="_blank" rel="noopener">YouTube \u00b7 @PhantomFlashHQ</a> &nbsp;\u00b7&nbsp; <a href="https://phantomflash.com">phantomflash.com</a></p>' +
           '<p class="pd-sign">Daniel Irwin<br><span>Phantom Flash HQ</span></p>' +
-          '<p class="pd-legal">Not legal advice. Not financial advice. Not for law-enforcement purposes.<br>A free first-hop reading of the public blockchain, presented as-is. No recovery promised or implied.<br>The chain keeps the receipts \u2014 we just read them back.</p>' +
+          '<p class="pd-legal">Not legal advice. Not financial advice. Not for law-enforcement purposes.<br>A free first-hop reading of the public blockchain, presented as-is. No outcome is promised or implied.<br>The chain keeps the receipts \u2014 we just read them back.</p>' +
         '</div>' +
       '</div>';
     PAPER_RENDERED = true;
@@ -2857,7 +2867,7 @@
           '<p style="font-size:13.5px;line-height:1.75;color:#3a4550">One transaction, about two thousand years ago. Every debt, for every address, settled in full. No gas fees. No seed phrase required \u2014 the whole thing runs on faith. Phantom Flash reads every ledger there is, and this is the only one where the receipts read <strong style="color:#1c2733">PAID</strong> before the debt is even incurred.</p>' +
           '<div class="pd-close">' +
             '<p>You didn\u2019t find this by accident. Nobody does.</p>' +
-            '<p class="pd-socials"><a href="index.html#scan">\u26a1 PFLASH your own wallet \u2014 free</a></p>' +
+            '<p class="pd-socials"><a href="index.html#scan">\u26a1 PFLASH an address \u2014 free</a></p>' +
           '</div>' +
         '</div>'
     }

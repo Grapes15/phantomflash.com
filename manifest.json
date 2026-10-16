@@ -1,7 +1,7 @@
 {
-  "name": "Phantom Flash — Find Your Crypto",
+  "name": "Phantom Flash — This Is the Universe",
   "short_name": "PFLASH",
-  "description": "PFLASH a wallet — see where your crypto actually went. Free 60-second on-chain scan, rendered as an interactive universe.",
+  "description": "This is the universe. You can follow your agents. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds, rendered as an interactive universe.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",

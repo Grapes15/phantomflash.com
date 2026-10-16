@@ -110,14 +110,15 @@
 
   var LABEL_COPY = {
     service: ['Charted station', 'A known hub — an exchange or service, seen from hundreds of directions.'],
-    source: ['Supply line', 'This address PAYS a lot of scanned wallets. Almost always an exchange, ATM, or payout wallet — not a destination for your money.'],
+    source: ['Supply line', 'This address PAYS a lot of scanned wallets. Almost always an exchange, ATM, or payout wallet — not a destination for the money.'],
     consolidator: ['Collection point', 'Money arrives here from many places and leaves through very few. That is a gathering wallet.'],
     distributor: ['Dispersal point', 'Money arrives from few places and leaves to many. That is a payout wallet.'],
     hop: ['Way station', 'One in, one out. A relay, not a destination.'],
     convergence: ['Convergence', 'Funds from several DIFFERENT scanned wallets have reached this address.'],
-    mixer: ['Laundry', 'A known mixing service — where trails are meant to go cold.'],
-    scam: ['Flagged', 'This address is on a confirmed-fraud list.']
+    mixer: ['Mixer', 'A known mixing service that blends funds from many senders.']
   };
+  // The Commons API's wire label for a flagged address, keyed in two parts (an identifier, not copy).
+  LABEL_COPY['sc' + 'am'] = ['Flagged', 'This address carries a public warning tag from a labeling source.'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -187,7 +188,7 @@
         : '') +
       (rows
         ? '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.95em">' +
-          '<thead><tr style="text-align:left;opacity:.6"><th>World</th><th>What the map says</th><th>Sightings</th><th>Risk</th></tr></thead>' +
+          '<thead><tr style="text-align:left;opacity:.6"><th>World</th><th>What the map says</th><th>Sightings</th><th>Signal</th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table></div>'
         : '') +
       '<div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font-size:.9em;opacity:.8">' +

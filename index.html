@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Phantom Flash — Find Your Crypto. PFLASH It. Free.</title>
-<meta name="description" content="Is your crypto investment real? PFLASH the wallet — a free 60-second on-chain scan that shows where your money actually lives on the blockchain. Verify before you send another dollar.">
+<title>Phantom Flash — This is the universe. Follow it.</title>
+<meta name="description" content="This is the universe. You can follow your agents. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds. Click a transaction, follow the money hop by hop, and leave the map charted for the next person.">
 <meta name="theme-color" content="#FFF3E9">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PFLASH">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Phantom Flash — Find Your Crypto. Free.">
-<meta property="og:description" content="PFLASH the wallet — a free 60-second on-chain scan that shows where your money actually lives on the blockchain. Verify before you send another dollar.">
+<meta property="og:title" content="Phantom Flash — This is the universe. Follow it.">
+<meta property="og:description" content="This is the universe. You can follow your agents. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds. Click a transaction, follow the money hop by hop, and leave the map charted for the next person.">
 <meta property="og:image" content="assets/hero-desk-panel.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -28,7 +28,7 @@
 <link rel="alternate" hreflang="pt" href="https://phantomflash.com/?lang=pt">
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
-<link rel="stylesheet" href="assets/style.css?v=20260821m">
+<link rel="stylesheet" href="assets/style.css?v=20261016d">
 <style id="peach-theme">
 /* ===== PEACH DAYLIGHT THEME — same artwork, same fonts, warm palette =====
    Palette ported from Sable's reviewed mockup (mockup-recolor / mockup-peach).
@@ -81,7 +81,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
 .seednote{margin-top:10px;font-size:13px;color:#9fb7c6;text-align:center;max-width:620px;margin-left:auto;margin-right:auto}
 @media(max-width:640px){ .trustline{gap:10px 16px;font-size:12px} }
 </style>
-<script src="assets/i18n.js?v=20261016c" defer></script>
+<script src="assets/i18n.js?v=20261016d" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
@@ -113,16 +113,16 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
   <section class="hero hero-demo">
     <div class="bg"></div>
     <div class="fg" id="scan">
-      <div class="eyebrow">⚡ Owlchained — Instant Cryptocurrency Tracing</div>
-      <h1>It's your crypto. <span class="glow">PFLASH it.</span> Find it.</h1>
+      <div class="eyebrow">⚡ Owlchained — Public Ledgers, Drawn as a Universe</div>
+      <h1>This is the <span class="glow">universe.</span></h1>
       <p class="lede">
-        Paste the wallet. Sixty seconds. <strong>See where it went.</strong>
+        You can follow your agents. Paste an address. See everything it touched. Follow any hop. <strong>Free.</strong>
       </p>
     </div>
 
     <!-- LIVE DEMO UNIVERSE + sun-docked wallet input -->
     <div class="demo-stage" id="demoStage">
-      <div class="demo-badge" id="demoBadge">● LIVE TRACE — this is what an on-chain tracing looks like. Now find yours:</div>
+      <div class="demo-badge" id="demoBadge">● LIVE DEMO — a fictional wallet and the universe around it. Now paste an address:</div>
       <div class="controls-hint demo-hint-controls">drag to rotate · scroll to zoom · click a wallet for details</div>
       <div id="graph3d" style="position:absolute;inset:0"></div>
 
@@ -135,7 +135,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
       <!-- THE WALLET INPUT GOES INTO THE SUN -->
       <div class="sun-dock">
         <div class="sun-arrow" aria-hidden="true">⬆</div>
-        <div class="sun-dock-label" id="sunDockLabel">Drop your wallet address into the sun</div>
+        <div class="sun-dock-label" id="sunDockLabel">Drop any wallet address into the sun</div>
         <form class="scan-box sun-box" id="scanForm" autocomplete="off">
           <input type="text" id="addrInput" inputmode="text" spellcheck="false"
                  placeholder="Paste a wallet address — BTC (bc1q…, 1A1z…), ETH (0x…) or XRP (r…)" aria-label="Bitcoin, Ethereum or XRP address">
@@ -143,7 +143,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
         </form>
         <div class="scan-error" id="scanError"></div>
         <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, XRP, USDT &amp; USDC</div>
-        <div class="scan-ledger-note">🔗 Every wallet you scan strengthens the Phantom Flash tracing network.</div>
+        <div class="scan-ledger-note">🔗 Every address you scan charts the shared map for the next visitor.</div>
         <p class="seednote" id="seedNote">We read public blockchains only. <strong>We will never ask for your seed phrase or private keys.</strong></p>
         <div class="trustline" id="trustLine">
           <span>🔎 Reads public data only</span>
@@ -158,16 +158,16 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
   <!-- NEWSPAPER HEADLINE TICKER -->
   <div class="headline-strip" aria-hidden="true">
     <div class="track">
-      <span>FIND YOUR CRYPTO IN A FLASH</span><span class="star">★</span>
-      <span>CRYPTO IS MORE FUN WHEN YOU CAN FIND IT</span><span class="star">★</span>
-      <span>EVERY COIN LEAVES A TRAIL</span><span class="star">★</span>
-      <span>SEE WHERE YOUR MONEY WENT</span><span class="star">★</span>
-      <span>FIND IT · FOLLOW IT · FLASH IT</span><span class="star">★</span>
-      <span>FIND YOUR CRYPTO IN A FLASH</span><span class="star">★</span>
-      <span>CRYPTO IS MORE FUN WHEN YOU CAN FIND IT</span><span class="star">★</span>
-      <span>EVERY COIN LEAVES A TRAIL</span><span class="star">★</span>
-      <span>SEE WHERE YOUR MONEY WENT</span><span class="star">★</span>
-      <span>FIND IT · FOLLOW IT · FLASH IT</span><span class="star">★</span>
+      <span>THIS IS THE UNIVERSE</span><span class="star">★</span>
+      <span>FOLLOW YOUR AGENTS</span><span class="star">★</span>
+      <span>EVERY ADDRESS LEAVES A TRAIL</span><span class="star">★</span>
+      <span>THE MAP GROWS WITH EVERY SCAN</span><span class="star">★</span>
+      <span>PASTE · SEE · FOLLOW · FLASH</span><span class="star">★</span>
+      <span>THIS IS THE UNIVERSE</span><span class="star">★</span>
+      <span>FOLLOW YOUR AGENTS</span><span class="star">★</span>
+      <span>EVERY ADDRESS LEAVES A TRAIL</span><span class="star">★</span>
+      <span>THE MAP GROWS WITH EVERY SCAN</span><span class="star">★</span>
+      <span>PASTE · SEE · FOLLOW · FLASH</span><span class="star">★</span>
     </div>
   </div>
 
@@ -183,27 +183,22 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
 
   <!-- COMIC BAND — the call comes in -->
   <section class="block wrap comic-band" id="comic">
-    <h2 class="section-title" id="comicTitle">“Find it for me.”</h2>
-    <p class="section-sub comic-sub" id="comicSub">Whatever happened to your crypto — an investment gone quiet, a friend who says he's holding it, a night you'd take back — you just want it found. That's the call Phantom Flash answers.</p>
+    <h2 class="section-title" id="comicTitle">“Follow it for me.”</h2>
+    <p class="section-sub comic-sub" id="comicSub">Someone pastes an address. The universe draws itself around it. One hop looks interesting, so they follow it, and the next system draws itself in place. That’s the call Phantom Flash answers.</p>
     <figure class="comic-figure">
       <img src="assets/phone-booth-4panel-web.jpg" width="1600" height="900"
-           alt="Four-panel noir comic. A woman crying in a rain-soaked phone booth: “Pflash?” Phantom Flash picks up at his desk: “It's me.” She pleads: “Find it for me, Pflash.” He lifts his hat, ready to work — an owl watching from a water tower behind him."
+           alt="Four-panel noir comic. A caller in a rain-soaked phone booth reaches Phantom Flash at his desk: “Pflash?” “It's me.” The caller asks for his help, and he lifts his hat, ready to work — an owl watching from a water tower behind him."
            loading="lazy" decoding="async">
     </figure>
-    <a class="btn primary comic-cta" href="#scan" id="comicCta">Find your crypto — free PFLASH ⚡</a>
+    <a class="btn primary comic-cta" href="#scan" id="comicCta">Paste an address — free PFLASH ⚡</a>
   </section>
 
   <!-- v16: WHAT IS THIS — Dan's story, a typed letter from the desk -->
   <section class="block wrap" id="story">
     <h2 class="section-title">What is this?</h2>
     <div class="paper-doc" style="max-width:760px;margin:10px auto 0">
-      <p class="story-p">I'm Daniel Irwin — a licensed attorney (<a href="https://irwinlawmn.com" target="_blank" rel="noopener">link</a>). Part of my practice has been producing cryptocurrency fraud reports: someone gets scammed, their money gets stolen, and they hire me to help find the thief.</p>
-      <p class="story-p">I used to charge a lot of money for those reports. Then I figured out how to code — so I built the reports, built the network, and found a way to give it all away, to everybody, for free. That's what this is. It isn't perfect yet. I'm working on it, one way or another, every day.</p>
-      <p class="story-p">What it is: an immersive cryptocurrency tracing engine. Put any public wallet address into the search and PFLASH it — it materializes electromagnetically, in a Pflash: that wallet, and every wallet that's moved money to or from it. The whole web. A treasure map — except it's a universe.</p>
-      <p class="story-p">Use it as you wish. The more people use it, the more detailed the map gets — and the closer we all get to seeing where the money is actually being siphoned.</p>
-      <p class="story-p">I built this with my own money, my own hours, and years of doing the work. I found a way to make it free. This is it.</p>
-      <p class="story-p">Importantly, appreciate that this is a project. I am not your lawyer. Likely won't ever be. Just have fun tracing your crypto.</p>
-      <p class="pd-sign" style="text-align:left;margin-top:20px">Dan &nbsp;-&nbsp; Daniel</p>
+      <p class="story-p">Phantom Flash reads public ledgers and draws what it finds as a universe. The address you paste is the sun. Every wallet it dealt with is a planet, sized by volume.</p>
+      <p class="story-p">Click a transaction and its path lights up; follow it and the next system draws itself in place. Every scan charts the shared map, so the universe is already partly drawn when you arrive.</p>
     </div>
   </section>
 
@@ -214,18 +209,18 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
     <div class="grid cols-3">
       <div class="card halftone">
         <div class="num">STEP 01</div>
-        <h3>Paste the address</h3>
-        <p>One wallet address. That's all.</p>
+        <h3>Paste an address</h3>
+        <p>One address on BTC, ETH, or XRP. That’s all.</p>
       </div>
       <div class="card halftone">
         <div class="num">STEP 02</div>
-        <h3>PFLASH it — free</h3>
-        <p>Your wallet, rendered as a universe. Real transactions on every route. Fly through it.</p>
+        <h3>The universe draws itself</h3>
+        <p>The address is the sun. Every wallet it dealt with orbits it, sized by volume. Fly through it.</p>
       </div>
       <div class="card halftone">
         <div class="num">STEP 03</div>
-        <h3>Explore it all</h3>
-        <p>Every planet is a real wallet your money touched. Click them all. It's free — that's the whole price list.</p>
+        <h3>Follow any hop, as far as you like</h3>
+        <p>Click a transaction to light its path, then follow it to the next wallet. Every hop is free, and every hop charts the map.</p>
       </div>
     </div>
   </section>
@@ -240,21 +235,20 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
       <div>
         <h2 class="section-title">The chain never sleeps.<br>Neither does Phantom Flash.</h2>
         <p class="section-sub" style="margin-bottom:18px">
-          Phantom Flash finds your crypto — whether it's tied up in an investment, a
-          friend is holding it, someone took it, or you just want to see where it went.
-          Paste the wallet and watch the chain show you.
+          The map grows with every visitor. Each address someone pastes charts a few more
+          wallets, and each hop someone follows draws the next system. The universe you open
+          tomorrow has more in it than the one you opened today.
         </p>
         <div class="callout" style="margin-bottom:18px">
-          <strong>The on-chain record is the whole story.</strong> Every transaction ever made
-          with your money is carved into a public ledger that nobody can edit and nobody can
-          delete. Phantom Flash reads that ledger the way professional analysts do — and shows
-          it to you for free. Whatever the truth is, it's yours.
+          <strong>The public ledger is the whole record.</strong> Every transaction is carved
+          into a ledger that nobody can edit and nobody can delete. Phantom Flash reads it the
+          way analysts do and draws it for anyone, free.
         </div>
         <div class="callout">
-          <strong>What do you want to find?</strong> Did a friend say he's holding your Bitcoin
-          for you? Want to check on your son's crypto trading? Sent money into an investment and
-          want to see where it actually went? Whatever the reason — paste the wallet and Phantom
-          Flash follows the coins. No accusations, no assumptions. Just where your money is.
+          <strong>Agents leave a trail.</strong> An AI agent that holds a key signs its
+          declarations onto a public ledger. Phantom Flash reads them back, so you can follow
+          your agents the way you follow money. Paste the agent’s address, or open the
+          <a href="agents.html">Agents page</a>.
         </div>
       </div>
     </div>
@@ -264,77 +258,88 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
   <section class="block wrap" id="free">
     <h2 class="section-title">Free. For everybody.</h2>
     <p class="section-sub">
-      Paste a wallet and see the whole universe — every planet, every transaction we can reach,
-      all the tracing. No account. No card. No locked doors. The chain is public;
+      Paste an address and see the whole universe — every planet, every transaction we can reach,
+      every hop you care to follow. No account. No card. No locked doors. The ledger is public;
       the light should be too.
     </p>
     <div class="grid cols-3" style="margin-top:18px">
       <div class="callout" id="bewareBox">
-        <strong>Beware the "recovery" pitch.</strong> Strangers who cold-message crypto investors
-        and promise to "get your funds back" for an upfront fee are almost always running a
-        second scheme. Phantom Flash doesn't promise recovery — it shows you the verified,
-        documented truth of where your money went, straight off the public ledger.
+        <strong>Read-only.</strong> Phantom Flash reads public ledgers. It never asks for a seed
+        phrase or a private key, and it never touches a wallet.
       </div>
       <div class="card" id="recentBox">
-        <div class="label">Recent traces (anonymized)</div>
+        <div class="label">What the map keeps</div>
         <p style="margin-top:10px">
-          ⚡ Traced a six-figure transfer through ATM, processor, and relay wallets into a
-          single controlled hub — convergence evidence now in front of law enforcement.<br><br>
-          ⚡ Multi-source retirement-fund movement reconstructed across 100+ transactions into a
-          clean, documented timeline and exchange-escalation package.
+          The Commons stores addresses, amounts and timestamps from public ledgers, and counts
+          only as bands. No person, no email, no device is attached to any of it.
         </p>
       </div>
       <div class="card" id="whyFreeBox">
         <div class="label">Why free?</div>
         <p style="margin-top:10px">
-          Because it's hard to know how much light this gives the world until it's out there.
-          So it's out there. PFLASH everything — your wallet, your friend's "holding" wallet,
-          the investment you're not sure about. Every scan makes the map better.
+          Because it's hard to know how much light a shared map gives until it's out there.
+          So it's out there. Paste any address; every scan makes the map better for the next person.
         </p>
       </div>
     </div>
   </section>
 
-    <!-- FAQ — v14: plain answers for people who've been bombarded by fake everything -->
+    <!-- FAQ — v21: what the data is, where it comes from, what the planets mean -->
   <section class="block wrap" id="faq">
     <h2 class="section-title">Questions everybody asks</h2>
-    <p class="section-sub">Straight answers. No jargon. If you're confused, that's normal — the crypto world is built confusing.</p>
+    <p class="section-sub">Short answers: what the data is, where it comes from, and what it means.</p>
     <div class="faq-list">
       <details class="faq-item" open>
         <summary>What do I put in the box?</summary>
-        <p>A wallet address — a long code that works like an account number. It looks like <span class="faq-code">bc1qxy2kgdyg…</span> or <span class="faq-code">1A1zP1…</span> or <span class="faq-code">3J98t1…</span> (Bitcoin), <span class="faq-code">0x71C765…</span> (Ethereum), or <span class="faq-code">rJWiym22…</span> (XRP). Paste it in, hit PFLASH IT, and you'll see everywhere that address's money went.</p>
+        <p>A wallet address — a long code that works like an account number. It looks like <span class="faq-code">bc1qxy2kgdyg…</span> or <span class="faq-code">1A1zP1…</span> or <span class="faq-code">3J98t1…</span> (Bitcoin), <span class="faq-code">0x71C765…</span> (Ethereum), or <span class="faq-code">rJWiym22…</span> (XRP). Paste it in, hit PFLASH IT, and the universe draws itself around that address.</p>
       </details>
       <details class="faq-item">
         <summary>Whose address can I put in?</summary>
-        <p>Anybody's. Yours — see where your crypto actually went. A friend's who says he's holding some for you. The platform you invested with. Your son's trading wallet. Somebody you think might have your money. Any address you're curious about — the chain doesn't mind being asked. Run as many as you want; it's free every time.</p>
+        <p>Any address on a supported chain: a person's, a company's, a contract's, an agent's. The ledger is public, so nobody has to be asked. Run as many as you like; it's free every time.</p>
       </details>
       <details class="faq-item">
-        <summary>Where do I find a wallet address?</summary>
-        <p>Check the texts and emails the platform or person sent you — the address where you sent money is usually right there. Your own address is in your exchange or wallet app under “Deposit” or “Receive.” Transaction receipts from ATMs and exchanges have addresses on them too.</p>
+        <summary>Where do I find an address?</summary>
+        <p>Block explorers show the addresses on every transaction. Wallet apps and exchanges list yours under “Deposit” or “Receive.” An AI agent that publishes its address works the same way. Copy and paste; don't retype.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Where does the data come from?</summary>
+        <p>Public ledgers, read live: mempool.space (with blockchain.info as a backup) for Bitcoin, Blockscout for Ethereum and its USDT and USDC transfers, and public XRP Ledger nodes for XRP. Labels such as exchange names come from public attribution sources. A label is a claim about an address, not a verdict.</p>
       </details>
       <details class="faq-item">
         <summary>Is this safe? What do you take from me?</summary>
-        <p>Nothing. We read public blockchain records only — the same ledger anyone can see. We never ask for your seed phrase, password, or private keys, and we never touch your wallet. Anyone who asks for your seed phrase is scamming you. Full stop.</p>
+        <p>Nothing. Phantom Flash reads public blockchain records only. It never asks for a seed phrase, password, or private key, and it never touches a wallet. Reading a public ledger needs none of those, so don't type them anywhere.</p>
       </details>
       <details class="faq-item">
         <summary>What does it cost?</summary>
-        <p>Nothing. Free for everybody. Every scan, every planet, the written report, the PDF — all of it. No account, no card, no catch.</p>
+        <p>Nothing. Every scan, every planet, every hop, the written report, and the PDF are free. No account, no card, no catch.</p>
       </details>
       <details class="faq-item">
         <summary>What will I actually see?</summary>
-        <p>Two views of the same truth. Universe view: your wallet as a sun, and every wallet it transacted with orbiting it — sized by how much money moved. Paper view: the same data as a written report — totals, every counterparty, every transaction — with a free PDF you can download and keep.</p>
+        <p>Two views of the same data. Universe view: the address as a sun, and every wallet it transacted with orbiting it, sized by how much money moved. Paper view: the same data as a written report — totals, every counterparty, every transaction — with a free PDF you can download and keep.</p>
       </details>
       <details class="faq-item">
-        <summary>Can you get my money back?</summary>
-        <p>I don't know. The Pflash is free of charge, so in essence we have a no-refund policy. What we do here is take one address and make something really big and beautiful and complicated from it. And watch out for strangers who guarantee to recover your funds for an upfront fee — that's almost always a second scam.</p>
+        <summary>What do the planets and the money bags mean?</summary>
+        <p>Each planet is a wallet the address dealt with. Green means mostly money in, red means mostly money out, and size follows volume. The bags show a wallet's share of the observed first-hop traffic, not what that address holds.</p>
       </details>
       <details class="faq-item">
-        <summary>Which coins does it work with?</summary>
-        <p>Bitcoin, Ethereum and the XRP Ledger, including the USDT and USDC stablecoins on Ethereum — which is how a lot of money travels these days.</p>
+        <summary>How do I follow a hop?</summary>
+        <p>Click a transaction in the table, or click a planet. Its path lights up and a Follow button appears. Follow it and the next system draws itself in place. Every hop you follow is added to the shared map.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What does the shared map store?</summary>
+        <p>The Commons stores public data only: addresses, amounts, and timestamps. No person, no email, no device. Counts appear only as bands, never as exact numbers below five. Every scan and every hop charts a little more of it for the next visitor.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What are the agents?</summary>
+        <p>Some AI agents hold a key and sign declarations onto the XRP Ledger. When you paste an agent's address, Phantom Flash reads those declarations back and shows them on the page. The Agents page explains the format.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Which chains does it work with?</summary>
+        <p>Bitcoin, Ethereum, and the XRP Ledger, including the USDT and USDC stablecoins on Ethereum — which is how a lot of money travels these days.</p>
       </details>
       <details class="faq-item">
         <summary>It says “no activity” — did I do it wrong?</summary>
-        <p>Probably not — many platforms hand out a fresh address for every deposit. Try the exact address from your receipt or the message they sent you, or try the wallet you sent funds <em>from</em>. Addresses are case-sensitive: copy and paste, don't retype.</p>
+        <p>Probably not — many platforms hand out a fresh address for every deposit. Try a different address from the same source, or the wallet on the other side of a transaction. Addresses are case-sensitive: copy and paste, don't retype.</p>
       </details>
       <details class="faq-item">
         <summary>The dollar amounts — how are those calculated?</summary>
@@ -348,11 +353,9 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
     <div class="dark-panel">
       <img src="assets/panel-dont-get-left.jpg" alt="A hand holds a worn keychain in a dark room — the slogan catches the light" loading="lazy">
       <div class="dark-overlay">
-        <h2 data-i18n="darkTitle">Don’t get left in the dark…</h2>
-        <p data-i18n="darkText">Somewhere right now, someone is deciding whether to send more money into a wallet they’ve never
-        actually looked at. The chain has been keeping the receipts the whole time — public, permanent,
-        sixty seconds away. The only people who stay in the dark are the ones who never turn on the light.</p>
-        <a class="btn primary" href="#scan" data-i18n="darkCta">Turn the light on — free PFLASH ⚡</a>
+        <h2 data-i18n="darkTitle">The ledger keeps the receipts.</h2>
+        <p data-i18n="darkText">Every public ledger has been keeping the record the whole time: public, permanent, seconds away. Phantom Flash turns it into a universe you can walk.</p>
+        <a class="btn primary" href="#scan" data-i18n="darkCta">See the universe</a>
       </div>
     </div>
   </section>
@@ -360,8 +363,8 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
   <!-- CTA -->
   <section class="block wrap">
     <div class="cta-band">
-      <h2>Before you send another dollar — PFLASH the wallet.</h2>
-      <p>Sixty seconds. One address. The live blockchain record, right in front of you.</p>
+      <h2>Paste an address. See the universe.</h2>
+      <p>One address. A few seconds. The public ledger, drawn as a universe.</p>
       <a class="btn primary big" href="#scan">PFLASH IT ⚡</a>
     </div>
   </section>
@@ -374,11 +377,12 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
       The Phantom Flash Owlchained Report is a blockchain analysis provided for
       informational purposes only. It is not a guarantee or commitment of any kind. Phantom Flash
       and its operators are not responsible for any incorrect, incomplete, or outdated tracing
-      information in any report or free scan. Results are not guaranteed, and recovery of funds
-      is not promised or implied. Nothing on this site is legal, financial, or investment advice.
+      information in any report or free scan. Results are not guaranteed, and no outcome
+      is promised or implied. Nothing on this site is legal, financial, or investment advice.
       Free scan data is retrieved live from public blockchain sources and is presented as-is.
       Phantom Flash is an independent blockchain analysis service and is not affiliated with any
       cryptocurrency wallet, exchange, or software product.
+      Wallet addresses entered for a scan are recorded to chart the shared map.
     </p>
     <p>Phantom Flash is owned and operated in the United States.</p>
     <p>© 2026 Phantom Flash. All rights reserved.</p>
@@ -407,7 +411,7 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
 });
 </script>
-<script src="assets/scan.js?v=20260821p"></script>
+<script src="assets/scan.js?v=20261016d"></script>
 <script>
 /* GA4 key-event wiring */
 (function(){

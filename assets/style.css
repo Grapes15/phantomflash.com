@@ -974,7 +974,7 @@ html,body{max-width:100%;overflow-x:hidden}
 .att-service{background:rgba(126,147,179,.14);color:#b9c7dc;border-color:rgba(126,147,179,.4)}
 .att-named{background:rgba(61,220,151,.12);color:var(--green);border-color:rgba(61,220,151,.35)}
 .att-mixer{background:rgba(242,169,80,.14);color:var(--amber);border-color:rgba(242,169,80,.45)}
-.att-scam{background:rgba(255,77,94,.14);color:var(--red);border-color:rgba(255,77,94,.45)}
+.att-flag{background:rgba(255,77,94,.14);color:var(--red);border-color:rgba(255,77,94,.45)}
 .stat .v.amber{color:var(--amber)}
 #whoPanel{margin:6px 0 26px}
 #whoPanel .tx td:first-child .att{margin-left:0}

@@ -1098,3 +1098,47 @@ section.block#the-agent{padding-left:20px;padding-right:20px}
   .pf-row{grid-template-columns:106px 1fr;gap:10px}
   .pf-panel{padding:16px 14px}
 }
+
+/* ============================================================
+   v20 — FOLLOW THE MONEY
+   Click a tx row -> its link lights up (the bolt); "Follow this money"
+   expands the universe one hop; the trail above the stage shows the path.
+   ============================================================ */
+.tx tr[data-txid]{cursor:pointer}
+.tx-row-lit td{background:rgba(242,169,80,.12)}
+.tx tr[data-txid]:hover td{background:rgba(242,169,80,.06)}
+.tx tr.tx-row-lit:hover td{background:rgba(242,169,80,.16)}
+
+#trail{
+  margin:0 0 10px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;
+  background:rgba(8,26,36,.7);font-family:var(--mono);font-size:12px;color:var(--muted);
+  line-height:2;letter-spacing:.02em;overflow-wrap:anywhere;
+}
+#trail .tr-k{color:var(--amber);font-weight:700;letter-spacing:.14em;margin-right:4px}
+#trail .tr-arrow{color:var(--muted2)}
+#trail .tr-amt{color:var(--muted2)}
+#trail .tr-crumb,#trail .tr-clear{
+  background:none;border:0;padding:0 2px;margin:0;font:inherit;cursor:pointer;color:var(--cyan);
+}
+#trail .tr-crumb:hover{text-decoration:underline}
+#trail .tr-clear{color:var(--muted2);margin-left:10px;text-decoration:underline}
+#trail .tr-clear:hover{color:var(--ink)}
+
+/* node card: THIS TRANSACTION block + follow button */
+.node-card .nc-tx{
+  margin:0 0 14px;padding:10px 12px 12px;border:1px solid rgba(242,169,80,.45);border-left:4px solid var(--amber);
+  border-radius:8px;background:rgba(242,169,80,.07);
+}
+.node-card .nc-tx .nc-lore-label{margin-bottom:8px}
+.node-card .nc-tx a{color:var(--cyan)}
+.node-card .nc-follow{margin-top:12px}
+.node-card .nc-tx .nc-follow{margin-top:10px}
+.node-card .nc-follow-btn{padding:7px 14px;font-size:12px;min-height:34px;letter-spacing:.03em}
+.node-card .nc-follow-note{margin-top:7px;font-size:12px;color:var(--muted2);line-height:1.5}
+.node-card .nc-follow-err{color:var(--red)}
+
+/* thin ring that marks a followed planet (a sub-sun) */
+.fl-ring{
+  position:absolute;left:0;top:0;border:1.5px solid var(--amber);border-radius:50%;
+  box-shadow:0 0 8px rgba(242,169,80,.55);pointer-events:none;will-change:transform;display:none;
+}

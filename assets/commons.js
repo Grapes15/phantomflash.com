@@ -209,6 +209,29 @@
     host.appendChild(wrap.firstChild);
   }
 
+  /* ------------------------ attribution fill-in rounds -------------------- */
+  // The server bounds live BTC lookups per call and hands back the tail as
+  // `pending`; keep asking for just that tail (a few rounds, spaced out) so a
+  // big wallet fills in on its own instead of asking the person to rescan.
+  // Each answer goes to `apply` (scan.js decides what to decorate). Shared by
+  // run() (the scanned wallet's first hop) and hop() (a followed wallet's hop).
+  var ATTRIB_ROUNDS = 4, ATTRIB_GAP = 6000;
+  function attribRounds(chain, subject, cps, apply) {
+    function round(list, n) {
+      return attrib(chain, n === 0 ? subject : null, list).then(function (res) {
+        log('attrib round ' + n, res);
+        try { apply(res); } catch (e) { log('attrib apply failed', e); }
+        var left = (res && res.pending) || [];
+        if (left.length && n + 1 < ATTRIB_ROUNDS) {
+          setTimeout(function () {
+            round(left.map(function (a) { return { addr: a }; }), n + 1);
+          }, ATTRIB_GAP);
+        }
+      }, function (e) { log('attrib skipped', String(e)); });
+    }
+    return round(cps, 0);
+  }
+
   /* -------------------------------- the loop ------------------------------ */
 
   /**
@@ -225,29 +248,9 @@
     try {
       // ATTRIBUTION — independent of the gate, never blocks the universe.
       // scan.js registers PF_ATTRIB_APPLY and decorates whatever is on screen.
-      // The server bounds live BTC lookups per call and hands back the tail
-      // as `pending`; keep asking for just that tail (a few rounds, spaced
-      // out) so a big wallet fills in on its own instead of asking the
-      // person to rescan. Each answer is merged into what is on screen.
-      var ATTRIB_ROUNDS = 4, ATTRIB_GAP = 6000;
-      function applyAttrib(res) {
-        if (typeof window.PF_ATTRIB_APPLY === 'function') {
-          try { window.PF_ATTRIB_APPLY(res); } catch (e) { log('attrib apply failed', e); }
-        }
-      }
-      function attribRound(list, round) {
-        return attrib(chain, round === 0 ? subject : null, list).then(function (res) {
-          log('attrib round ' + round, res);
-          applyAttrib(res);
-          var left = (res && res.pending) || [];
-          if (left.length && round + 1 < ATTRIB_ROUNDS) {
-            setTimeout(function () {
-              attribRound(left.map(function (a) { return { addr: a }; }), round + 1);
-            }, ATTRIB_GAP);
-          }
-        }, function (e) { log('attrib skipped', String(e)); });
-      }
-      attribRound(cps, 0);
+      attribRounds(chain, subject, cps, function (res) {
+        if (typeof window.PF_ATTRIB_APPLY === 'function') window.PF_ATTRIB_APPLY(res);
+      });
 
       // The gate comes first — it is one fast call, and both halves of the loop
       // want its scan_id (contribute requires it; enrich uses it to record one
@@ -276,5 +279,35 @@
     } catch (e) { log('commons run failed', String(e)); }
   }
 
-  window.PF_COMMONS = { run: run, enrich: enrich, attrib: attrib, contribute: contribute, gate: gate, renderPanel: renderPanel };
+
+  /**
+   * v20 (follow the money): a hop the visitor followed. The followed address is
+   * the SUBJECT, its counterparties are the cps — contributed exactly like the
+   * first hop, so the universe builds itself as people scan.
+   *  - WRITE reuses the scan permit the API already issued for this visit
+   *    (window.PF_GATE). A followed wallet never opens a new /scan/check; with
+   *    no permit it simply doesn't contribute.
+   *  - Attribution goes through the same fill-in rounds as run(), applied via
+   *    PF_ATTRIB_APPLY_HOP (merge only — it must not rewrite the first-hop panels).
+   *  - No READ here: pre-drawing hops from the Commons needs its own endpoint.
+   * Fail-open: nothing here throws, nothing here is awaited by the renderer.
+   */
+  function hop(chain, subject, data, cps) {
+    if (!API) return;
+    if (chain === 'xrp') return;               // the Commons API only knows btc|eth
+    try {
+      if (!cps || !cps.length) return;
+      attribRounds(chain, subject, cps, function (res) {
+        if (typeof window.PF_ATTRIB_APPLY_HOP === 'function') window.PF_ATTRIB_APPLY_HOP(res);
+      });
+      var g = window.PF_GATE;
+      if (g && g.scan_id) {
+        contribute(g.scan_id, chain, subject, data, cps).then(
+          function (r) { log('commons hop contribute', r); },
+          function (e) { log('commons hop contribute skipped', String(e)); });
+      }
+    } catch (e) { log('commons hop failed', String(e)); }
+  }
+
+  window.PF_COMMONS = { run: run, hop: hop, enrich: enrich, attrib: attrib, contribute: contribute, gate: gate, renderPanel: renderPanel };
 })();

@@ -572,7 +572,8 @@
 
   // Normalized shape:
   // { txCount, fundedSum, spentSum, txs: [{txid, time, confirmed, inSats, outSats, counterparties:[{addr,sats}], direction}] }
-  function normalizeMempool(info, txs) {
+  function normalizeMempool(info, txs, me) {
+    me = me || addr;                         // v20: loaders can read any wallet, not just the scanned one
     var out = {
       txCount: info.chain_stats.tx_count + info.mempool_stats.tx_count,
       fundedSum: info.chain_stats.funded_txo_sum + info.mempool_stats.funded_txo_sum,
@@ -583,26 +584,26 @@
       var inSats = 0, outSats = 0;
       var cps = {}; // counterparty addr -> sats
       tx.vout.forEach(function (v) {
-        if (v.scriptpubkey_address === addr) inSats += v.value;
+        if (v.scriptpubkey_address === me) inSats += v.value;
       });
       tx.vin.forEach(function (vin) {
         var pv = vin.prevout;
         if (!pv) return;
-        if (pv.scriptpubkey_address === addr) outSats += pv.value;
+        if (pv.scriptpubkey_address === me) outSats += pv.value;
       });
       var direction = outSats > inSats ? 'out' : 'in';
       if (direction === 'in') {
         // counterparties = senders (vin prevouts not ours)
         tx.vin.forEach(function (vin) {
           var pv = vin.prevout;
-          if (pv && pv.scriptpubkey_address && pv.scriptpubkey_address !== addr) {
+          if (pv && pv.scriptpubkey_address && pv.scriptpubkey_address !== me) {
             cps[pv.scriptpubkey_address] = (cps[pv.scriptpubkey_address] || 0) + pv.value;
           }
         });
       } else {
         // counterparties = recipients (vouts not ours / not change)
         tx.vout.forEach(function (v) {
-          if (v.scriptpubkey_address && v.scriptpubkey_address !== addr) {
+          if (v.scriptpubkey_address && v.scriptpubkey_address !== me) {
             cps[v.scriptpubkey_address] = (cps[v.scriptpubkey_address] || 0) + v.value;
           }
         });
@@ -620,7 +621,8 @@
     return out;
   }
 
-  function normalizeBlockchainInfo(d) {
+  function normalizeBlockchainInfo(d, me) {
+    me = me || addr;
     var out = {
       txCount: d.n_tx,
       fundedSum: d.total_received,
@@ -631,21 +633,21 @@
       var inSats = 0, outSats = 0;
       var cps = {};
       (tx.out || []).forEach(function (o) {
-        if (o.addr === addr) inSats += o.value;
+        if (o.addr === me) inSats += o.value;
       });
       (tx.inputs || []).forEach(function (i) {
         var po = i.prev_out;
-        if (po && po.addr === addr) outSats += po.value;
+        if (po && po.addr === me) outSats += po.value;
       });
       var direction = outSats > inSats ? 'out' : 'in';
       if (direction === 'in') {
         (tx.inputs || []).forEach(function (i) {
           var po = i.prev_out;
-          if (po && po.addr && po.addr !== addr) cps[po.addr] = (cps[po.addr] || 0) + po.value;
+          if (po && po.addr && po.addr !== me) cps[po.addr] = (cps[po.addr] || 0) + po.value;
         });
       } else {
         (tx.out || []).forEach(function (o) {
-          if (o.addr && o.addr !== addr) cps[o.addr] = (cps[o.addr] || 0) + o.value;
+          if (o.addr && o.addr !== me) cps[o.addr] = (cps[o.addr] || 0) + o.value;
         });
       }
       out.txs.push({
@@ -661,15 +663,19 @@
     return out;
   }
 
-  function loadData() {
-    setStatus(T('pflashingLive'));
-    var base = 'https://mempool.space/api/address/' + encodeURIComponent(addr);
+  // v20: loadData(a) / loadDataEth(a) / loadDataXrp(a) read ANY wallet; with no
+  // argument they read the scanned one (module `addr`), exactly as before.
+  // The status line is only touched for the scanned wallet itself.
+  function loadData(a) {
+    var me = a || addr, main = (me === addr);
+    if (main) setStatus(T('pflashingLive'));
+    var base = 'https://mempool.space/api/address/' + encodeURIComponent(me);
     return Promise.all([fetchJson(base), fetchJson(base + '/txs', 20000)])
-      .then(function (res) { return normalizeMempool(res[0], res[1]); })
+      .then(function (res) { return normalizeMempool(res[0], res[1], me); })
       .catch(function () {
-        setStatus(T('busy'));
-        return fetchJson('https://blockchain.info/rawaddr/' + encodeURIComponent(addr) + '?limit=50&cors=true', 20000)
-          .then(normalizeBlockchainInfo);
+        if (main) setStatus(T('busy'));
+        return fetchJson('https://blockchain.info/rawaddr/' + encodeURIComponent(me) + '?limit=50&cors=true', 20000)
+          .then(function (d) { return normalizeBlockchainInfo(d, me); });
       });
   }
 
@@ -738,8 +744,8 @@
 
   // Merge native-ETH + token transfer lists into the shared normalized shape,
   // amounts in USD. ethUsd prices native ETH; stablecoins are valued at $1.
-  function normalizeEthAll(ethRes, intRes, tokenResults, ethUsd) {
-    var me = addr.toLowerCase();
+  function normalizeEthAll(ethRes, intRes, tokenResults, ethUsd, who) {
+    var me = (who || addr).toLowerCase();
     var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false };
     function ingest(rows, symbol, decimals, usdEach) {
       // Etherscan-style rate-limit/NOTOK responses put a STRING in result
@@ -768,10 +774,11 @@
     return out;
   }
 
-  function loadDataEth() {
-    setStatus(T('pflashingLive'));
+  function loadDataEth(who) {
+    var me = who || addr;
+    if (me === addr) setStatus(T('pflashingLive'));
     var api = 'https://eth.blockscout.com/api';
-    var a = encodeURIComponent(addr);
+    var a = encodeURIComponent(me);
     // price first so native ETH can be valued; each token list is independently
     // guarded so a slow/timed-out asset never breaks the whole scan
     return loadPriceEth().then(function (ethUsd) {
@@ -796,7 +803,7 @@
         })
         .catch(function () { return { result: [], _failed: true }; });
       return Promise.all([ethList, intList].concat(tokenLists)).then(function (res) {
-        return normalizeEthAll(res[0], res[1], res.slice(2), ethUsd);
+        return normalizeEthAll(res[0], res[1], res.slice(2), ethUsd, me);
       });
     });
   }
@@ -876,8 +883,8 @@
 
   // Raw account_tx rows → the shared normalized shape, plus data.agent when the
   // account has declared itself. The scanned address is the global `addr`.
-  function normalizeXrp(rows, balance, truncated) {
-    var me = addr;
+  function normalizeXrp(rows, balance, truncated, who) {
+    var me = who || addr;
     var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false,
                 balance: balance, truncated: !!truncated, agent: null };
     var clothes = [], receipts = [], seen = {};
@@ -931,10 +938,11 @@
     return out;
   }
 
-  function loadDataXrp() {
-    setStatus(T('pflashingLive'));
+  function loadDataXrp(a) {
+    var me = a || addr;
+    if (me === addr) setStatus(T('pflashingLive'));
     // balance — a missing account is zero; a failed lookup is just "unknown"
-    var infoP = xrplCall('account_info', { account: addr, ledger_index: 'validated' }).then(function (r) {
+    var infoP = xrplCall('account_info', { account: me, ledger_index: 'validated' }).then(function (r) {
       if (r.error === 'actNotFound') return 0;
       if (r.error) throw rpcError(r.error);
       var b = Number(r.account_data && r.account_data.Balance);
@@ -945,7 +953,7 @@
     });
     // history — newest first, up to XRP_MAX_TX rows. A later page failing keeps what we have.
     function page(marker, rows) {
-      var p = { account: addr, limit: XRP_PAGE, forward: false };
+      var p = { account: me, limit: XRP_PAGE, forward: false };
       if (marker) p.marker = marker;
       return xrplCall('account_tx', p).then(function (r) {
         if (r.error === 'actNotFound') return { rows: rows, truncated: false };
@@ -959,7 +967,7 @@
       });
     }
     return Promise.all([infoP, page(null, [])]).then(function (res) {
-      return normalizeXrp(res[1].rows, res[0], res[1].truncated);
+      return normalizeXrp(res[1].rows, res[0], res[1].truncated, me);
     }).catch(function (e) {
       if (e && e.rpc === 'actMalformed') throw new Error('HTTP 400 actMalformed');
       // endpoint down / overloaded: the existing "data source is busy" path
@@ -1268,6 +1276,15 @@
     if (PAPER_RENDERED) { try { renderPaperView(); } catch (e) {} }
   };
 
+  // v20: attribution for a FOLLOWED wallet's counterparties (commons.js hop()).
+  // Merge-only: the first-hop panels (who's who, stats, table) are about the
+  // scanned wallet and must not be rewritten by a hop's answer or its pending list.
+  window.PF_ATTRIB_APPLY_HOP = function (res) {
+    if (!res || !res.nodes) return;
+    Object.keys(res.nodes).forEach(function (a) { ATTRIB[a] = res.nodes[a]; });
+    if (typeof window.__pflashHopAttrib === 'function') { try { window.__pflashHopAttrib(); } catch (e) {} }
+  };
+
   // ---------- Scan Ledger: log each PUBLIC scan to a private Google Form ----------
   // Fire-and-forget (no-cors); never blocks or errors a scan. Skipped on
   // localhost / operator so internal traces and testing stay out of the ledger.
@@ -1316,6 +1333,7 @@
   }
 
   // ---------- render: tx table ----------
+  var litTxid = '';            // v20: the row currently lit by 'follow the money' (survives table re-renders)
   // v10: 10 most recent rows, then a locked teaser row for the rest.
   // Counterparty addresses are shown ONLY for unlocked counterparties;
   // a locked counterparty's address never reaches the DOM.
@@ -1325,19 +1343,22 @@
     var shown = Math.min(data.txs.length, cap);
     var rows = data.txs.slice(0, cap).map(function (t) {
       var amt = t.direction === 'in' ? t.inSats : t.outSats;
-      var cp, badge = '';
+      var cp, badge = '', rowAttrs = '';
       if (!t.counterparties.length) {
         cp = '(script / non-standard)';
       } else if (unlockedSet && !unlockedSet[t.counterparties[0].addr]) {
-        cp = '\uD83D\uDD12 ' + T('txCpLocked');
+        cp = '\uD83D\uDD12 ' + T('txCpLocked');       // locked: no address (and no data-cp) ever reaches the DOM
       } else {
         cp = shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '');
         badge = attribBadge(t.counterparties[0].addr); // v18: who owns it
+        // v20: follow the money — the row knows its tx and its first counterparty
+        rowAttrs = ' data-txid="' + esc(t.txid) + '" data-cp="' + esc(t.counterparties[0].addr) + '"' +
+                   (litTxid && t.txid === litTxid ? ' class="tx-row-lit"' : '');
       }
       // v19: this tx was signed by the scanned account and carried an agent memo
       if (t.memoKind === 'clothes') badge += '<span class="att att-clothes" title="Agent declaration signed by this account">CLOTHES</span>';
       else if (t.memoKind === 'receipt') badge += '<span class="att att-receipt" title="Document receipt signed by this account">RECEIPT</span>';
-      return '<tr>' +
+      return '<tr' + rowAttrs + '>' +
         '<td>' + fmtDate(t.time) + '</td>' +
         '<td class="dir-' + t.direction + '">' + (t.direction === 'in' ? '↓ IN' : '↑ OUT') + '</td>' +
         '<td>' + esc(t.assetLabel || fmtBtc(amt)) + '</td>' +
@@ -1386,16 +1407,45 @@
       'Your sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
   }
 
-  function showPlanetCard(cp, price, lore) {
+  // v20: set by renderSystem on a real scan (never in demo): {followHtml(node)}
+  var FOLLOW_UI = null;
+  function txExplorerUrl(h) {
+    var base = COIN.chain === 'eth' ? 'https://eth.blockscout.com/tx/'
+             : COIN.chain === 'xrp' ? 'https://livenet.xrpl.org/transactions/'
+             : 'https://mempool.space/tx/';
+    return base + encodeURIComponent(h);
+  }
+  // THIS TRANSACTION — shown at the top of the card when a table row (or its bolt) opened it
+  function txBlockHtml(t, node) {
+    var amt = t.direction === 'in' ? t.inSats : t.outSats;
+    return '<div class="nc-tx">' +
+      '<div class="nc-lore-label">THIS TRANSACTION</div>' +
+      '<div class="nc-rows">' +
+      '<div class="r"><span class="k">Date</span><span class="val">' + esc(fmtDateTime(t.time)) + '</span></div>' +
+      '<div class="r"><span class="k">Direction</span><span class="val ' + (t.direction === 'in' ? 'green' : 'red') + '">' +
+        (t.direction === 'in' ? '↓ IN — money in' : '↑ OUT — money out') + '</span></div>' +
+      '<div class="r"><span class="k">Amount</span><span class="val">' + esc(t.assetLabel || fmtBtc(amt)) + '</span></div>' +
+      '<div class="r"><span class="k">TXID</span><span class="val"><a href="' + esc(txExplorerUrl(t.txid)) + '" target="_blank" rel="noopener" title="' + esc(t.txid) + '">' +
+        esc(String(t.txid).slice(0, 10)) + '…' + esc(String(t.txid).slice(-6)) + ' ↗</a></span></div>' +
+      '</div>' +
+      (FOLLOW_UI && node ? FOLLOW_UI.followHtml(node) : '') +
+      '</div>';
+  }
+
+  // ctx (optional, v20): { node: the graph node this card is for, tx: the transaction that opened it }
+  function showPlanetCard(cp, price, lore, ctx) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show';
     var demo = (curAddr === 'DEMO');
+    var node = ctx && ctx.node, hopNode = !!(node && node.hop);
+    var from = hopNode ? shortAddr(node.fromAddr) : 'scanned wallet';
     var html =
+      ((ctx && ctx.tx) ? txBlockHtml(ctx.tx, node) : '') +
       '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
-      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : 'First-hop wallet') + '</div>' : '') +
+      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
-      '<div class="r"><span class="k">Sent to scanned wallet</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
+      '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (price && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Shared transactions</span><span class="val">' + cp.txCount + '</span></div>' +
       (demo ? '' : attribRows(cp.addr)) +
@@ -1405,6 +1455,7 @@
     if (lore) {
       html += '<div class="nc-lore"><div class="nc-lore-label">WHAT THE BLOCKCHAIN SHOWS</div><p>' + esc(lore.history) + '</p></div>';
     }
+    if (FOLLOW_UI && node) html += FOLLOW_UI.followHtml(node);   // planet card button (the THIS TRANSACTION block has its own)
     $('ncBody').innerHTML = html;
   }
 
@@ -1577,6 +1628,51 @@
       links.push({ source: anchor, target: 'lock' + L, color: 'rgba(120,100,60,.30)', w: 0, dir: 'locked' });
     }
 
+    // ---- v20: FOLLOW THE MONEY — state shared by the accessors below ----
+    // Link flags (set on the link objects): lit (the bolt) + litDir, dimmed, hover.
+    // Node flags: followed / following / followErr / followNote, hop (depth), pathDir.
+    var FOLLOW_ON = !opts.demo;                    // the demo hero keeps its old behaviour exactly
+    var MAX_DEPTH = 3, FOLLOW_TOP = 12;
+    var LIT_OUT = '#f2a950', LIT_IN = '#00e5ff', DIM_LINK = '#1b2a3d';
+    var origNodes = nodes.slice(), origLinks = links.slice();   // the first-hop universe, for "clear trail"
+    var curNodes = nodes, curLinks = links;
+    var sunNode = nodes[0], byId = {};
+    nodes.forEach(function (n) { byId[n.id] = n; });
+    var firstHop = {};                             // normalized cp addr -> first-hop planet node
+    ringNodes.forEach(function (n) { if (n.kind === 'planet') firstHop[attribKey(n.cp.addr)] = n; });
+    var txMap = {};
+    (data.txs || []).forEach(function (t) { txMap[t.txid] = t; });
+    var sel = null;                                // { node, txid } — what the bolt currently shows
+    var pulseHi = false, pulseRaf = 0, pulseT0 = 0;
+    var hoverLink = null, hoverRow = null;
+    var hopSeq = 0, epoch = 0, trailPath = [];
+    var ringTracked = [];
+
+    function litColor(l) { return l.litDir === 'out' ? LIT_OUT : LIT_IN; }
+    // 3d-force-graph has ONE global link opacity. It used to be 0.5; it is now 1 so a lit
+    // link can draw at full brightness, and every ordinary link colour is faded here by the
+    // same 0.5 instead (identical look to before). The dimmed colour is already dark.
+    function fade(c) {
+      var m = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/.exec(c || '');
+      return m ? 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + (+m[4] * 0.5).toFixed(3) + ')' : c;
+    }
+    function linkColorOf(l) {
+      if (l.lit) return litColor(l);
+      if (l.hover) return fade(l.color);
+      if (l.dimmed) return DIM_LINK;
+      return fade(l.color);
+    }
+    function linkWidthOf(l) {
+      if (l.lit) return pulseHi ? 6 : 3.5;
+      if (l.hover) return 2;
+      if (l.dimmed) return 0.6;
+      return l.dir === 'locked' ? 0.4 : 1.2;
+    }
+    function partCountOf(l) { return l.lit ? 6 : (l.dimmed || l.dir === 'locked') ? 0 : 2; }
+    function partSpeedOf(l) { return l.lit ? 0.02 : 0.004; }
+    function partWidthOf(l) { return l.lit ? 3 : (l.dir === 'in' ? 1.6 : 1.9); }
+    function partColorOf(l) { return l.lit ? litColor(l) : (l.dir === 'in' ? '#3ddc97' : '#ff7a87'); }
+
     var graph = ForceGraph3D()(stage)
       .width(stage.clientWidth)
       .height(stage.clientHeight)
@@ -1590,37 +1686,427 @@
       .nodeLabel(function (n) {
         return '<div style="font:12px Menlo,monospace;color:#e6f1ff;background:rgba(7,13,24,.94);border:1px solid #1f3a5e;border-radius:8px;padding:8px 10px;line-height:1.55">' + n.labelHtml + '</div>';
       })
-      .linkColor('color')
-      .linkOpacity(0.5)
-      .linkWidth(function (l) { return l.dir === 'locked' ? 0.4 : 1.2; })
-      .linkDirectionalParticles(function (l) { return l.dir === 'locked' ? 0 : 2; })
-      .linkDirectionalParticleSpeed(0.004)
-      .linkDirectionalParticleWidth(function (l) { return l.dir === 'in' ? 1.6 : 1.9; })
-      .linkDirectionalParticleColor(function (l) { return l.dir === 'in' ? '#3ddc97' : '#ff7a87'; })
+      .linkColor(linkColorOf)
+      .linkOpacity(1)
+      .linkWidth(linkWidthOf)
+      .linkDirectionalParticles(partCountOf)
+      .linkDirectionalParticleSpeed(partSpeedOf)
+      .linkDirectionalParticleWidth(partWidthOf)
+      .linkDirectionalParticleColor(partColorOf)
       .onNodeClick(function (node) {
+        if (FOLLOW_ON && node.kind === 'planet') { selectNode(node, null); return; }
         // fly the camera to the node
-        var dist = node.kind === 'sun' ? 160 : 70;
-        var len = Math.hypot(node.x || 0.001, node.y || 0.001, node.z || 0.001);
-        var ratio = 1 + dist / len;
-        graph.cameraPosition(
-          { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
-          node, 1200
-        );
-        if (node.kind === 'sun') showSunCard(data, price);
+        flyTo(node);
+        if (node.kind === 'sun') { if (FOLLOW_ON) clearSelection(false); showSunCard(data, price); }
         else if (node.kind === 'planet') showPlanetCard(node.cp, price, node.lore);
         else showLockedCard(node.lockLabel);
       })
-      .onBackgroundClick(function () { if (nodeCard) nodeCard.className = 'node-card'; });
+      .onBackgroundClick(function () {
+        if (FOLLOW_ON) clearSelection(true);
+        else if (nodeCard) nodeCard.className = 'node-card';
+      });
+
+    // Same math as the original onNodeClick fly-to (camera on the sun->node ray, `dist`
+    // beyond the node). With `side`, the camera also slides sideways so the sun->node
+    // link is seen from the side instead of end-on — needed to actually SEE the bolt.
+    function flyTo(node, dist, side) {
+      dist = dist || (node.kind === 'sun' ? 160 : 70);
+      var len = Math.hypot(node.x || 0.001, node.y || 0.001, node.z || 0.001);
+      var ratio = 1 + dist / len;
+      var pos = { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio };
+      if (side) {
+        // perpendicular to the ray (ray x world-up; falls back to world-x when the ray is vertical)
+        var ux = (node.x || 0.001) / len, uy = (node.y || 0.001) / len, uz = (node.z || 0.001) / len;
+        var px = uy * 0 - uz * 1, py = uz * 0 - ux * 0, pz = ux * 1 - uy * 0;   // u x (0,1,0)
+        var pl = Math.hypot(px, py, pz);
+        if (pl < 0.2) { px = 1; py = 0; pz = 0; pl = 1; }
+        var k = dist * 0.9 / pl;
+        pos = { x: node.x * (1 + dist * 0.55 / len) + px * k, y: node.y * (1 + dist * 0.55 / len) + py * k + dist * 0.25, z: node.z * (1 + dist * 0.55 / len) + pz * k };
+      }
+      graph.cameraPosition(pos, node, 1200);
+    }
+
+    // Bolt flight: look at the MIDDLE of the lit link from the side, far enough back that
+    // both ends (parent and planet) are in frame — the plain fly-to would sit on the
+    // sun->planet ray and show the link end-on, hidden behind the planet.
+    function flyToLink(node) {
+      var par = parentNode(node);
+      if (!par) { flyTo(node); return; }
+      var ax = par.x || 0, ay = par.y || 0, az = par.z || 0, bx = node.x || 0.001, by = node.y || 0.001, bz = node.z || 0.001;
+      var dx = bx - ax, dy = by - ay, dz = bz - az, ll = Math.hypot(dx, dy, dz) || 1;
+      var px = -dz, py = 0, pz = dx, pl = Math.hypot(px, pz);          // (d x up), flat
+      if (pl < 0.2 * ll) { px = 1; pz = 0; pl = 1; }
+      var D = Math.max(120, ll * 2.8), k = D / pl;
+      var mid = { x: (ax + bx) / 2, y: (ay + by) / 2, z: (az + bz) / 2 };
+      // slide the whole view so the link sits right of the node card (which covers the stage's left side)
+      var sh = D * (stage.clientWidth < 1000 ? 0.32 : 0.16) / pl;
+      mid.x -= pz * sh; mid.z += px * sh;                               // minus the camera's right vector
+      graph.cameraPosition({ x: mid.x + px * k, y: mid.y + D * 0.25, z: mid.z + pz * k }, mid, 1200);
+    }
+    // push accessor results (lit/dimmed/hover flags) back into the scene
+    function refreshLinks() {
+      graph.linkColor(linkColorOf).linkWidth(linkWidthOf)
+        .linkDirectionalParticles(partCountOf).linkDirectionalParticleSpeed(partSpeedOf)
+        .linkDirectionalParticleWidth(partWidthOf).linkDirectionalParticleColor(partColorOf);
+    }
+    function refreshWidth() { graph.linkWidth(graph.linkWidth()); }
+    function refreshWidthColor() { graph.linkColor(graph.linkColor()); graph.linkWidth(graph.linkWidth()); }
+    function refreshNodes() { if (graph.refresh) graph.refresh(); else graph.nodeVal(graph.nodeVal()); }
+
+    // ~1.2s pulse on the bolt: width flips between 3.5 and 6 every 150ms. Only
+    // re-pushes the width when the phase flips (≈8 updates), not every frame.
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function pulseStep(now) {
+      var el = now - pulseT0;
+      if (el >= 1200) { pulseRaf = 0; if (pulseHi) { pulseHi = false; refreshWidth(); } return; }
+      var hi = Math.floor(el / 150) % 2 === 1;
+      if (hi !== pulseHi) { pulseHi = hi; refreshWidth(); }
+      pulseRaf = requestAnimationFrame(pulseStep);
+    }
+    function startPulse() {
+      if (reducedMotion) return;
+      pulseT0 = performance.now();
+      if (!pulseRaf) pulseRaf = requestAnimationFrame(pulseStep);
+    }
+
+    // ---- links / paths ----
+    function endId(e) { return (e && typeof e === 'object') ? e.id : e; }
+    function sameAddr(x, y) { return attribKey(x) === attribKey(y); }
+    function domDir(cp) { return cp.inSats >= cp.outSats ? 'in' : 'out'; }
+    function parentNode(n) { return n.hop ? byId[n.parentId] : sunNode; }
+    function pickLink(a, b, want) {
+      var found = null;
+      for (var i = 0; i < curLinks.length; i++) {
+        var l = curLinks[i], s = endId(l.source), t = endId(l.target);
+        if (!((s === a.id && t === b.id) || (s === b.id && t === a.id))) continue;
+        if (l.dir === want) return l;
+        if (!found) found = l;
+      }
+      return found;
+    }
+    // light the path sun -> ... -> node. The selected node's link takes `dir`
+    // (the tx direction); ancestors keep the direction they were lit with.
+    // Every other link is dimmed.
+    function applyLit(node, dir) {
+      var path = [], n = node, want = dir;
+      while (n && n.kind === 'planet') {
+        var par = parentNode(n);
+        var l = par ? pickLink(n, par, want || n.pathDir || domDir(n.cp)) : null;
+        if (l) { path.push(l); n.pathDir = l.dir; }
+        n = (par && par !== sunNode) ? par : null;
+        want = null;
+      }
+      curLinks.forEach(function (l) { l.lit = false; l.litDir = null; l.dimmed = true; });
+      path.forEach(function (l) { l.lit = true; l.dimmed = false; l.litDir = (l === path[0] && dir) ? dir : l.dir; });
+      var same = sel && sel.node === node;
+      sel = { node: node, txid: same ? sel.txid : '', fromRow: same ? sel.fromRow : false };
+    }
+    function latestTxFor(a) {
+      var best = null;
+      (data.txs || []).forEach(function (t) {
+        if (!t.counterparties.length || !sameAddr(t.counterparties[0].addr, a)) return;
+        if (!best || (t.time || 0) > (best.time || 0)) best = t;
+      });
+      return best;
+    }
+    function markRow(txid) {
+      litTxid = txid || '';
+      var body = $('txBody'); if (!body) return;
+      var rows = body.querySelectorAll('tr');
+      for (var i = 0; i < rows.length; i++) {
+        var on = litTxid && rows[i].getAttribute('data-txid') === litTxid;
+        rows[i].className = on ? 'tx-row-lit' : (rows[i].className || '').replace(/\btx-row-lit\b/, '').trim();
+      }
+    }
+    function selectNode(node, tx) {
+      var rtx = tx || (node.hop ? null : latestTxFor(node.cp.addr));
+      applyLit(node, (tx || rtx) ? (tx || rtx).direction : null);
+      sel.txid = rtx ? rtx.txid : '';
+      sel.fromRow = !!tx;
+      markRow(sel.txid);
+      flyToLink(node);
+      showPlanetCard(node.cp, price, node.lore, { node: node, tx: tx || null });
+      refreshLinks();
+      startPulse();
+    }
+    // a row whose counterparty is not drawn (the map shows the top MAX_PLANETS by volume):
+    // no bolt to light, but the row still opens its transaction
+    function selectTxOnly(tx, cpAddr) {
+      curLinks.forEach(function (l) { l.lit = false; l.litDir = null; l.dimmed = false; });
+      sel = { node: null, txid: tx.txid, fromRow: true };
+      markRow(tx.txid);
+      refreshLinks();
+      if (!nodeCard) return;
+      nodeCard.className = 'node-card show';
+      $('ncBody').innerHTML = txBlockHtml(tx, null) +
+        '<div class="nc-addr">' + esc(cpAddr) + '</div>' +
+        '<div class="nc-lore"><div class="nc-lore-label">NOT ON THE MAP</div><p>This counterparty is outside the ' +
+        MAX_PLANETS + ' largest wallets drawn here, so it has no planet to light up.</p></div>';
+    }
+    function clearSelection(closeCard) {
+      curLinks.forEach(function (l) { l.lit = false; l.litDir = null; l.dimmed = false; });
+      sel = null; markRow('');
+      if (closeCard && nodeCard) nodeCard.className = 'node-card';
+      refreshLinks();
+    }
+
+    // ---- tx table: click = the bolt, hover = soft highlight ----
+    function rowCtx(tr) {
+      if (!tr) return null;
+      var txid = tr.getAttribute('data-txid'), a = tr.getAttribute('data-cp');
+      var t = txid && txMap[txid], node = a && firstHop[attribKey(a)];
+      return t ? { tx: t, node: node || null, cp: a } : null;      // node is null when that wallet is beyond the drawn cap
+    }
+    function clearHover() {
+      if (hoverLink) { hoverLink.hover = false; hoverLink = null; refreshWidthColor(); }
+      hoverRow = null;
+    }
+    function wireRows() {
+      var body = $('txBody');
+      if (!body || body.__pfFollowWired) return;
+      body.__pfFollowWired = true;
+      body.addEventListener('click', function (ev) {
+        var tr = ev.target.closest ? ev.target.closest('tr[data-txid]') : null;
+        if (!tr || (ev.target.closest && ev.target.closest('a'))) return;
+        var c = rowCtx(tr); if (!c) return;
+        if (sel && sel.fromRow && sel.txid === c.tx.txid) { clearSelection(true); return; }   // same row again: clear the bolt
+        if (c.node) selectNode(c.node, c.tx); else selectTxOnly(c.tx, c.cp);
+      });
+      body.addEventListener('mouseover', function (ev) {
+        var tr = ev.target.closest ? ev.target.closest('tr[data-txid]') : null;
+        if (tr === hoverRow) return;
+        clearHover();
+        var c = rowCtx(tr); if (!c || !c.node) return;
+        var l = pickLink(c.node, sunNode, c.tx.direction);
+        hoverRow = tr;
+        if (l) { l.hover = true; hoverLink = l; refreshWidthColor(); }
+      });
+      body.addEventListener('mouseleave', clearHover);
+    }
+
+    // ---- follow this money: expand the universe one more hop ----
+    function hopWord(d) { return d === 2 ? 'Second' : d === 3 ? 'Third' : 'Fourth'; }
+    function crumbAmt(cp) {
+      var p = [];
+      if (cp.inSats) p.push(fmtBtc(cp.inSats) + ' in');
+      if (cp.outSats) p.push(fmtBtc(cp.outSats) + ' out');
+      return p.join(' · ');
+    }
+    function followHtml(n) {
+      if (!n || n.kind !== 'planet' || !n.cp) return '';
+      var depth = n.hop || 1, label = 'Follow this money →', dis = false, note = '';
+      if (n.following) { label = 'following…'; dis = true; }
+      else if (n.followed) { label = 'Followed ✓'; dis = true; note = esc(n.followNote || ''); }
+      else if (depth >= MAX_DEPTH) { label = 'Trail limit reached'; dis = true; }
+      if (n.followErr && !n.followed && !n.following) note = '<span class="nc-follow-err">' + esc(n.followErr) + '</span>';
+      return '<div class="nc-follow" data-node="' + esc(n.id) + '"><button type="button" class="btn ghost nc-follow-btn pf-follow"' +
+        (dis ? ' disabled' : '') + '>' + label + '</button>' + (note ? '<div class="nc-follow-note">' + note + '</div>' : '') + '</div>';
+    }
+    function refreshFollowUi(n) {
+      if (!nodeCard) return;
+      var els = nodeCard.querySelectorAll('.nc-follow[data-node="' + n.id + '"]');
+      for (var i = 0; i < els.length; i++) els[i].outerHTML = followHtml(n);
+    }
+    function addRing(n) {
+      var el = document.createElement('div');
+      el.className = 'fl-ring';
+      bagLayer.appendChild(el);
+      n.__ringEl = el;
+      ringTracked.push(n);
+    }
+    function removeRings() {
+      curNodes.forEach(function (n) { if (n.__ringEl && n.__ringEl.parentNode) n.__ringEl.parentNode.removeChild(n.__ringEl); n.__ringEl = null; });
+      ringTracked.length = 0;
+    }
+    function renderTrail() {
+      var el = $('trail'); if (!el) return;
+      if (!trailPath.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      var html = '<span class="tr-k">TRAIL</span> <button type="button" class="tr-crumb" data-trail="sun">YOUR WALLET</button>';
+      trailPath.forEach(function (n) {
+        html += ' <span class="tr-arrow">→</span> <button type="button" class="tr-crumb" data-trail="' + esc(n.id) + '" title="' + esc(n.cp.addr) + '">' +
+          esc(shortAddr(n.cp.addr)) + ' <span class="tr-amt">(' + esc(crumbAmt(n.cp)) + ')</span></button>';
+      });
+      html += ' <button type="button" class="tr-clear" data-trail="clear">clear trail</button>';
+      el.innerHTML = html;
+      el.style.display = 'block';
+    }
+    // hop planets pick up public labels the same way first-hop planets do (idempotent per node)
+    function decorateHops() {
+      var changed = false;
+      curNodes.forEach(function (nd) {
+        if (!nd.hop || nd.attribbed) return;
+        var at = attribOf(nd.cp.addr); if (!at) return;
+        nd.attribbed = true; changed = true;
+        var m = KIND_META[at.kind] || KIND_META.named;
+        nd.lore.name = attribLabel(at);
+        nd.lore.history = attribSentence(at) + ' ' + nd.lore.history;
+        var rest = nd.labelHtml.slice(nd.labelHtml.indexOf('<br>'));
+        nd.labelHtml = '<b>' + esc(nd.lore.name) + '</b> <span style="color:#f2a950;font-weight:700">' + esc(m.word) + '</span>' + rest;
+        if (at.kind === 'mixer' || at.kind === 'scam' || at.kind === 'sanctioned') nd.color = '#f2a950';
+      });
+      if (changed) refreshNodes();
+    }
+    window.__pflashHopAttrib = FOLLOW_ON ? decorateHops : null;
+
+    function expand(n, d) {
+      var cps = aggregateCounterparties(d);
+      stampLastSeen(d, cps);
+      // v20: hand this hop to the Commons exactly like the first hop (followed wallet = subject,
+      // its counterparties = cps). Fire-and-forget and fail-open: never blocks the render below.
+      try { if (window.PF_COMMONS && window.PF_COMMONS.hop) window.PF_COMMONS.hop(COIN.chain, n.cp.addr, d, cps); } catch (e) {}
+      var seen = {};
+      seen[attribKey(curAddr)] = 1;
+      seen[attribKey(n.cp.addr)] = 1;
+      curNodes.forEach(function (x) { if (x.cp) seen[attribKey(x.cp.addr)] = 1; });
+      var fresh = cps.filter(function (c) { return !seen[attribKey(c.addr)]; });
+      var more = fresh.length - FOLLOW_TOP;
+      fresh = fresh.slice(0, FOLLOW_TOP);
+      var depth = (n.hop || 1) + 1;
+      var maxT = fresh.length ? fresh[0].total : 1;
+      var rng = mulberry32(hashStr(n.cp.addr) ^ 0x70F0110);
+      var fromShort = shortAddr(n.cp.addr);
+      var newNodes = [], newLinks = [];
+      fresh.forEach(function (cp) {
+        var isIn = cp.inSats >= cp.outSats;
+        var id = 'h' + depth + '_' + (hopSeq++);
+        var name = hopWord(depth) + '-hop wallet';
+        var nd = {
+          id: id, kind: 'planet', hop: depth, parentId: n.id, fromAddr: n.cp.addr, cp: cp,
+          lore: { name: name, bags: 0,
+                  history: 'Money moved between ' + fromShort + ' and this wallet: ' + fmtBtc(cp.inSats) + ' in / ' + fmtBtc(cp.outSats) +
+                           ' out, over ' + cp.txCount + ' tx.' },
+          val: 1.5 + 6 * Math.sqrt(cp.total / maxT),
+          color: isIn ? '#3ddc97' : '#ff4d5e',
+          // start near the followed planet; the force layout takes it from there (no pinning)
+          x: (n.x || 0) + (rng() - 0.5) * 24, y: (n.y || 0) + (rng() - 0.5) * 24, z: (n.z || 0) + (rng() - 0.5) * 24,
+          labelHtml: '<b>' + esc(name) + '</b><br><span style="color:#7e93b3">' + esc(shortAddr(cp.addr)) + '</span><br>' +
+            (cp.inSats ? '↓ in: ' + esc(fmtBtc(cp.inSats)) + '<br>' : '') +
+            (cp.outSats ? '↑ out: ' + esc(fmtBtc(cp.outSats)) + '<br>' : '') +
+            cp.txCount + ' tx · click to visit'
+        };
+        newNodes.push(nd);
+        if (cp.inSats) newLinks.push({ source: id, target: n.id, color: 'rgba(61,220,151,.55)', w: cp.inSats, dir: 'in', hop: depth });
+        if (cp.outSats) newLinks.push({ source: n.id, target: id, color: 'rgba(255,77,94,.55)', w: cp.outSats, dir: 'out', hop: depth });
+      });
+      // the followed planet becomes a small sub-sun: +60% size and a ring
+      n.followed = true;
+      n.origVal = n.val; n.val = n.val * 1.6;
+      n.followNote = fresh.length
+        ? fresh.length + ' new wallet' + (fresh.length === 1 ? '' : 's') + ' on the map' + (more > 0 ? ' (top ' + FOLLOW_TOP + ' of ' + (fresh.length + more) + ' by volume)' : '')
+        : 'No new wallets beyond those already on the map.';
+      addRing(n);
+      applyLit(n, n.pathDir || null);                // the lit path stays lit; the new links below draw normal
+      curNodes = curNodes.concat(newNodes);
+      curLinks = curLinks.concat(newLinks);
+      newNodes.forEach(function (x) { byId[x.id] = x; });
+      decorateHops();                                // labels that already landed (shared ATTRIB map)
+      graph.graphData({ nodes: curNodes, links: curLinks });
+      refreshLinks();
+      refreshNodes();
+      // breadcrumb: the chain of followed wallets that leads to this one
+      trailPath = [];
+      for (var x = n; x && x.kind === 'planet'; x = x.hop ? byId[x.parentId] : null) trailPath.unshift(x);
+      renderTrail();
+      refreshFollowUi(n);
+      setTimeout(function () { if (epoch === n.__epoch) flyTo(n, 150, true); }, 900);
+    }
+    function follow(n) {
+      if (!n || n.kind !== 'planet' || n.following || n.followed) return;
+      if ((n.hop || 1) >= MAX_DEPTH) { refreshFollowUi(n); return; }
+      n.following = true; n.followErr = ''; n.__epoch = epoch;
+      refreshFollowUi(n);
+      var myEpoch = epoch;
+      var loader = COIN.chain === 'eth' ? loadDataEth : COIN.chain === 'xrp' ? loadDataXrp : loadData;
+      var pending;
+      try { pending = loader(n.cp.addr); } catch (e) { pending = Promise.reject(e); }
+      pending.then(function (d) {
+        if (myEpoch !== epoch) return;
+        n.following = false;
+        if (!d || !d.txs || (d.sourceFailed && !d.txs.length)) {
+          n.followErr = 'couldn’t reach the data source for that wallet';
+          refreshFollowUi(n);
+          return;
+        }
+        try { expand(n, d); }
+        catch (e) {
+          n.followErr = 'couldn’t add that wallet’s trail to the map';
+          refreshFollowUi(n);
+          if (window.console) console.error('follow failed', e);
+        }
+      }, function () {
+        if (myEpoch !== epoch) return;
+        n.following = false;
+        n.followErr = 'couldn’t reach the data source for that wallet';
+        refreshFollowUi(n);
+      });
+    }
+    function clearTrail() {
+      epoch++;
+      removeRings();
+      curNodes.forEach(function (n) {
+        if (n.followed && n.origVal) n.val = n.origVal;
+        n.followed = false; n.following = false; n.followErr = ''; n.followNote = ''; n.pathDir = null;
+      });
+      origLinks.forEach(function (l) { l.lit = false; l.litDir = null; l.dimmed = false; l.hover = false; });
+      curNodes = origNodes.slice(); curLinks = origLinks.slice();
+      sel = null; trailPath = []; hoverLink = null; markRow('');
+      if (nodeCard) nodeCard.className = 'node-card';
+      graph.graphData({ nodes: curNodes, links: curLinks });
+      refreshLinks();
+      refreshNodes();
+      renderTrail();
+      setTimeout(function () { graph.zoomToFit(800, 60); }, 300);
+    }
+
+    if (FOLLOW_ON) {
+      FOLLOW_UI = { followHtml: followHtml };
+      wireRows();
+      var ncBody = $('ncBody');
+      if (ncBody) ncBody.addEventListener('click', function (ev) {
+        var b = ev.target.closest ? ev.target.closest('.pf-follow') : null;
+        if (!b || b.disabled) return;
+        var wrap = b.closest('.nc-follow');
+        follow(byId[wrap && wrap.getAttribute('data-node')]);
+      });
+      var trailEl = $('trail');
+      if (trailEl) trailEl.addEventListener('click', function (ev) {
+        var b = ev.target.closest ? ev.target.closest('[data-trail]') : null;
+        if (!b) return;
+        var k = b.getAttribute('data-trail');
+        if (k === 'clear') clearTrail();
+        else if (byId[k]) flyTo(byId[k], 0, byId[k].kind === 'planet');
+      });
+    }
 
     // dev/demo hook (no extra data exposed — only what's already client-side)
     window.__pflash = {
       openSun: function () { showSunCard(data, price); },
       openPlanet: function (i) {
-        if (planets[i]) showPlanetCard(planets[i], price, lore[i]);
+        if (planets[i]) showPlanetCard(planets[i], price, lore[i], FOLLOW_ON ? { node: byId['p' + i] } : null);
       },
       openLocked: function () { showLockedCard('RELAY WALLET — LOCKED'); },
       lore: function () {
         return lore.map(function (e) { return { name: e.name, creature: e.creature.name, history: e.history }; });
+      },
+      // v20 test hooks
+      clickRow: function (txid) {
+        var rows = document.querySelectorAll('#txBody tr[data-txid]');
+        for (var i = 0; i < rows.length; i++) if (rows[i].getAttribute('data-txid') === txid) { rows[i].click(); return true; }
+        return false;
+      },
+      selectPlanet: function (i) { if (byId['p' + i]) selectNode(byId['p' + i], null); },
+      follow: function (id) { follow(byId[id]); },
+      clearTrail: clearTrail,
+      graph: function () { return graph; },
+      state: function () {
+        return {
+          nodes: curNodes.length, links: curLinks.length,
+          lit: curLinks.filter(function (l) { return l.lit; }).map(function (l) { return { dir: l.dir, litDir: l.litDir, from: endId(l.source), to: endId(l.target) }; }),
+          dimmed: curLinks.filter(function (l) { return l.dimmed; }).length,
+          hop: curNodes.filter(function (n) { return n.hop; }).length,
+          followed: curNodes.filter(function (n) { return n.followed; }).map(function (n) { return n.id; }),
+          sel: sel && { node: sel.node ? sel.node.id : null, txid: sel.txid }
+        };
       }
     };
 
@@ -1698,6 +2184,24 @@
         el.style.display = 'block';
         el.style.transform = 'translate(' + ((ndx + 1) / 2 * W).toFixed(1) + 'px,' +
           ((1 - ndy) / 2 * H - n.__bagOff * scale).toFixed(1) + 'px) translate(-50%,-100%) scale(' + scale.toFixed(3) + ')';
+      }
+      // v20: thin ring around each followed planet (the sub-suns) — DOM overlay, same projection
+      for (var ri = 0; ri < ringTracked.length; ri++) {
+        var rn = ringTracked[ri], rel = rn.__ringEl;
+        if (!rel) continue;
+        var rx = rn.x || 0, ry = rn.y || 0, rz = rn.z || 0;
+        var rvx = mi[0] * rx + mi[4] * ry + mi[8] * rz + mi[12];
+        var rvy = mi[1] * rx + mi[5] * ry + mi[9] * rz + mi[13];
+        var rvz = mi[2] * rx + mi[6] * ry + mi[10] * rz + mi[14];
+        var rcw = pr[3] * rvx + pr[7] * rvy + pr[11] * rvz + pr[15];
+        if (rcw <= 0) { rel.style.display = 'none'; continue; }
+        var rnx = (pr[0] * rvx + pr[4] * rvy + pr[8] * rvz + pr[12]) / rcw;
+        var rny = (pr[1] * rvx + pr[5] * rvy + pr[9] * rvz + pr[13]) / rcw;
+        if (rnx < -1.1 || rnx > 1.1 || rny < -1.1 || rny > 1.1) { rel.style.display = 'none'; continue; }
+        var rpx = Math.max(10, 2 * 1.5 * Math.cbrt(rn.val) * 4 * pr[5] * (H / 2) / rcw); // node radius = cbrt(val) * nodeRelSize(4)
+        rel.style.display = 'block';
+        rel.style.width = rel.style.height = rpx.toFixed(1) + 'px';
+        rel.style.transform = 'translate(' + ((rnx + 1) / 2 * W).toFixed(1) + 'px,' + ((1 - rny) / 2 * H).toFixed(1) + 'px) translate(-50%,-50%)';
       }
     })();
 

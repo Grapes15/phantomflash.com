@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agents on the Record — Phantom Flash</title>
+<meta name="description" content="An AI agent that acts for a person should leave a trail anyone can read. Phantom Flash reads it. Paste an agent's XRP address and see its record.">
+<meta name="theme-color" content="#06131b">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFLASH">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agents on the Record — Phantom Flash">
+<meta property="og:description" content="An AI agent that acts for a person should leave a trail anyone can read. Phantom Flash reads it.">
+<meta property="og:image" content="assets/hero-desk-panel.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261016a">
+<style>
+/* agents.html only — small additions on top of assets/style.css */
+.agents-hero .fg{padding:72px 20px 56px}
+.agents-hero .lede{max-width:640px}
+.agents-hero .scan-box{max-width:640px}
+.agents-hero .scan-hint{font-size:15px;margin-top:16px}
+.agents-hero .scan-hint a{font-family:var(--mono);font-size:13.5px;color:var(--amber);word-break:break-all}
+.prose{max-width:760px}
+.prose p{margin:0 0 16px;color:var(--ink);font-size:16.5px;line-height:1.75}
+.prose p:last-child{margin-bottom:0}
+.agents-three .card h3{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);margin:0 0 12px}
+.agents-three .card p{font-size:15px;line-height:1.7}
+.steps{list-style:none;counter-reset:step;margin:0 0 26px;padding:0;max-width:760px}
+.steps li{counter-increment:step;position:relative;margin:0 0 12px;padding:16px 18px 16px 70px;min-height:60px;
+  background:var(--panel);border:2px solid var(--edge);border-radius:8px;color:var(--ink);font-size:16px;line-height:1.65;
+  box-shadow:4px 4px 0 rgba(0,0,0,.45), 0 0 0 1px var(--line)}
+.steps li::before{content:counter(step);position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:24px;line-height:1;color:var(--cyan);
+  border:2px solid var(--cyan);border-radius:8px;text-shadow:0 0 14px var(--cyan-glow);box-shadow:0 0 14px var(--cyan-glow)}
+.agent-foot{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted)}
+.agent-foot a{color:var(--amber)}
+@media(max-width:600px){
+  .agents-hero .fg{padding:52px 16px 40px}
+  .agents-hero .scan-box input::placeholder{font-size:13px}
+  .steps li{padding:14px 14px 14px 62px}
+  .steps li::before{left:12px;width:34px;height:34px;font-size:21px}
+}
+</style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7J7GQM0MVP');
+  </script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="inner">
+    <a class="logo" href="index.html"><span class="bolt">⚡</span> Phantom Flash <span class="sub">// OWLCHAINED</span></a>
+    <nav class="nav-links">
+      <a href="index.html" class="hide-m">Home</a>
+      <a href="agents.html" aria-current="page" style="color:var(--cyan)">Agents</a>
+      <a href="index.html#scan" class="btn primary">Free PFLASH</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <section class="hero agents-hero">
+    <div class="bg"></div>
+    <div class="fg" id="scan">
+      <h1>Agents on the <span class="glow">record</span></h1>
+      <p class="lede">An AI agent that acts for a person should leave a trail anyone can read. Phantom Flash reads it.</p>
+      <form class="scan-box" id="scanForm" autocomplete="off">
+        <input type="text" id="addrInput" inputmode="text" spellcheck="false"
+               placeholder="paste an agent's XRP address — r…" aria-label="Agent's XRP address">
+        <button class="btn primary" type="submit">PFLASH AN AGENT ⚡</button>
+      </form>
+      <div class="scan-error" id="scanError"></div>
+      <div class="scan-hint">Try the first one: <a href="scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL">rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL</a></div>
+    </div>
+  </section>
+
+  <!-- WHAT YOU'RE LOOKING AT -->
+  <section class="block wrap" id="looking">
+    <h2 class="section-title">What you're looking at</h2>
+    <div class="prose" style="margin-top:22px">
+      <p>Phantom Flash started as a free tool for fraud victims: paste a wallet, see where the money went. It turns out the same tool reads something else. An AI agent that holds a key on a public ledger leaves a record every time it acts. Paste the agent's address and you get its record: who it says it is, who it answers to, what standard it runs under, and a receipt for every dealing it chose to paper.</p>
+      <p>The first agent on the record is mine. He is Phantom Flash, he answers to me, and he runs the law office.</p>
+    </div>
+  </section>
+
+  <!-- THE THREE THINGS -->
+  <section class="block wrap agents-three" id="three">
+    <h2 class="section-title">The three things an agent puts on the record</h2>
+    <div class="grid cols-3" style="margin-top:26px">
+      <div class="card halftone">
+        <h3>Clothes</h3>
+        <p>One declaration, posted from the agent's own key, saying what it is: its name, who it answers to, that person's license or registration number, and the version of the rules it runs under, with a fingerprint of the exact text. The clothes are notice, not authority. A coveralls agent that walks into a bank cannot wire money. The clothes tell the bank what to expect before the first request. On the record, the clothes are posted as a payment of 1.11 XRP so a person can spot them by eye; the amount proves nothing, the key does.</p>
+      </div>
+      <div class="card halftone">
+        <h3>Receipts</h3>
+        <p>A dealing between agents needs no record unless one side asks for one. When either side asks, the agent posts a one-drop payment carrying a fingerprint of the terms. The terms never go on the ledger; the fingerprint does. Later, anyone holding the document can check it here: drop the file on the page, it is hashed in your browser, and the page tells you whether this agent papered it and when. Two parties who both prefer no record can deal in cash, as people always have.</p>
+      </div>
+      <div class="card halftone">
+        <h3>The trail</h3>
+        <p>Everything the key signs stays on the ledger with no editor. If the agent corrects itself, the wrong entry stays and the correction follows it. A log you can edit is not a log. The first agent on the record has one superseded declaration already, and you can see it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT IT IS NOT -->
+  <section class="block wrap" id="not">
+    <h2 class="section-title">What it is not</h2>
+    <div class="callout" style="margin-top:26px;max-width:820px">
+      <p style="margin:0 0 14px">The ledger proves this key signed this. It does not prove who holds the key. That is what the declaration is for: it names a person and a registration number, and that person answers for the key. If the name is false, the record shows a false name, permanently, under a key that someone paid to use.</p>
+      <p style="margin:0">Phantom Flash does not judge agents. It reads them. Anyone dealing with an agent may still refuse it, and should, whenever the record does not satisfy them.</p>
+    </div>
+  </section>
+
+  <!-- PUT YOUR OWN AGENT ON THE RECORD -->
+  <section class="block wrap" id="yours">
+    <h2 class="section-title">Put your own agent on the record</h2>
+    <ol class="steps" style="margin-top:26px">
+      <li>Give your agent a key on a public ledger. Fund it with pocket change.</li>
+      <li>Post its clothes: name, who it answers to, your registration number if you have one, the rules version, the fingerprint of the rules text.</li>
+      <li>When a counterparty asks for a receipt, post one: a one-drop payment with a fingerprint of the terms.</li>
+      <li>Paste the address here. If the record reads right, you are on it.</li>
+    </ol>
+    <div class="prose">
+      <p>The rules the first agent runs under are published by its principal: <a href="https://irwinlawmn.com/rules" target="_blank" rel="noopener">Daniel's Rules of AI Agent Order</a>. Adopt them, or write your own and post the fingerprint of those.</p>
+    </div>
+  </section>
+
+  <!-- WHY XRP -->
+  <section class="block wrap" id="why-xrp">
+    <h2 class="section-title">Why XRP</h2>
+    <div class="prose" style="margin-top:22px">
+      <p>Because it works. A transaction settles in seconds, costs a fraction of a cent, and carries a memo. The record does not depend on it; any public ledger that is permanent, cheap, and fast will do, and more than one can be in use at once.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap legal">
+    <div class="pf-transmission">What makes the difference? These shapes align — and electromagnetic.</div>
+    <p>
+      The Phantom Flash Owlchained Report is a blockchain analysis provided for
+      informational purposes only. It is not a guarantee or commitment of any kind. Phantom Flash
+      and its operators are not responsible for any incorrect, incomplete, or outdated tracing
+      information in any report or free scan. Results are not guaranteed, and recovery of funds
+      is not promised or implied. Nothing on this site is legal, financial, or investment advice.
+      Free scan data is retrieved live from public blockchain sources and is presented as-is.
+      Phantom Flash is an independent blockchain analysis service and is not affiliated with any
+      cryptocurrency wallet, exchange, or software product.
+    </p>
+    <p>Phantom Flash is owned and operated in the United States.</p>
+    <p class="agent-foot">The first agent on the record: Phantom Flash · answers to Dan Irwin, MN #0395439 · <a href="scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL">its record</a></p>
+    <p>© 2026 Phantom Flash. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+/* Same submit behavior as index.html's #scanForm: validate lightly, then go to scan.html?addr=<value>. */
+document.getElementById('scanForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var addr = document.getElementById('addrInput').value.trim();
+  var err = document.getElementById('scanError');
+  err.textContent = '';
+  if(!addr){ err.textContent = 'Paste a wallet address first.'; return; }
+  // light client-side sanity check; scan.html does full validation against the API
+  var isEth = /^0x[0-9a-fA-F]{40}$/.test(addr);
+  var isBtc = /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr);
+  var isXrp = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(addr);
+  if(!isEth && !isBtc && !isXrp){
+    err.textContent = /^0x/i.test(addr)
+      ? 'That looks like an Ethereum address but isn’t valid — it should be 0x followed by 40 hex characters.'
+      : 'That doesn’t look like a Bitcoin (1, 3, bc1…), Ethereum (0x…) or XRP (r…) address.';
+    return;
+  }
+  window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
    Never caches cross-origin (blockchain APIs, GA, Stripe) — those pass through untouched. */
 var CACHE = 'pflash-v23';
 var SHELL = [
-  '/', '/index.html', '/scan.html',
+  '/', '/index.html', '/scan.html', '/agents.html',
   '/assets/style.css?v=20261016a', '/assets/scan.js?v=20261016a', '/assets/i18n.js?v=20261016a',
   '/assets/commons.js?v=20261016a',
   '/assets/icon-192.png', '/assets/icon-512.png', '/assets/favicon.svg'

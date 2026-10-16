@@ -7,7 +7,7 @@
   var STATIC_LICENSES = [
     { type:'Attorney at Law', no:'0395439', holder:'Dan Irwin', issuer:'Minnesota Supreme Court', since:'2013-10-25', activated:true },
     { type:'Federal Court Admission', no:'D. Minn.', holder:'Dan Irwin', issuer:'U.S. District Court, District of Minnesota', since:'2018-06-14', activated:true },
-    { type:'Notary Public', no:'969986700034', holder:'Dan Irwin', issuer:'Minnesota Secretary of State', since:'2017-10-03', expires:'2027-01-31', activated:true }
+    { type:'Notary Public', no:'969986700034', holder:'Dan Irwin', issuer:'Minnesota Secretary of State', since:'2017-10-03', expires:'2027-01-31', activated:false }
   ];
   var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){};
 

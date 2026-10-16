@@ -4,7 +4,11 @@
   var ADDR = 'rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL';
   var RIPPLE_EPOCH = 946684800;
   var $ = function(id){ return document.getElementById(id); };
-  var STATIC_LICENSES = [{ type:'Attorney at Law', no:'0395439', holder:'Dan Irwin', issuer:'Minnesota', activated:true }];
+  var STATIC_LICENSES = [
+    { type:'Attorney at Law', no:'0395439', holder:'Dan Irwin', issuer:'Minnesota Supreme Court', since:'2013-10-25', activated:true },
+    { type:'Federal Court Admission', no:'D. Minn.', holder:'Dan Irwin', issuer:'U.S. District Court, District of Minnesota', since:'2018-06-14', activated:true },
+    { type:'Notary Public', no:'969986700034', holder:'Dan Irwin', issuer:'Minnesota Secretary of State', since:'2017-10-03', expires:'2027-01-31', activated:true }
+  ];
   var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){};
 
   function esc(s){
@@ -32,7 +36,8 @@
     if(!Array.isArray(arr)) return null;
     return arr.filter(function(x){ return x && typeof x === 'object'; }).slice(0, 6).map(function(x){
       return { type:String(x.type || ''), no:String(x.no || ''), holder:String(x.holder || ''),
-               issuer:String(x.issuer || ''), activated: x.activated === true };
+               issuer:String(x.issuer || ''), since:String(x.since || ''), expires:String(x.expires || ''),
+               activated: x.activated === true };
     });
   }
   function licCountText(list){
@@ -41,11 +46,13 @@
   }
   function trayHtml(list){
     return list.map(function(l, i){
-      var line2 = [l.issuer, l.no ? '#' + l.no : ''].filter(Boolean).join(' · ');
+      var line2 = [l.issuer, l.no ? (/^\d+$/.test(l.no) ? '#' + l.no : l.no) : ''].filter(Boolean).join(' · ');
+      var line3 = [l.since ? 'since ' + l.since : '', l.expires ? 'expires ' + l.expires : ''].filter(Boolean).join(' · ');
       return '<div class="pf-badge' + (l.activated ? '' : ' off') + '" style="--i:' + i + ';--ord:' + ((Math.floor((list.length - 1) / 2) - Math.floor(i / 2)) * 2 + (i % 2)) + '">' +
         '<div class="pf-b-type">' + esc(l.type) + '</div>' +
         '<div class="pf-b-line">' + esc(line2) + '</div>' +
         '<div class="pf-b-line">held by ' + esc(l.holder) + '</div>' +
+        (line3 ? '<div class="pf-b-line">' + esc(line3) + '</div>' : '') +
         '<div class="pf-pill ' + (l.activated ? 'on' : 'off') + '">' + (l.activated ? 'ACTIVATED ON THIS AGENT' : 'HELD · NOT ACTIVATED') + '</div></div>';
     }).join('');
   }

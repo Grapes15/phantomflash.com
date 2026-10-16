@@ -979,7 +979,46 @@
     return '<a class="ag-mono" href="' + esc(explorerAcct(a)) + '" target="_blank" rel="noopener" title="' + esc(a) + '">' + esc(label) + '</a>';
   }
 
-  function renderAgentPanel(data) {
+  // A drawn portrait, if one is on file, is keyed by the address alone: the
+  // first 12 hex chars of SHA-1(address) name the file. Nothing links to it.
+  function agentPortraitHash(addr) {
+    if (!(window.crypto && crypto.subtle && window.TextEncoder) || !addr) return Promise.resolve(null);
+    return crypto.subtle.digest('SHA-1', new TextEncoder().encode(String(addr))).then(function (d) {
+      var b = new Uint8Array(d), s = '';
+      for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+      return s.slice(0, 12);
+    }, function () { return null; });
+  }
+  function showAgentPortrait(addr, name) {
+    agentPortraitHash(addr).then(function (h12) {
+      if (!h12) return;
+      var img = new Image();
+      img.onload = function () {
+        var panel = $('agentPanel');
+        if (!panel || panel.querySelector('.ag-portrait')) return;
+        var body = panel.querySelector('.ag-body'); if (!body) return;
+        var fig = document.createElement('div'); fig.className = 'ag-portrait';
+        img.alt = name; img.decoding = 'async';
+        fig.appendChild(img);
+        body.insertBefore(fig, body.firstChild);
+        body.classList.add('has-portrait');
+      };
+      img.src = 'assets/agents/' + h12 + '.jpg';
+    });
+  }
+  function agLicenseList(arr) {
+    if (!Array.isArray(arr)) return '';
+    var items = arr.filter(function (x) { return x && typeof x === 'object' && memoText(x.type, 60); }).slice(0, 6).map(function (x) {
+      var no = memoText(x.no, 40);
+      var parts = [esc(memoText(x.type, 60)), esc(memoText(x.issuer, 80)), no ? esc(/^\d+$/.test(no) ? '#' + no : no) : '']
+        .filter(Boolean);
+      return '<li>' + parts.join(' \u00b7 ') + ' \u00b7 <span class="' + (x.activated === true ? 'ag-on' : 'ag-dim') + '">' +
+        (x.activated === true ? 'activated' : 'held') + '</span></li>';
+    });
+    return items.length ? '<ul class="ag-lic">' + items.join('') + '</ul>' : '';
+  }
+
+  function renderAgentPanel(data, addr) {
     var host = $('results'), ag = data && data.agent;
     var old = $('agentPanel'); if (old) old.parentNode.removeChild(old);
     if (!host || !ag) return;
@@ -1005,19 +1044,30 @@
         '<td>' + (r.dest ? acctLink(r.dest) : '<span class="ag-dim">—</span>') + '</td>' +
         '<td>' + txLink(r.hash) + '</td></tr>';
     }).join('');
+    var agentName = memoText(o.agent, 80);
+    var bar = memoText(o.bar, 40), ans = memoText(o.answers_to, 80);
+    var lics = Array.isArray(o.licenses) ? o.licenses : [];
+    var hasAtty = lics.some(function (x) { return x && x.type === 'Attorney at Law'; });
+    var lawyerRow = bar
+      ? '<div class="ag-k">Lawyer</div><div class="ag-v">' + esc(ans || '—') + ' <span class="ag-dim">\u00b7 bar no. ' + esc(bar) + '</span></div>'
+      : (hasAtty ? '<div class="ag-k">Lawyer</div><div class="ag-v"><span class="ag-dim">bar no. to be posted</span></div>' : '');
+    var licHtml = agLicenseList(lics);
     var html =
       '<section id="agentPanel" class="agent-panel">' +
         '<h2 class="ag-title">Agent <span>● ON THE RECORD</span></h2>' +
-        '<div class="ag-grid">' +
+        '<div class="ag-body"><div class="ag-grid">' +
+          (memoText(o.agent_no, 20) ? '<div class="ag-k">Agent #</div><div class="ag-v ag-name">' + esc(memoText(o.agent_no, 20)) + '</div>' : '') +
           '<div class="ag-k">Agent</div><div class="ag-v ag-name">' + esc(memoText(o.agent, 80) || '—') + '</div>' +
           '<div class="ag-k">Answers to</div><div class="ag-v">' + esc(memoText(o.answers_to, 80) || '—') +
             (cur.dest ? ' · ' + acctLink(cur.dest) : '') + '</div>' +
-          '<div class="ag-k">Bar number</div><div class="ag-v ag-mono">' + esc(memoText(o.bar, 40) || '—') + '</div>' +
+          (memoText(o.aka, 80) ? '<div class="ag-k">Alias</div><div class="ag-v">' + esc(memoText(o.aka, 80)) + '</div>' : '') +
+          lawyerRow +
+          (licHtml ? '<div class="ag-k">Licenses</div><div class="ag-v">' + licHtml + '</div>' : '') +
           '<div class="ag-k">Rules</div><div class="ag-v">' + rulesLine + '</div>' +
           '<div class="ag-k">Rules fingerprint</div><div class="ag-v ag-mono ag-fp">' + (fp ? esc(fp) : '<span class="ag-dim">none declared</span>') + '</div>' +
           '<div class="ag-k">Current declaration</div><div class="ag-v">' + esc(fmtDateTime(cur.time)) + ' · ' + txLink(cur.hash) + '</div>' +
           earlierHtml +
-        '</div>' +
+        '</div></div>' +
         '<h3 class="ag-sub">Receipts <span class="ag-dim">' + ag.receipts.length + '</span></h3>' +
         (rcRows
           ? '<div class="tx-table-wrap"><table class="tx ag-table"><thead><tr><th>Date (UTC)</th><th>Fingerprint (sha256)</th><th>Label</th><th>Counterparty</th><th>Tx</th></tr></thead><tbody>' + rcRows + '</tbody></table></div>'
@@ -1036,6 +1086,7 @@
     var first = host.querySelector('.stat-row');
     if (first) host.insertBefore(wrap.firstChild, first); else host.insertBefore(wrap.firstChild, host.firstChild);
     wireAgentVerify(ag);
+    showAgentPortrait(addr, agentName);
   }
 
   function sha256Hex(buf) {
@@ -2296,7 +2347,7 @@
         // v12: stash the finished scan so the free PDF / paper view can be built on demand
         PDF_STATE = { data: data, cps: cps, usdRate: usdRate, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
         initSplitChooser(); // v13.3: land on BOTH views side by side; tabs appear after first pick
-        if (COIN.chain === 'xrp') { try { renderAgentPanel(data); } catch (e) {} } // v19: AGENT ● ON THE RECORD (fail-open)
+        if (COIN.chain === 'xrp') { try { renderAgentPanel(data, addr); } catch (e) {} } // v19: AGENT ● ON THE RECORD (fail-open)
         renderStats(data, cps.length, usdRate);
         if (COIN.chain === 'xrp' && $('statId')) { $('statId').textContent = '\u2014'; $('statIdSub').textContent = 'no public labels for XRP yet'; } // v19: attribution doesn't run for XRP
         renderTable(data);

@@ -136,7 +136,7 @@
     var ans = esc(d.answersTo);
     if(d.dest) ans += ' ' + link('https://livenet.xrpl.org/accounts/' + encodeURIComponent(d.dest), shortAddr(d.dest), 'pf-mono');
     h += row('Answers to', ans);
-    h += row('Bar', esc(d.bar));
+    h += row('Lawyer', esc(d.answersTo || 'Dan Irwin') + ' <span class="pf-muted">· Minnesota bar no. ' + esc(d.bar) + '</span>');
     h += row('Rules', link('https://irwinlawmn.com/rules.html', d.rules));
     var fp = d.sha || '';
     var fpShort = fp.length > 10 ? fp.slice(0, 10) + '…' : fp;
@@ -313,7 +313,7 @@
       row('Agent', esc('Atlas')) +
       row('Alias', dash) +
       row('Answers to', esc('Steven Atneosen')) +
-      row('Registration', dash) +
+      row('Lawyer', 'Steven Atneosen <span class="pf-muted">· bar no. to be posted</span>') +
       row('Rules', dash + '<div class="pf-sub">adopts a standard when its captain posts one</div>') +
       row('Fingerprint', dash) +
       row('Receipts', dash) +

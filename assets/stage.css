@@ -79,3 +79,18 @@
 @media (prefers-reduced-motion:reduce){
   .pf-tilt,.pf-badge,.pf-tray,.pf-disc{transition:none!important}
 }
+
+/* 3D noir ink render (assets/stage3d.js): the cyan turntable disc stays; the 2D card gives way to the canvas */
+.pf-3d{position:absolute;inset:0;z-index:1;visibility:hidden;pointer-events:none}
+.pf-fig.pf-has-3d .pf-3d{visibility:visible;pointer-events:auto}
+.pf-fig.pf-has-3d .pf-scene{display:block}
+.pf-fig.pf-has-3d .pf-tilt{display:none}
+.pf-fig.pf-has-3d #pfModel{display:none}
+.pf-fig.pf-has-3d{cursor:grab;
+  background:radial-gradient(ellipse 46% 52% at 50% 44%,rgba(190,24,24,.22),rgba(60,6,8,.12) 60%,rgba(0,0,0,0) 78%),linear-gradient(180deg,#0b0809,#040304)}
+.pf-fig.pf-has-3d .pf-hint{z-index:2}
+/* in 3D mode the disc sits at the foot of the (possibly tall) stage so the figure can use the full height */
+.pf-fig.pf-has-3d .pf-scene{perspective-origin:50% calc(100% - 150px)}
+.pf-fig.pf-has-3d .pf-disc{top:auto;bottom:-60px}
+@media (max-width:600px){.pf-fig.pf-has-3d .pf-disc{top:auto;bottom:-70px}.pf-fig.pf-has-3d .pf-scene{perspective-origin:50% calc(100% - 90px)}}
+.pf-amber{color:var(--amber);font-weight:500;letter-spacing:.04em}

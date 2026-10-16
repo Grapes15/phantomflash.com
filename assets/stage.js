@@ -21,7 +21,7 @@
       { name:'Atlas', href:'agents.html#atlas', of:'Steven Atneosen', status:'coming' }
     ]
   };
-  var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){};
+  var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){}, pf3d = null;
 
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -130,6 +130,7 @@
   }
   function render(d){
     var h = '';
+    h += row('Agent #', '<span class="pf-amber">' + esc(d.agentNo || '1.1') + '</span>');
     h += row('Agent', esc(d.agent));
     h += row('Alias', esc(d.aka || 'Pflash'));
     var ans = esc(d.answersTo);
@@ -186,6 +187,7 @@
     var rulesStr = String(d.rules || '');
     var ver = (rulesStr.match(/\bv(\d+(?:\.\d+)*)\b/) || [])[0] || String(d.v || rulesStr);
     return {
+      agentNo: d.agent_no != null ? String(d.agent_no).slice(0, 12) : '',
       agent: String(d.agent || ''), aka: d.aka != null ? String(d.aka) : '', answersTo: String(d.answers_to || ''), dest: latest.dest,
       bar: String(d.bar || ''), rules: ver, sha: String(d.rules_sha256 || ''),
       receipts: String(receipts),
@@ -238,7 +240,10 @@
   var fig = $('pfFigure'), spin = $('pfSpin'), drag = $('pfDrag');
   if(fig && spin && drag){
     var angle = 0, down = false, lastX = 0, hover = false, cool = null;
-    var sync = function(){ spin.style.animationPlayState = (down || hover || cool || licOpen) ? 'paused' : 'running'; };
+    var sync = function(){
+      spin.style.animationPlayState = (down || hover || cool || licOpen) ? 'paused' : 'running';
+      if(pf3d) pf3d.setPaused(licOpen);   /* the 3D render pauses with the backpack open; it handles its own drag pause */
+    };
     syncSpin = sync;
     var rest = function(){
       clearTimeout(cool); cool = setTimeout(function(){ cool = null; sync(); }, 3000); sync();
@@ -268,10 +273,33 @@
   }
 
   /* ---------------- 3D MODEL SLOT ---------------- */
-  var model = $('pfModel');
-  if(model && fig){
-    fetch('assets/pflash.glb', { method:'HEAD' }).then(function(r){
-      if(r.ok){ model.setAttribute('src', 'assets/pflash.glb'); fig.classList.add('pf-has-model'); }
+  /* Primary: assets/stage3d.js (three.js noir ink render). Fallback: <model-viewer>, loaded only if needed. */
+  var model = $('pfModel'), host = $('pf3d'), GLB = 'assets/pflash.glb';
+  function useViewer(){
+    if(!model || !fig || fig.classList.contains('pf-has-3d')) return;
+    var s = document.createElement('script');
+    s.type = 'module'; s.src = 'https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+    document.head.appendChild(s);
+    model.setAttribute('src', GLB); fig.classList.add('pf-has-model');
+  }
+  function use3d(){
+    var done = false;
+    function go(){
+      if(done) return; done = true; clearTimeout(t);
+      window.PF3D.start({ host: host, fig: fig, disc: fig.querySelector('.pf-disc'), url: GLB, onLost: function(){
+        if(pf3d){ pf3d.dispose(); pf3d = null; }
+        fig.classList.remove('pf-has-3d', 'pf-has-model'); useViewer();
+      } }).then(function(h){
+        pf3d = h; fig.classList.add('pf-has-model', 'pf-has-3d'); syncSpin();
+      }).catch(function(){ useViewer(); });
+    }
+    var t = setTimeout(function(){ if(!done){ done = true; useViewer(); } }, 8000);
+    if(window.PF3D) go(); else document.addEventListener('pf3d-ready', go, { once:true });
+  }
+  if(fig){
+    fetch(GLB, { method:'HEAD' }).then(function(r){
+      if(!r.ok) return;
+      if(host) use3d(); else useViewer();
     }).catch(function(){});
   }
 })();

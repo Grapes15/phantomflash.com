@@ -1142,3 +1142,6 @@ section.block#the-agent{padding-left:20px;padding-right:20px}
   position:absolute;left:0;top:0;border:1.5px solid var(--amber);border-radius:50%;
   box-shadow:0 0 8px rgba(242,169,80,.55);pointer-events:none;will-change:transform;display:none;
 }
+
+.foot-links{margin:0 0 14px;font-size:14px}
+.foot-links a{color:var(--cyan)}

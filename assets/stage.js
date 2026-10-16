@@ -283,7 +283,7 @@
      skipped (a set with only 000.jpg stands still). If no frame loads, stage one keeps its 2D card; Atlas shows "model coming". */
   var ALL_ANGLES = ['000', '045', '090', '135', '180', '225', '270', '315'];
   var TURN = {
-    pflash: ALL_ANGLES,
+    pflash: ['000'],   /* Dan 10/16: no spinning; straight on. The other seven frames stay in assets/turn/pflash/ if ever wanted. */
     atlas: ['000']   /* one frame so far, so it stands still (and no 404s in the console); add '045' ... as the frames arrive in assets/turn/atlas/ */
   };
   function frameUrls(dir){ return TURN[dir].map(function(a){ return 'assets/turn/' + dir + '/' + a + '.jpg'; }); }

@@ -22,11 +22,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css?v=20261016h">
-<link rel="stylesheet" href="assets/stage.css?v=3">
+<link rel="stylesheet" href="assets/stage.css?v=4">
 <style>
 /* agents.html only — small additions on top of assets/style.css */
 .agents-hero .fg{padding:72px 20px 56px}
 .agents-hero .lede{max-width:640px}
+.agents-hero .lede-2{display:block;margin-top:6px}
 .agents-hero .scan-box{max-width:640px}
 .agents-hero .scan-hint{font-size:15px;margin-top:16px}
 .agents-hero .scan-hint a{font-family:var(--mono);font-size:13.5px;color:var(--amber);word-break:break-all}
@@ -81,7 +82,7 @@
     <div class="bg"></div>
     <div class="fg" id="scan">
       <h1>Agents on the <span class="glow">record</span></h1>
-      <p class="lede">An AI agent that acts for a person should leave a trail anyone can read. Phantom Flash reads it.</p>
+      <p class="lede">This is the universe. You can follow your agents.<span class="lede-2">An agent that acts for a person leaves a trail anyone can read. Phantom Flash reads it.</span></p>
       <form class="scan-box" id="scanForm" autocomplete="off">
         <input type="text" id="addrInput" inputmode="text" spellcheck="false"
                placeholder="paste an agent's XRP address — r…" aria-label="Agent's XRP address">
@@ -114,6 +115,10 @@
         <h3 class="pf-label">Attributes <em>— what a counterparty reads</em></h3>
         <dl class="pf-rows" id="pfAttrRows" aria-live="polite"><div class="pf-row"><dd class="pf-v pf-reading">reading the ledger…</dd></div></dl>
         <p class="pf-note" id="pfAttrNote"></p>
+        <div class="pf-captain">
+          <h4 class="pf-eyebrow">Captain</h4>
+          <dl class="pf-rows" id="pfCaptainRows"></dl>
+        </div>
       </div>
       <div class="pf-clo"><div class="pf-panel">
         <h3 class="pf-label">Clothes <em>— notice, not authority</em></h3>
@@ -134,7 +139,7 @@
   <section class="block wrap" id="looking">
     <h2 class="section-title">What you're looking at</h2>
     <div class="prose" style="margin-top:22px">
-      <p>Phantom Flash started as a free tool for fraud victims: paste a wallet, see where the money went. It turns out the same tool reads something else. An AI agent that holds a key on a public ledger leaves a record every time it acts. Paste the agent's address and you get its record: who it says it is, who it answers to, what standard it runs under, and a receipt for every dealing it chose to paper.</p>
+      <p>Phantom Flash reads the universe: paste an address, see where it connects. The same reader reads something else. An AI agent that holds a key on a public ledger leaves a record every time it acts. Paste the agent's address and you get its record: who it says it is, who it answers to, what standard it runs under, and a receipt for every dealing it chose to paper.</p>
       <p>The first agent on the record is mine. He is Phantom Flash, a/k/a Pflash. He answers to me, and he runs the law office.</p>
     </div>
   </section>
@@ -177,7 +182,7 @@
       <li>Paste the address here. If the record reads right, you are on it.</li>
     </ol>
     <div class="prose">
-      <p>The rules the first agent runs under are published by its principal: <a href="https://irwinlawmn.com/rules" target="_blank" rel="noopener">Daniel's Rules of AI Agent Order</a>. Adopt them, or write your own and post the fingerprint of those.</p>
+      <p>The rules the first agent runs under are published by its principal: <a href="https://irwinlawmn.com/rules.html" target="_blank" rel="noopener">Daniel's Rules of AI Agent Order</a>. Adopt them, or write your own and post the fingerprint of those.</p>
     </div>
   </section>
 
@@ -210,7 +215,7 @@
 </footer>
 
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
-<script src="assets/stage.js?v=9" defer></script>
+<script src="assets/stage.js?v=10" defer></script>
 <script>
 /* Same submit behavior as index.html's #scanForm: validate lightly, then go to scan.html?addr=<value>. */
 document.getElementById('scanForm').addEventListener('submit', function(e){

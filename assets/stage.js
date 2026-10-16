@@ -9,6 +9,18 @@
     { type:'Federal Court Admission', no:'D. Minn.', holder:'Dan Irwin', issuer:'U.S. District Court, District of Minnesota', since:'2018-06-14', activated:true },
     { type:'Notary Public', no:'969986700034', holder:'Dan Irwin', issuer:'Minnesota Secretary of State', since:'2017-10-03', expires:'2027-01-31', activated:false }
   ];
+  var CAPTAIN = {
+    location: 'Rice County, Minnesota, USA',
+    education: 'University of Wisconsin-Madison',
+    skills: '',
+    websites: [
+      { text:'irwinlawmn.com', href:'https://www.irwinlawmn.com' },
+      { text:'phantomflash.com', href:'https://www.phantomflash.com' }
+    ],
+    entanglements: [
+      { name:'Atlas', href:'agents.html#atlas', of:'Steven Atneosen', status:'coming' }
+    ]
+  };
   var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){};
 
   function esc(s){
@@ -27,7 +39,7 @@
   function shortAddr(a){ return a.length > 12 ? a.slice(0, 6) + '…' + a.slice(-4) : a; }
 
   /* ---------------- ATTRIBUTES ---------------- */
-  var attrRows = $('pfAttrRows'), attrNote = $('pfAttrNote');
+  var attrRows = $('pfAttrRows'), attrNote = $('pfAttrNote'), capRows = $('pfCaptainRows');
 
   /* ---------------- LICENSES (the backpack) ---------------- */
   var figcol = document.querySelector('.pf-figcol'), tray = $('pfTray');
@@ -69,6 +81,47 @@
   }
 
 
+  /* hrefs from the ledger may be https/http or a relative path; anything with another scheme is dropped */
+  function safeHref(h){
+    h = String(h == null ? '' : h).trim();
+    if(!h) return '';
+    if(/^[a-z][a-z0-9+.\-]*:/i.test(h)) return /^https?:\/\//i.test(h) ? h : '';
+    return h;
+  }
+  function normCaptain(c){
+    if(!c || typeof c !== 'object' || Array.isArray(c)) return null;
+    var sites = Array.isArray(c.websites) ? c.websites : [];
+    var ents = Array.isArray(c.entanglements) ? c.entanglements : [];
+    return {
+      location: String(c.location || ''), education: String(c.education || ''), skills: String(c.skills || ''),
+      websites: sites.slice(0, 6).map(function(w){
+        if(typeof w === 'string') return { text:w, href:/^https?:\/\//i.test(w) ? w : 'https://' + w };
+        return w && typeof w === 'object' ? { text:String(w.text || w.href || ''), href:String(w.href || '') } : null;
+      }).filter(Boolean),
+      entanglements: ents.slice(0, 6).filter(function(e){ return e && typeof e === 'object' && e.name; }).map(function(e){
+        return { name:String(e.name), href:String(e.href || ''), of:String(e.of || ''), status:String(e.status || '') };
+      })
+    };
+  }
+  function captainHtml(c){
+    var dash = '<span class="pf-dash" aria-label="blank">—</span>';
+    var h = '';
+    h += row('Location', c.location ? esc(c.location) : dash);
+    h += row('Education', c.education ? esc(c.education) : dash);
+    h += row('Special skills', c.skills ? esc(c.skills) : dash);
+    var sites = c.websites.map(function(w){ var u = safeHref(w.href); return u ? link(u, w.text, 'pf-line') : ''; }).filter(Boolean);
+    h += row('Captain\'s website', sites.length ? sites.join('') : dash);
+    var ents = c.entanglements.map(function(e){
+      var u = safeHref(e.href);
+      var a = u ? '<a href="' + esc(u) + '">' + esc(e.name) + '</a>' : '<span>' + esc(e.name) + '</span>';
+      var sfx = [e.of ? 'agent of ' + e.of : '', e.status].filter(Boolean).join(' · ');
+      return '<div class="pf-ent">' + a + (sfx ? '<span class="pf-sfx">· ' + esc(sfx) + '</span>' : '') + '</div>';
+    });
+    h += row('Chosen public entanglements', (ents.length ? ents.join('') : dash) +
+      '<div class="pf-sub">entanglements the captain chose; each one is checkable on its own record.</div>');
+    return h;
+  }
+
   function row(k, vHtml){
     return '<div class="pf-row"><dt class="pf-k">' + esc(k) + '</dt><dd class="pf-v">' + vHtml + '</dd></div>';
   }
@@ -97,6 +150,7 @@
     var dec = d.hash ? link('https://livenet.xrpl.org/transactions/' + encodeURIComponent(d.hash), d.declared) : esc(d.declared);
     h += row('Declared', dec);
     attrRows.innerHTML = h;
+    if(capRows) capRows.innerHTML = captainHtml(d.captain || CAPTAIN);
     applyOpen();
   }
 
@@ -137,12 +191,14 @@
       receipts: String(receipts),
       declared: latest.date ? new Date((latest.date + RIPPLE_EPOCH) * 1000).toISOString().slice(0, 10) : '',
       hash: latest.hash,
-      licenses: normLicenses(d.licenses)
+      licenses: normLicenses(d.licenses),
+      captain: normCaptain(d.captain)
     };
   }
 
   function loadLedger(){
     attrRows.innerHTML = '<div class="pf-row"><dd class="pf-v pf-reading">reading the ledger…</dd></div>';
+    if(capRows) capRows.innerHTML = captainHtml(CAPTAIN);
     var ctl = ('AbortController' in window) ? new AbortController() : null;
     var to = setTimeout(function(){ if(ctl) ctl.abort(); }, 12000);
     fetch('https://xrplcluster.com', {

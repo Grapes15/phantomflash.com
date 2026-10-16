@@ -43,12 +43,30 @@
 
 .pf-owner{margin:6px auto 0;max-width:640px;text-align:center;font-size:13px;line-height:1.6;color:var(--muted2)}
 
+/* CAPTAIN block under the attribute rows */
+.pf-captain{margin-top:16px;padding-top:14px;border-top:1px solid var(--line2)}
+.pf-eyebrow{margin:0 0 4px;font-family:var(--sans);font-size:13px;font-weight:400;letter-spacing:.06em;
+  font-variant:small-caps;color:var(--muted);line-height:1.5}
+.pf-captain .pf-row{grid-template-columns:124px 1fr}
+.pf-captain .pf-k{overflow-wrap:anywhere;font-size:11px;letter-spacing:.09em}
+.pf-captain .pf-line{display:block;padding:2px 0}
+.pf-captain .pf-v a{text-underline-offset:3px}
+.pf-ent{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px}
+.pf-sfx,.pf-sub{color:var(--muted);font-size:12.5px}
+.pf-sub{margin-top:4px;line-height:1.5}
+.pf-dash{color:var(--muted2)}
+
 @media (max-width:1100px){
   .pf-badge{width:170px;padding:8px 10px 9px}
   .pf-tray.pf-two{grid-template-columns:repeat(2,170px)}
 }
 @media (max-width:600px){
   .pf-tilt{transform-origin:50% 320px}
+  /* phone: captain rows wrap cleanly; every link row is at least a 44px tap target */
+  .pf-captain .pf-row{grid-template-columns:124px 1fr;min-height:44px;align-items:center}
+  .pf-captain .pf-line{display:flex;align-items:center;min-height:44px;padding:0}
+  .pf-ent a{position:relative}
+  .pf-ent a::before{content:"";position:absolute;inset:-13px -8px}  /* 44px tap target without stretching the line */
   /* phone: a vertical list under the figure, no fan */
   .pf-tray,.pf-tray.pf-two{position:static;display:flex;flex-flow:column nowrap;direction:ltr;width:auto;align-content:normal;align-items:stretch;gap:8px;
     max-height:0;overflow:hidden;visibility:hidden;margin-top:0;

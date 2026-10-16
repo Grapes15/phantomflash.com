@@ -161,7 +161,7 @@
   var lang = getLang();
   localStorage.setItem('pf_lang', lang);
   document.documentElement.lang = lang;
-  function t(k) { return (D[lang] && D[lang][k]) || D.en[k] || k; }
+  function t(k) { var v = D[lang] && D[lang][k]; if (v == null) v = D.en[k]; return v == null ? k : v; }
   window.PF_I18N_T = t;
   window.PF_I18N_LANG = lang;
 

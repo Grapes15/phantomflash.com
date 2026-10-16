@@ -286,7 +286,7 @@
     pflash: ['000'],   /* Dan 10/16: no spinning; straight on. The other seven frames stay in assets/turn/pflash/ if ever wanted. */
     atlas: ['000']   /* one frame so far, so it stands still (and no 404s in the console); add '045' ... as the frames arrive in assets/turn/atlas/ */
   };
-  var FRAME_VER = '20261016-8';   /* bump whenever a frame image is replaced, so browsers refetch it */
+  var FRAME_VER = '20261016-9';   /* bump whenever a frame image is replaced, so browsers refetch it */
   function frameUrls(dir){ return TURN[dir].map(function(a){ return 'assets/turn/' + dir + '/' + a + '.jpg?v=' + FRAME_VER; }); }
   /* mount a turnaround in `fig` (needs a .pf-2d host and a .pf-disc inside it): o.dir, o.ready(handle), o.fail() */
   function mount2d(o){

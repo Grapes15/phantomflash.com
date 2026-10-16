@@ -18,7 +18,7 @@
       { text:'phantomflash.com', href:'https://www.phantomflash.com' }
     ],
     entanglements: [
-      { name:'Atlas', href:'agents.html#atlas', of:'Steven Atneosen', status:'coming' }
+      /* none published yet */
     ]
   };
   var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){}, pf2d = null;

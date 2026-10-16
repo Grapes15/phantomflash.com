@@ -2,14 +2,14 @@
  * Phantom Flash — THE COMMONS (client)
  *
  * The scanner builds itself. This file is the client half of that loop:
- *   READ  — ask the shared map what it already knows about this system, and
- *           render it as "charted vs uncharted worlds."
- *   WRITE — hand this scan's first-hop graph back to the shared map, so the
- *           NEXT person's universe is drawn with what this one found.
+ *   READ  — ask the field's record (the Commons) what it already knows about
+ *           this system, and render it as "charted vs uncharted worlds."
+ *   WRITE — hand this scan's first-hop graph back to the Commons, so the
+ *           NEXT person's system is drawn with what this one found.
  *
  * RULES THIS FILE OBEYS
  *  - Fail-open. Every call is wrapped, every failure is silent, nothing here
- *    can delay or break a scan. If the API is down, the universe still renders
+ *    can delay or break a scan. If the API is down, the system still renders
  *    exactly as it does today.
  *  - Public data only: addresses, amounts, timestamps. No email, no wallet
  *    labels the user typed, no device id, nothing personal. Ever.
@@ -44,9 +44,9 @@
   }
 
   /* -------------------------- the gate (write permit) --------------------- */
-  // Writing to the Commons requires a scan the API already allowed. If the
-  // paywall phase has wired its own gate it will have left window.PF_GATE
-  // behind, and we reuse that rather than calling twice.
+  // Writing to the Commons requires a scan permit from the API. If one was
+  // already obtained this visit it is left in window.PF_GATE, and we reuse
+  // that rather than calling twice.
   function gate(chain, addr) {
     if (window.PF_GATE && window.PF_GATE.scan_id) return Promise.resolve(window.PF_GATE);
     var dev = null;
@@ -198,7 +198,7 @@
       '<span><strong>' + nf(c.clusters) + '</strong> cluster' + (+c.clusters === 1 ? '' : 's') + ' found</span>' +
       '</div>' +
       '<p style="margin:12px 0 0;font-size:.82em;opacity:.6">' +
-      'Built from public blockchain data contributed by every scan, including yours. ' +
+      'The Commons is the field’s record, built from public blockchain data contributed by every scan, including yours. ' +
       'Sighting counts are shown in ranges and never below five — the map knows addresses, never people. ' +
       'No email, wallet name, or device is ever attached to anything above.</p>' +
       '</section>';
@@ -239,7 +239,7 @@
    * Called once per scan, after counterparties are aggregated.
    * Read and write are independent: enrichment renders the panel, the gate
    * earns the write permit, contribution feeds the next person's scan.
-   * Neither can block the universe that is already on screen.
+   * Neither can block the system that is already on screen.
    */
   function run(chain, subject, data, cps) {
     if (!API) return;
@@ -247,7 +247,7 @@
     // map entirely (no attribution, no gate, no contribute) — nothing to error on.
     if (chain === 'xrp') return;
     try {
-      // ATTRIBUTION — independent of the gate, never blocks the universe.
+      // ATTRIBUTION — independent of the gate, never blocks the system.
       // scan.js registers PF_ATTRIB_APPLY and decorates whatever is on screen.
       attribRounds(chain, subject, cps, function (res) {
         if (typeof window.PF_ATTRIB_APPLY === 'function') window.PF_ATTRIB_APPLY(res);
@@ -261,7 +261,7 @@
         function (g) { return g && g.scan_id ? g.scan_id : null; },
         function (e) { log('gate skipped', String(e)); return null; }
       ).then(function (scanId) {
-        // READ — renders the Commons panel. Never blocks the universe.
+        // READ — renders the Commons panel. Never blocks the system.
         enrich(chain, subject, cps, scanId).then(function (res) {
           log('commons enrich', res);
           try { renderPanel(res, cps); } catch (e) { log('panel failed', e); }
@@ -284,7 +284,7 @@
   /**
    * v20 (follow the money): a hop the visitor followed. The followed address is
    * the SUBJECT, its counterparties are the cps — contributed exactly like the
-   * first hop, so the universe builds itself as people scan.
+   * first hop, so the field builds itself as people scan.
    *  - WRITE reuses the scan permit the API already issued for this visit
    *    (window.PF_GATE). A followed wallet never opens a new /scan/check; with
    *    no permit it simply doesn't contribute.

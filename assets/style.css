@@ -253,15 +253,15 @@ a:hover{text-decoration:underline}
   .sun-arrow,.scan-box.sun-box{animation:none !important}
 }
 
-/* v10 — locked teaser row in the tx table */
-.tx .tx-locked-row td{
+/* closing row in the tx table: how much older history the chain has */
+.tx .tx-more-row td{
   text-align:center;background:rgba(242,169,80,.05);
   border-top:2px dashed rgba(242,169,80,.4);padding:14px;
   font-family:var(--sans);font-weight:800;letter-spacing:.04em;font-size:13px;
 }
-.tx .tx-locked-row a{color:var(--amber);text-decoration:none}
-.tx .tx-locked-row a:hover{text-decoration:underline}
-.tx .tx-locked-row:hover td{background:rgba(242,169,80,.09)}
+.tx .tx-more-row a{color:var(--amber);text-decoration:none}
+.tx .tx-more-row a:hover{text-decoration:underline}
+.tx .tx-more-row:hover td{background:rgba(242,169,80,.09)}
 
 /* ---------- scan input ---------- */
 .scan-box{

@@ -1,10 +1,10 @@
 /* ============================================================
-   PHANTOM FLASH — Free PFLASH scan (v7: character-select creatures)
+   PHANTOM FLASH — the field: free PFLASH scan
    Live BTC data: mempool.space (primary), blockchain.info (fallback)
    v19: XRP Ledger (xrplcluster.com JSON-RPC) + the AGENT panel (DRAO memos)
-   3D "solar system" explorer via 3d-force-graph (CDN).
-   Locked outer-ring nodes are DECORATIVE ONLY — no real data
-   is shipped to the client for hops beyond the first.
+   3D "solar system" explorer via 3d-force-graph (CDN). One scan draws one
+   SYSTEM (the address is the sun, its counterparties are the planets);
+   every system charts the FIELD, the shared map.
    v4: every counterparty planet is INHABITED — deterministic
    procedural name + creature + 2-3 sentence "planet history"
    that weaves the real tracing data into space-opera lore.
@@ -16,16 +16,12 @@
    CSS keyframes, transform/opacity only) on a glowing podium
    with a rotating ring, spotlight and name plate. Each planet
    also gets a deterministic "famous for" feature woven into
-   its lore. Locked worlds show a silhouetted creature with
-   glowing eyes — still zero real data client-side.
-   v10: (1) the renderer is reusable — index.html runs it in DEMO
-   mode with injected fictional data (wallet "DEMO"); (2) PAYWALL
-   WITH TEETH — only N = min(8, ceil(40% of counterparties)) real
-   first-hop worlds are charted. The rest render as browned locked
-   placeholders interspersed INTO ring one (positions deterministic
-   from the wallet hash). CRITICAL: the client render path receives
-   only a COUNT for locked counterparties — no address, amount, or
-   tx detail for them ever enters a node, label, card, or table row.
+   its lore.
+   v10: the renderer is reusable — index.html runs it in DEMO
+   mode with injected fictional data (wallet "DEMO").
+   v22: nothing is paid. Every counterparty the scan fetched is drawn
+   (up to MAX_PLANETS, a render-performance cap only) and every fetched
+   transaction is listed. Nothing is held back.
    ============================================================ */
 (function () {
   'use strict';
@@ -38,18 +34,11 @@
   // display; COIN.ticker is the symbol shown to the user. The field names below
   // keep the historical "sats" spelling but mean "base units of the active coin."
   var COIN = { chain: 'btc', ticker: 'BTC', divisor: 1e8 };
-  // OPERATOR full-trace view: unlocks every counterparty + all transactions.
-  // Activated by ?full=1 but ONLY on localhost (see runScan).
-  // v11 (2026-08-21, Dan's call): the public scan is FREE FOR EVERYBODY —
-  // the whole universe, every planet, every fetched transaction. No paywall.
-  var FULL_MODE = false;
-  var MAX_TX_TABLE = 10; // legacy cap; v11 shows all fetched txs (see renderTable)
+  // The scan is free for everybody: every planet, every fetched transaction.
   // small screens get a lower node cap so the 3D system stays smooth on phones
   var IS_SMALL = Math.min(window.innerWidth, window.innerHeight) <= 600 ||
                  (window.matchMedia && window.matchMedia('(max-width:880px)').matches);
-  var MAX_PLANETS = IS_SMALL ? 24 : 44;      // hard render cap (v10 paywall caps real planets at 8 anyway)
-  var LOCKED_PLANETS = IS_SMALL ? 8 : 14;    // decorative deep-trace outer-ring nodes
-  var LOCKED_RING = IS_SMALL ? 6 : 12;       // v10: locked REAL-counterparty placeholders in ring one (count only — zero real data)
+  var MAX_PLANETS = IS_SMALL ? 24 : 44;      // render-performance cap: the top N counterparties by volume are drawn
 
   // ---------- DOM ----------
   var $ = function (id) { return document.getElementById(id); };
@@ -80,10 +69,10 @@
     if (v < 0.0001) return v.toFixed(8) + ' ' + COIN.ticker;
     return v.toLocaleString('en-US', { maximumFractionDigits: 5 }) + ' ' + COIN.ticker;
   }
-  function fmtUsd(units, price) {
+  function fmtUsd(units, usdRate) {
     if (COIN.usd) return '';                 // already shown in dollars by fmtBtc
-    if (!price) return '';
-    var usd = (units / COIN.divisor) * price;
+    if (!usdRate) return '';
+    var usd = (units / COIN.divisor) * usdRate;
     return '≈ $' + usd.toLocaleString('en-US', { maximumFractionDigits: 0 });
   }
   function shortAddr(a) {
@@ -106,7 +95,6 @@
 
   // ---------- v10: render context (set by runScan / runDemo) ----------
   var curAddr = '';                          // wallet shown in cards ('DEMO' in demo mode)
-  var curCheckout = 'checkout.html';         // CTA target for locked cards
   var curSunTitle = '\u2600 PFLASHED Wallet';
   var curSunSub = 'The sun of this system';
 
@@ -205,11 +193,7 @@
     return 1;
   }
   function bagEmojis(tier) { return new Array(tier + 1).join('\uD83D\uDCB0'); }
-  function bagPileHtml(tier, locked) {
-    if (locked) {
-      // shrouded sack: greyed bag + amber "?" — zero real data behind it
-      return '<div class="bag-pile bag-locked"><span class="bag-row">\uD83D\uDCB0</span><span class="bag-q">?</span></div>';
-    }
+  function bagPileHtml(tier) {
     var rows = BAG_ROWS[tier] || [1];
     var html = '';
     for (var i = rows.length - 1; i >= 0; i--) { // DOM top row first
@@ -408,31 +392,30 @@
   })();
 
   // glyph-class → art key (every creature has bespoke art; fall back to glyph)
-  function creatureSvg(creature, locked) {
+  function creatureSvg(creature) {
     var art = CREATURE_ART[creature.name];
     if (!art) return null;
-    return '<svg class="cs-svg' + (locked ? ' cs-shadow' : '') + '" viewBox="0 0 120 120" ' +
+    return '<svg class="cs-svg" viewBox="0 0 120 120" ' +
       'role="img" aria-label="' + esc(creature.epithet || creature.name) + '">' + art + '</svg>';
   }
 
   // Build the full character-select stage HTML for the info card.
-  // creature: lore creature obj; planetNm: display name; feature: {icon,label} or null;
-  // locked: shrouded mystery treatment.
-  function selectStage(creature, planetNm, feature, locked) {
-    var svg = creatureSvg(creature, locked);
+  // creature: lore creature obj; planetNm: display name; feature: {icon,label} or null.
+  function selectStage(creature, planetNm, feature) {
+    var svg = creatureSvg(creature);
     var inner = svg ||
-      ('<div class="cs-glyph' + (locked ? ' cs-shadow' : '') + '">' + creature.glyph + '</div>');
-    return '<div class="char-select' + (locked ? ' locked' : '') + '">' +
+      ('<div class="cs-glyph">' + creature.glyph + '</div>');
+    return '<div class="char-select">' +
       '<div class="cs-burst"></div>' +
       '<div class="cs-spot"></div>' +
       '<div class="cs-stage">' + inner + '</div>' +
       '<div class="cs-ring"></div>' +
       '<div class="cs-podium"></div>' +
       '<div class="cs-plate">' +
-        '<span class="cs-epithet">' + esc(locked ? 'UNKNOWN RESIDENT' : (creature.epithet || creature.name.toUpperCase())) + '</span>' +
+        '<span class="cs-epithet">' + esc(creature.epithet || creature.name.toUpperCase()) + '</span>' +
         '<span class="cs-of">of</span> <span class="cs-world">' + esc(planetNm) + '</span>' +
       '</div>' +
-      (feature && !locked ? '<div class="cs-feature" title="Famous for ' + esc(feature.label) + '">' + feature.icon + ' <span>famous for ' + esc(feature.label) + '</span></div>' : '') +
+      (feature ? '<div class="cs-feature" title="Famous for ' + esc(feature.label) + '">' + feature.icon + ' <span>famous for ' + esc(feature.label) + '</span></div>' : '') +
       '</div>';
   }
 
@@ -454,10 +437,10 @@
   // direction of flow, amounts, transaction count, volume rank. No identities
   // are invented on a free scan — only what the chain actually shows, hedged
   // where the pattern is suggestive rather than certain.
-  function planetHistory(cp, lore, names, idx, maxTotal, price) {
+  function planetHistory(cp, lore, names, idx, maxTotal, usdRate) {
     var rng = mulberry32(hashStr(cp.addr) ^ 0x9E3779B9);
     var amt = function (sats) {
-      var b = fmtBtc(sats), u = fmtUsd(sats, price);
+      var b = fmtBtc(sats), u = fmtUsd(sats, usdRate);
       return u ? b + ' (' + u + ')' : b;
     };
     var tx = cp.txCount + ' transaction' + (cp.txCount === 1 ? '' : 's');
@@ -507,7 +490,7 @@
 
   // Build the lore table for the rendered planets (sorted by volume).
   // Names are role labels derived from the real flow direction.
-  function buildSystemLore(planets, price) {
+  function buildSystemLore(planets, usdRate) {
     function roleName(cp) {
       if (cp.inSats > 0 && cp.outSats > 0) return 'Two-way wallet';
       if (cp.inSats > 0) return 'Inbound wallet';
@@ -521,7 +504,7 @@
     var names = entries.map(function (e) { return e.name; });
     var maxTotal = planets.length ? planets[0].total : 0;
     entries.forEach(function (e, i) {
-      e.history = planetHistory(planets[i], e, names, i, maxTotal, price);
+      e.history = planetHistory(planets[i], e, names, i, maxTotal, usdRate);
     });
     return entries;
   }
@@ -679,7 +662,7 @@
       });
   }
 
-  function loadPrice() {
+  function loadRate() {
     return fetchJson('https://mempool.space/api/v1/prices', 8000)
       .then(function (p) { return p.USD; })
       .catch(function () { return null; });
@@ -689,7 +672,7 @@
   // An Ethereum address rarely moves just one asset — a large share of the
   // volume travels as stablecoins — so we trace native ETH PLUS USDT and USDC, and
   // unify them in the only honest common unit: US dollars. Every transfer is
-  // converted to USD (ETH at the live price, stablecoins at $1) so the system,
+  // converted to USD (ETH at the live market rate, stablecoins at one dollar) so the system,
   // stats and planets compare apples to apples. The tx table still shows each
   // move in its native asset ("5,000 USDT"). To add a token, add a row here.
   var ETH_TOKENS = [
@@ -722,7 +705,7 @@
     if (!(raw > 0)) return null;
     var native = raw / Math.pow(10, decimals);
     var usd = native * usdEach;
-    if (!(usd > 0)) return null;             // e.g. native ETH when no price is available
+    if (!(usd > 0)) return null;             // e.g. native ETH when no rate is available
     var from = (tx.from || '').toLowerCase();
     var to = (tx.to || '').toLowerCase();
     var isIn = to === me, isOut = from === me;
@@ -743,7 +726,7 @@
   }
 
   // Merge native-ETH + token transfer lists into the shared normalized shape,
-  // amounts in USD. ethUsd prices native ETH; stablecoins are valued at $1.
+  // amounts in USD. ethUsd values native ETH; stablecoins are valued at one dollar.
   function normalizeEthAll(ethRes, intRes, tokenResults, ethUsd, who) {
     var me = (who || addr).toLowerCase();
     var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false };
@@ -779,9 +762,9 @@
     if (me === addr) setStatus(T('pflashingLive'));
     var api = 'https://eth.blockscout.com/api';
     var a = encodeURIComponent(me);
-    // price first so native ETH can be valued; each token list is independently
+    // rate first so native ETH can be valued; each token list is independently
     // guarded so a slow/timed-out asset never breaks the whole scan
-    return loadPriceEth().then(function (ethUsd) {
+    return loadRateEth().then(function (ethUsd) {
       // stagger the requests ~400ms apart — a simultaneous burst trips the
       // API's rate limiter and used to produce a false "No activity" result
       var ethList = fetchJson(api + '?module=account&action=txlist&address=' + a +
@@ -808,7 +791,7 @@
     });
   }
 
-  function loadPriceEth() {
+  function loadRateEth() {
     return fetchJson('https://eth.blockscout.com/api?module=stats&action=ethprice', 8000)
       .then(function (p) { return (p && p.result) ? parseFloat(p.result.ethusd) : null; })
       .catch(function () { return null; });
@@ -1145,7 +1128,6 @@
   }
   var ATTRIB = {};        // normalized addr -> {name, entity, kind, source, conf, wallet_ref, wallet_tx, tags}
   var ATTRIB_RES = null;  // last API response: tally, pending, sources
-  var LAST_SPLIT = null;
   var KIND_META = {
     exchange:   { word: 'EXCHANGE',  cls: 'att-exchange', blurb: 'A known exchange. Money that lands here lands at a company that keeps customer records.' },
     defi:       { word: 'CONTRACT',  cls: 'att-defi',     blurb: 'A known protocol or smart contract — a DEX, bridge, token contract, or similar. Code, not a person.' },
@@ -1279,7 +1261,7 @@
       $('statId').textContent = n + ' / ' + cps.length;
       $('statIdSub').textContent = n ? 'named counterpart' + (n === 1 ? 'y' : 'ies') : 'no public labels';
     }
-    renderTable(PDF_STATE.data, LAST_SPLIT ? LAST_SPLIT.unlockedSet : null);
+    renderTable(PDF_STATE.data);
     renderWhoPanel(cps);
     renderSunAttrib();
     if (window.__pflash && window.__pflash.decorateAttrib) { try { window.__pflash.decorateAttrib(); } catch (e) {} }
@@ -1320,12 +1302,12 @@
   }
 
   // ---------- render: stats (always FULL and honest — totals are the hook) ----------
-  function renderStats(data, totalCp, price) {
+  function renderStats(data, totalCp, usdRate) {
     $('statIn').textContent = fmtBtc(data.fundedSum);
     $('statOut').textContent = fmtBtc(data.spentSum);
     $('statTx').textContent = fmtTxCount(data);
-    $('statInUsd').textContent = fmtUsd(data.fundedSum, price);
-    $('statOutUsd').textContent = fmtUsd(data.spentSum, price);
+    $('statInUsd').textContent = fmtUsd(data.fundedSum, usdRate);
+    $('statOutUsd').textContent = fmtUsd(data.spentSum, usdRate);
     $('statCp').textContent = totalCp.toLocaleString('en-US');
 
     var times = data.txs.map(function (t) { return t.time; }).filter(Boolean);
@@ -1344,11 +1326,10 @@
 
   // ---------- render: tx table ----------
   var litTxid = '';            // v20: the row currently lit by 'follow the money' (survives table re-renders)
-  // v10: 10 most recent rows, then a locked teaser row for the rest.
-  // Counterparty addresses are shown ONLY for unlocked counterparties;
-  // a locked counterparty's address never reaches the DOM.
-  function renderTable(data, unlockedSet) {
-    var cap = data.txs.length; // v11: everything we fetched, free
+  // Every transaction we fetched, newest first; a closing row says how much
+  // older history the chain has beyond one fetch.
+  function renderTable(data) {
+    var cap = data.txs.length;
 
     var shown = Math.min(data.txs.length, cap);
     var rows = data.txs.slice(0, cap).map(function (t) {
@@ -1356,8 +1337,6 @@
       var cp, badge = '', rowAttrs = '';
       if (!t.counterparties.length) {
         cp = '(script / non-standard)';
-      } else if (unlockedSet && !unlockedSet[t.counterparties[0].addr]) {
-        cp = '\uD83D\uDD12 ' + T('txCpLocked');       // locked: no address (and no data-cp) ever reaches the DOM
       } else {
         cp = shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '');
         badge = attribBadge(t.counterparties[0].addr); // v18: who owns it
@@ -1378,13 +1357,12 @@
     }).join('');
     var more = data.txCount - shown;
     if (more > 0) {
-      // v11: honest disclosure, nothing locked — the chain simply has more
-      // history than one fetch returns.
-      rows += '<tr class="tx-locked-row"><td colspan="5">+ ' +
+      // the chain simply has more history than one fetch returns
+      rows += '<tr class="tx-more-row"><td colspan="5">+ ' +
         more.toLocaleString('en-US') + ' earlier transactions on-chain \u2014 showing the ' +
         shown.toLocaleString('en-US') + ' most recent</td></tr>';
     } else if (data.truncated) {
-      rows += '<tr class="tx-locked-row"><td colspan="5">+ older transactions exist on the ledger \u2014 showing the ' +
+      rows += '<tr class="tx-more-row"><td colspan="5">+ older transactions exist on the ledger \u2014 showing the ' +
         shown.toLocaleString('en-US') + ' most recent</td></tr>';
     }
     $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
@@ -1398,7 +1376,7 @@
     });
   }
 
-  function showSunCard(data, price) {
+  function showSunCard(data, usdRate) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show';
     $('ncBody').innerHTML =
@@ -1406,8 +1384,8 @@
       '<div class="nc-sub">' + esc(curSunSub) + '</div>' +
       '<div class="nc-addr">' + esc(curAddr) + '</div>' +
       '<div class="nc-rows">' +
-      '<div class="r"><span class="k">Total received</span><span class="val green">' + esc(fmtBtc(data.fundedSum)) + (price ? ' · ' + esc(fmtUsd(data.fundedSum, price)) : '') + '</span></div>' +
-      '<div class="r"><span class="k">Total sent</span><span class="val red">' + esc(fmtBtc(data.spentSum)) + (price ? ' · ' + esc(fmtUsd(data.spentSum, price)) : '') + '</span></div>' +
+      '<div class="r"><span class="k">Total received</span><span class="val green">' + esc(fmtBtc(data.fundedSum)) + (usdRate ? ' · ' + esc(fmtUsd(data.fundedSum, usdRate)) : '') + '</span></div>' +
+      '<div class="r"><span class="k">Total sent</span><span class="val red">' + esc(fmtBtc(data.spentSum)) + (usdRate ? ' · ' + esc(fmtUsd(data.spentSum, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Transactions</span><span class="val">' + fmtTxCount(data) + '</span></div>' +
       (data.balance != null ? '<div class="r"><span class="k">Balance on ledger</span><span class="val">' + esc(fmtBtc(data.balance)) + '</span></div>' : '') +
       attribRows(curAddr) +
@@ -1443,7 +1421,7 @@
   }
 
   // ctx (optional, v20): { node: the graph node this card is for, tx: the transaction that opened it }
-  function showPlanetCard(cp, price, lore, ctx) {
+  function showPlanetCard(cp, usdRate, lore, ctx) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show';
     var demo = (curAddr === 'DEMO');
@@ -1455,8 +1433,8 @@
       (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
       '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
       '<div class="nc-rows">' +
-      '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (price && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, price)) : '') + '</span></div>' +
-      '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (price && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, price)) : '') + '</span></div>' +
+      '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (usdRate && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, usdRate)) : '') + '</span></div>' +
+      '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (usdRate && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Shared transactions</span><span class="val">' + cp.txCount + '</span></div>' +
       (demo ? '' : attribRows(cp.addr)) +
       (lore && lore.bags ? '<div class="r"><span class="k">' + esc(T('bagShare')) + '</span><span class="val nc-bags">' + bagEmojis(lore.bags) + '</span></div>' : '') +
@@ -1469,61 +1447,28 @@
     $('ncBody').innerHTML = html;
   }
 
-  function showLockedCard(label) {
-    if (!nodeCard) return;
-    nodeCard.className = 'node-card show locked';
-    $('ncBody').innerHTML =
-      '<div class="lock-ico">🔒</div>' +
-      '<h4>' + esc(label) + '</h4>' +
-      '<div class="nc-rows" style="margin-bottom:12px"><div class="r"><span class="k">' + esc(T('bagShare')) + '</span>' +
-      '<span class="val"><span style="filter:grayscale(1) brightness(.65)">\uD83D\uDCB0</span><span style="color:var(--amber);font-weight:800">?</span></span></div></div>' +
-      '<div class="nc-lore" style="margin-top:0;border-top:0;padding-top:0"><div class="nc-lore-label">LOCKED — FULL REPORT</div>' +
-      '<p>A first-hop wallet Phantom Flash has already charted. The full report follows it further: where the money went next, and the exchange or service where it landed.</p></div>' +
-      '<a class="btn primary" style="width:100%;text-align:center;display:block" href="' + esc(curCheckout) + '">' + T('payCta') + '</a>';
-  }
-
   // ---------- 3D solar system ----------
-  // v10: reusable renderer. opts:
+  // Reusable renderer. opts:
   //   demo       — fictional injected data (index.html live demo)
   //   autoOrbit  — slow auto-rotate camera (demo)
-  //   noPaywall  — skip the unlocked/locked split (demo supplies its own mix)
-  //   lockedExtra— explicit ring-one locked placeholder count (demo)
-  // ---- v11: no paywall. Everything unlocks for everybody. ----
-  // The only cap left is MAX_PLANETS, a pure render-performance ceiling;
-  // when a wallet has more counterparties than that, the top ones by
-  // volume render and the capNote discloses it.
-  function paywallSplit(cps) {
-    var setAll = {};
-    cps.forEach(function (c) { setAll[c.addr] = true; });
-    var planets = cps.slice(0, MAX_PLANETS);
-    var capNote = $('capNote');
-    if (capNote && cps.length > MAX_PLANETS) capNote.style.display = 'inline';
-    return { planets: planets, unlockedSet: setAll, lockedCpCount: 0 };
-  }
-
-  function renderSystem(data, cps, price, opts) {
+  // Everything is drawn for everybody. The only cap is MAX_PLANETS, a pure
+  // render-performance ceiling; when a wallet has more counterparties than
+  // that, the top ones by volume render and the capNote says so.
+  function renderSystem(data, cps, usdRate, opts) {
     opts = opts || {};
     var stage = $('graph3d');
     // touch orbit/pinch-zoom: make sure browser gestures don't intercept the canvas
     stage.style.touchAction = 'none';
 
-    var planets, unlockedSet, lockedCpCount;
-    if (opts.noPaywall) {
-      planets = cps.slice(0, MAX_PLANETS);
-      lockedCpCount = opts.lockedExtra || 0;
-      unlockedSet = {};
-      planets.forEach(function (c) { unlockedSet[c.addr] = true; });
-    } else {
-      var split = opts.split || paywallSplit(cps);
-      planets = split.planets;
-      unlockedSet = split.unlockedSet;
-      lockedCpCount = split.lockedCpCount;
-    }
+    var planets = cps.slice(0, MAX_PLANETS);
     var capNote = $('capNote');
-    if (capNote && lockedCpCount > 0 && !opts.demo) capNote.style.display = 'inline';
+    if (capNote && cps.length > planets.length && !opts.demo) {
+      capNote.textContent = 'Showing top ' + planets.length.toLocaleString('en-US') + ' by volume.';
+      capNote.style.display = 'inline';
+    }
 
     // living lore: name + creature + history for every rendered planet
-    var lore = buildSystemLore(planets, price);
+    var lore = buildSystemLore(planets, usdRate);
 
     // v9: money-bag tiers — share of TOTAL observed first-hop volume
     // (all counterparties, including ones beyond the render cap, so the
@@ -1554,7 +1499,7 @@
         : '<b>☀ THE SUN — SCANNED WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>every planet here orbits this address · click for details'
     }];
     var links = [];
-    var ringNodes = []; // ring one: real planets + locked placeholders, interspersed
+    var ringNodes = []; // ring one: the first-hop planets
 
     planets.forEach(function (cp, i) {
       var isIn = cp.inSats >= cp.outSats;
@@ -1571,72 +1516,18 @@
       });
     });
 
-    // ---- v10: locked REAL counterparties — interspersed into ring one ----
-    // Synthetic placeholders. The ONLY real fact they carry is that a
-    // counterparty exists: a count. No address, no amounts, generic size.
-    // Positions/order are deterministic from the wallet hash so the same
-    // wallet always renders the same system.
+    // deterministic shuffle of ring one by wallet seed, so the same wallet
+    // always renders the same system
     var seedRng = mulberry32(hashStr(curAddr || 'pf') ^ 0x51ED5EED);
-    var ringLockedN = Math.min(lockedCpCount, opts.demo ? (opts.lockedExtra || 0) : LOCKED_RING);
-    var overflow = lockedCpCount - ringLockedN;
-    for (var R = 0; R < ringLockedN; R++) {
-      var isLast = (R === ringLockedN - 1) && overflow > 0;
-      var cpNum = planets.length + R + 1;
-      var lbl = isLast
-        ? '+' + overflow.toLocaleString('en-US') + ' ' + T('moreCpLocked')
-        : T('cpLockedLabel').replace('{n}', cpNum);
-      ringNodes.push({
-        id: 'rlock' + R, kind: 'ringlocked', lockLabel: lbl,
-        val: 3.5 + Math.floor(seedRng() * 3),  // generic size — reveals nothing
-        color: '#6b5a33',
-        labelHtml: '\uD83D\uDD12 <b>' + esc(lbl) + '</b><br>' + esc(T('cpLockedHover'))
-      });
-    }
-
-    // deterministic intersperse: shuffle ring one (real + locked) by wallet seed
     for (var sh = ringNodes.length - 1; sh > 0; sh--) {
       var sj = Math.floor(seedRng() * (sh + 1));
       var tmp = ringNodes[sh]; ringNodes[sh] = ringNodes[sj]; ringNodes[sj] = tmp;
     }
     ringNodes.forEach(function (n) {
       nodes.push(n);
-      if (n.kind === 'planet') {
-        if (n.cp.inSats) links.push({ source: n.id, target: 'sun', color: 'rgba(61,220,151,.55)', w: n.cp.inSats, dir: 'in' });
-        if (n.cp.outSats) links.push({ source: 'sun', target: n.id, color: 'rgba(255,77,94,.55)', w: n.cp.outSats, dir: 'out' });
-      } else {
-        // locked counterparty: linked to the sun like any first-hop world
-        links.push({ source: 'sun', target: n.id, color: 'rgba(120,100,60,.38)', w: 0, dir: 'locked' });
-      }
+      if (n.cp.inSats) links.push({ source: n.id, target: 'sun', color: 'rgba(61,220,151,.55)', w: n.cp.inSats, dir: 'in' });
+      if (n.cp.outSats) links.push({ source: 'sun', target: n.id, color: 'rgba(255,77,94,.55)', w: n.cp.outSats, dir: 'out' });
     });
-
-    // ---- locked outer ring (deep trace): DECORATIVE ONLY, zero real data ----
-    var lockedLabels = [
-      'EXCHANGE IDENTIFIED — LOCKED',
-      'RELAY WALLET — LOCKED',
-      'CONSOLIDATION HUB — LOCKED',
-      'CASH-OUT PATH — LOCKED',
-      'DEPOSIT CLUSTER — LOCKED',
-      'PEEL CHAIN — LOCKED'
-    ];
-    var lockedHover = '🔒 <b>A SHROUDED WORLD</b><br>charted by Phantom Flash · click to unlock its history';
-    // anchor locked nodes to outbound planets (deep trace follows money out);
-    // fall back to any planet, then the sun.
-    var outPlanetIdx = [];
-    planets.forEach(function (cp, i) { if (cp.outSats > 0) outPlanetIdx.push(i); });
-    var anchorPool = outPlanetIdx.length ? outPlanetIdx
-      : (planets.length ? planets.map(function (_, i) { return i; }) : null);
-
-    var lockedCount = 0; // v11: free for everybody — no shrouded decorative ring
-    for (var L = 0; L < lockedCount; L++) {
-      var label = lockedLabels[L % lockedLabels.length];
-      nodes.push({
-        id: 'lock' + L, kind: 'locked', lockLabel: label,
-        val: 3 + (L % 3) * 2, color: '#6b5a33',
-        labelHtml: lockedHover
-      });
-      var anchor = anchorPool ? ('p' + anchorPool[L % anchorPool.length]) : 'sun';
-      links.push({ source: anchor, target: 'lock' + L, color: 'rgba(120,100,60,.30)', w: 0, dir: 'locked' });
-    }
 
     // ---- v20: FOLLOW THE MONEY — state shared by the accessors below ----
     // Link flags (set on the link objects): lit (the bolt) + litDir, dimmed, hover.
@@ -1644,7 +1535,7 @@
     var FOLLOW_ON = !opts.demo;                    // the demo hero keeps its old behaviour exactly
     var MAX_DEPTH = 3, FOLLOW_TOP = 12;
     var LIT_OUT = '#f2a950', LIT_IN = '#00e5ff', DIM_LINK = '#1b2a3d';
-    var origNodes = nodes.slice(), origLinks = links.slice();   // the first-hop universe, for "clear trail"
+    var origNodes = nodes.slice(), origLinks = links.slice();   // the first-hop system, for "clear trail"
     var curNodes = nodes, curLinks = links;
     var sunNode = nodes[0], byId = {};
     nodes.forEach(function (n) { byId[n.id] = n; });
@@ -1676,9 +1567,9 @@
       if (l.lit) return pulseHi ? 6 : 3.5;
       if (l.hover) return 2;
       if (l.dimmed) return 0.6;
-      return l.dir === 'locked' ? 0.4 : 1.2;
+      return 1.2;
     }
-    function partCountOf(l) { return l.lit ? 6 : (l.dimmed || l.dir === 'locked') ? 0 : 2; }
+    function partCountOf(l) { return l.lit ? 6 : l.dimmed ? 0 : 2; }
     function partSpeedOf(l) { return l.lit ? 0.02 : 0.004; }
     function partWidthOf(l) { return l.lit ? 3 : (l.dir === 'in' ? 1.6 : 1.9); }
     function partColorOf(l) { return l.lit ? litColor(l) : (l.dir === 'in' ? '#3ddc97' : '#ff7a87'); }
@@ -1707,9 +1598,8 @@
         if (FOLLOW_ON && node.kind === 'planet') { selectNode(node, null); return; }
         // fly the camera to the node
         flyTo(node);
-        if (node.kind === 'sun') { if (FOLLOW_ON) clearSelection(false); showSunCard(data, price); }
-        else if (node.kind === 'planet') showPlanetCard(node.cp, price, node.lore);
-        else showLockedCard(node.lockLabel);
+        if (node.kind === 'sun') { if (FOLLOW_ON) clearSelection(false); showSunCard(data, usdRate); }
+        else if (node.kind === 'planet') showPlanetCard(node.cp, usdRate, node.lore);
       })
       .onBackgroundClick(function () {
         if (FOLLOW_ON) clearSelection(true);
@@ -1835,7 +1725,7 @@
       sel.fromRow = !!tx;
       markRow(sel.txid);
       flyToLink(node);
-      showPlanetCard(node.cp, price, node.lore, { node: node, tx: tx || null });
+      showPlanetCard(node.cp, usdRate, node.lore, { node: node, tx: tx || null });
       refreshLinks();
       startPulse();
     }
@@ -1894,7 +1784,7 @@
       body.addEventListener('mouseleave', clearHover);
     }
 
-    // ---- follow this money: expand the universe one more hop ----
+    // ---- follow this money: expand the system one more hop ----
     function hopWord(d) { return d === 2 ? 'Second' : d === 3 ? 'Third' : 'Fourth'; }
     function crumbAmt(cp) {
       var p = [];
@@ -2090,11 +1980,10 @@
 
     // dev/demo hook (no extra data exposed — only what's already client-side)
     window.__pflash = {
-      openSun: function () { showSunCard(data, price); },
+      openSun: function () { showSunCard(data, usdRate); },
       openPlanet: function (i) {
-        if (planets[i]) showPlanetCard(planets[i], price, lore[i], FOLLOW_ON ? { node: byId['p' + i] } : null);
+        if (planets[i]) showPlanetCard(planets[i], usdRate, lore[i], FOLLOW_ON ? { node: byId['p' + i] } : null);
       },
-      openLocked: function () { showLockedCard('RELAY WALLET — LOCKED'); },
       lore: function () {
         return lore.map(function (e) { return { name: e.name, creature: e.creature.name, history: e.history }; });
       },
@@ -2145,7 +2034,6 @@
     window.__pflash.decorateAttrib = decorateAttrib;
     decorateAttrib();
 
-    // dim the locked nodes (semi-transparent material) once objects exist
     graph.nodeThreeObjectExtend(true);
 
     // ---- v9: money-bag overlay (Walker's idea) ----
@@ -2159,10 +2047,10 @@
     stage.appendChild(bagLayer);
     var bagTracked = [];
     nodes.forEach(function (n) {
-      if (n.kind === 'sun') return;
+      if (n.kind !== 'planet') return;
       var el = document.createElement('div');
       el.className = 'bag-anchor';
-      el.innerHTML = n.kind === 'planet' ? bagPileHtml(n.lore.bags, false) : bagPileHtml(0, true);
+      el.innerHTML = bagPileHtml(n.lore.bags);
       el.style.display = 'none';
       bagLayer.appendChild(el);
       n.__bagEl = el;
@@ -2319,21 +2207,18 @@
     return {
       data: { txCount: txCount, fundedSum: fundedSum, spentSum: spentSum, txs: [] },
       cps: cps,
-      price: 69000 // fixed fictional rate so demo $ figures are stable
+      usdRate: 69000 // fixed fictional rate so demo $ figures are stable
     };
   }
   function runDemo() {
     curAddr = 'DEMO';
-    curCheckout = 'checkout.html';
     curSunTitle = '\u2600 THE DEMO SUN';
     curSunSub = 'A fictional example — any address takes this seat';
     var demo = buildDemoData();
     try {
       if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
-      renderSystem(demo.data, demo.cps, demo.price, {
+      renderSystem(demo.data, demo.cps, demo.usdRate, {
         demo: true,
-        noPaywall: true,
-        lockedExtra: 0,   // sample is FULLY charted — nothing browned out. Locking only happens on a visitor's own scan.
         autoOrbit: true
       });
     } catch (e) {
@@ -2343,28 +2228,8 @@
   }
 
   // ============================================================
-  // SCAN MODE (scan.html): live data + v10 paywall-with-teeth
+  // SCAN MODE (scan.html): live data, free for everybody
   // ============================================================
-  // Operator full-trace furniture: banner + hide the client-only paywall
-  // sections. Only ever called on localhost (see runScan).
-  function enableOperatorView() {
-    document.body.classList.add('pf-full');
-    var sh = document.querySelector('.scan-head');
-    if (sh) {
-      var b = document.createElement('div');
-      b.style.cssText = 'margin:14px auto 0;max-width:760px;padding:10px 14px;border:1px solid #d39a2a;border-radius:10px;background:rgba(211,154,42,.12);color:#f0c560;font:700 13px/1.45 -apple-system,system-ui,sans-serif;letter-spacing:.03em;text-align:center';
-      b.textContent = '⚙ OPERATOR — FULL TRACE: every counterparty + all transactions unlocked. This is NOT the client view.';
-      sh.appendChild(b);
-    }
-    var card = document.querySelector('.locked-card');
-    var grid = card && card.closest('.grid');
-    if (grid) {
-      var p = grid.previousElementSibling, h = p && p.previousElementSibling;
-      [grid, p, h].forEach(function (el) { if (el) el.style.display = 'none'; });
-    }
-    document.querySelectorAll('.cta-band').forEach(function (el) { el.style.display = 'none'; });
-  }
-
   function runScan() {
     var params = new URLSearchParams(window.location.search);
     addr = (params.get('addr') || '').trim();
@@ -2394,29 +2259,17 @@
     if (chain === 'xrp') COIN = { chain: 'xrp', ticker: 'XRP', divisor: 1e6, usd: false };
     curChain = chain; LEDGER_SENT = false;
 
-    // OPERATOR full-trace view — ?full=1, but ONLY when served from localhost.
-    // On the public site location.hostname is phantomflash.com, so this is a
-    // no-op and the paywall stands.
-    var OPERATOR = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/.test(location.hostname);
-    FULL_MODE = OPERATOR && params.get('full') === '1';
-    if (FULL_MODE) enableOperatorView();
-
     curAddr = addr;
-    curCheckout = 'checkout.html?addr=' + encodeURIComponent(addr);
-
-    // carry the address through to checkout
-    var unlock2 = $('unlockBtn2');
-    if (unlock2) unlock2.href = curCheckout;
 
     Promise.all([
       chain === 'eth' ? loadDataEth() : chain === 'xrp' ? loadDataXrp() : loadData(),
-      chain === 'btc' ? loadPrice() : Promise.resolve(null)
+      chain === 'btc' ? loadRate() : Promise.resolve(null)
     ])
       .then(function (res) {
-        var data = res[0], price = res[1];
+        var data = res[0], usdRate = res[1];
         if (data.txCount === 0 && data.sourceFailed) {
           // A data source failed or rate-limited us and we found nothing —
-          // NEVER report that as "no activity": it may be a false negative.
+          // NEVER present that as "no activity": it may be a false negative.
           showError('The blockchain data source is busy right now.',
             'The address wasn\u2019t the problem — our data source limited the request ' +
             '(this can happen when several scans run back-to-back). ' +
@@ -2440,18 +2293,15 @@
         setStatus(T('pflashDonePrefix') + fmtTxCount(data) + T('pflashDoneSuffix'), true);
         $('results').style.display = 'block';
         // v12: stash the finished scan so the free PDF / paper view can be built on demand
-        PDF_STATE = { data: data, cps: cps, price: price, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
+        PDF_STATE = { data: data, cps: cps, usdRate: usdRate, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
         initSplitChooser(); // v13.3: land on BOTH views side by side; tabs appear after first pick
-        // v10: one split decides what the system AND the table may reveal
-        var split = paywallSplit(cps);
-        LAST_SPLIT = split; // v18: attribution re-renders the table once labels land
         if (COIN.chain === 'xrp') { try { renderAgentPanel(data); } catch (e) {} } // v19: AGENT ● ON THE RECORD (fail-open)
-        renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
+        renderStats(data, cps.length, usdRate);
         if (COIN.chain === 'xrp' && $('statId')) { $('statId').textContent = '\u2014'; $('statIdSub').textContent = 'no public labels for XRP yet'; } // v19: attribution doesn't run for XRP
-        renderTable(data, split.unlockedSet);
+        renderTable(data);
         try {
           if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
-          renderSystem(data, cps, price, { split: split });
+          renderSystem(data, cps, usdRate);
         } catch (e) {
           $('stage3d').innerHTML = '<div style="padding:30px;color:#7e93b3">' + T('unavail') + '</div>';
         }
@@ -2470,7 +2320,7 @@
   }
 
   // ============================================================
-  // v12: FREE PDF REPORT — built entirely client-side from the
+  // v12: FREE PDF FIELD EXPORT — built entirely client-side from the
   // scan data already in memory. jsPDF loads lazily on first click;
   // if the CDN is unreachable we fall back to window.print().
   // ============================================================
@@ -2500,7 +2350,7 @@
   }
   // v12.3: the ghost — grayscale desk-panel watermark for every data page.
   // Loaded once from our own assets, grayed via canvas; if anything fails,
-  // the report simply ships without the ghost.
+  // the export simply ships without the ghost.
   var WM_CACHE;
   function loadWatermark() {
     if (WM_CACHE !== undefined) return Promise.resolve(WM_CACHE);
@@ -2525,7 +2375,7 @@
   }
 
   var PDF_EPIGRAPH = '\u201cPflashing aligns shapes electromagnetically.\u201d';
-  var PDF_CLOSER = 'This is a free Pflash tracing. We think it\u2019s good. But you get what you pay for.';
+  var PDF_CLOSER = 'This is a Pflash reading of the public ledger. We think it\u2019s good, and it\u2019s free for everybody.';
 
   function buildPdf(wm) {
     var st = PDF_STATE;
@@ -2536,7 +2386,7 @@
     // v13.2: the PDF IS the web paper — cream stock, typewriter body
     var cream = [236, 225, 200], creamDark = [222, 209, 182], creamLine = [185, 172, 143];
     var now = new Date();
-    var priceOk = st.price && st.chain !== 'eth';
+    var rateOk = st.usdRate && st.chain !== 'eth';
 
     // cream stock on every page (page 1 by hand; table pages via willDrawPage)
     var painted = {};
@@ -2557,7 +2407,7 @@
     doc.setLineWidth(1.6); doc.line(40, 62, W - 40, 62);
     doc.setLineWidth(0.5); doc.line(40, 66, W - 40, 66);
     doc.setFont('courier', 'bold'); doc.setFontSize(11);
-    doc.text('WALLET PFLASH REPORT \u2014 FREE EDITION', 40, 84);
+    doc.text('WALLET PFLASH \u2014 FIELD EXPORT', 40, 84);
     doc.setFont('courier', 'normal'); doc.setFontSize(8);
     doc.setTextColor(muted[0], muted[1], muted[2]);
     doc.text('Generated ' + now.toLocaleString('en-US') + '  \u00b7  phantomflash.com  \u00b7  live public blockchain data', 40, 98);
@@ -2595,8 +2445,8 @@
       startY: 180,
       head: [['SUMMARY', '']],
       body: [
-        ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : ''))],
-        ['Total sent out', pdfSafe(fmtBtc(d.spentSum) + (priceOk ? '   (' + fmtUsd(d.spentSum, st.price) + ')' : ''))],
+        ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (rateOk ? '   (' + fmtUsd(d.fundedSum, st.usdRate) + ')' : ''))],
+        ['Total sent out', pdfSafe(fmtBtc(d.spentSum) + (rateOk ? '   (' + fmtUsd(d.spentSum, st.usdRate) + ')' : ''))],
         ['Transactions on-chain', fmtTxCount(d)],
       ].concat(d.balance != null ? [['Balance on ledger', pdfSafe(fmtBtc(d.balance))]] : []).concat([
         ['Counterparties (first hop)', String(st.cps.length)],
@@ -2657,8 +2507,8 @@
 
     doc.setFontSize(11);
     doc.setTextColor(236, 225, 200);
-    doc.text('This is a free Pflash tracing. We think it\u2019s good.', cx, 290, { align: 'center' });
-    doc.text('But you get what you pay for.', cx, 306, { align: 'center' });
+    doc.text('This is a Pflash reading of the public ledger.', cx, 290, { align: 'center' });
+    doc.text('We think it\u2019s good, and it\u2019s free for everybody.', cx, 306, { align: 'center' });
 
     // socials — prominent, clickable
     doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(0, 229, 255);
@@ -2704,7 +2554,7 @@
       }
     }
 
-    doc.save('PFLASH-report-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');
+    doc.save('PFLASH-field-export-' + st.addr.slice(0, 12) + '-' + now.toISOString().slice(0, 10) + '.pdf');
   }
 
   // PDF button lives inside the (dynamically rendered) paper view — delegate.
@@ -2722,15 +2572,14 @@
         setTimeout(function () { btn.textContent = orig; btn.disabled = false; }, 4000);
       })
       .catch(function () {
-        // CDN blocked/offline — the browser's own PDF printer still works
+        // CDN unreachable/offline — the browser's own PDF printer still works
         btn.textContent = orig; btn.disabled = false;
         window.print();
       });
   });
 
   // ============================================================
-  // v13: PAPER VIEW — the written report, on the page, free
-  // (named like the thing people pay for; the joke is it isn't)
+  // v13: PAPER VIEW — the written record, on the page
   // ============================================================
   var PAPER_RENDERED = false;
 
@@ -2738,7 +2587,7 @@
     var st = PDF_STATE, box = $('paperView');
     if (!st || !box) return;
     var d = st.data;
-    var priceOk = st.price && st.chain !== 'eth';
+    var rateOk = st.usdRate && st.chain !== 'eth';
     var now = new Date();
     var times = d.txs.map(function (t) { return t.time; }).filter(Boolean);
     var range = '\u2014';
@@ -2763,14 +2612,14 @@
       '<div class="paper-doc">' +
         '<div class="pd-head">' +
           '<div><div class="pd-brand">PHANTOM FLASH</div>' +
-          '<div class="pd-sub">WALLET PFLASH REPORT \u2014 FREE EDITION \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
+          '<div class="pd-sub">WALLET PFLASH \u2014 FIELD EXPORT \u00b7 generated ' + esc(now.toLocaleString('en-US')) + '</div></div>' +
           '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Don\u2019t Forget! Take Your Pflash With You!</button>' +
         '</div>' +
         '<div class="pd-epigraph">' + PDF_EPIGRAPH + '</div>' +
         '<div class="pd-wallet">Scanned wallet (' + chainName(st.chain) + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +
         '<div class="pd-section">SUMMARY</div>' +
-        row('Total received', esc(fmtBtc(d.fundedSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.fundedSum, st.price)) + '</span>' : '')) +
-        row('Total sent out', esc(fmtBtc(d.spentSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.spentSum, st.price)) + '</span>' : '')) +
+        row('Total received', esc(fmtBtc(d.fundedSum)) + (rateOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.fundedSum, st.usdRate)) + '</span>' : '')) +
+        row('Total sent out', esc(fmtBtc(d.spentSum)) + (rateOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.spentSum, st.usdRate)) + '</span>' : '')) +
         row('Transactions on-chain', fmtTxCount(d)) +
         (d.balance != null ? row('Balance on ledger', esc(fmtBtc(d.balance))) : '') +
         row('Counterparties (first hop)', String(st.cps.length)) +
@@ -2800,7 +2649,7 @@
     if (tP) tP.className = 'view-tab' + (paper ? ' active' : '');
     // the 3D stage must re-fit after any width change
     if (!paper) setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, 60);
-    try { if (window.gtag) gtag('event', 'view_switch', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+    try { if (window.gtag) gtag('event', 'view_switch', { view: paper ? 'paper' : 'field' }); } catch (e) {}
   }
 
   function initViewTabs() {
@@ -2811,7 +2660,7 @@
   }
   initViewTabs();
 
-  // v13.3: the first landing shows BOTH views side by side (universe left,
+  // v13.3: the first landing shows BOTH views side by side (field left,
   // paper right). People don't find tabs — so the site teaches them there
   // are two views by showing both, then collapses to tabs after the pick.
   function initSplitChooser() {
@@ -2821,7 +2670,7 @@
     vP.style.display = 'block';
     wrap.className = 'split';
     vU.className = 'view-pane'; vP.className = 'view-pane';
-    [[false, vU, '\ud83e\ude90 UNIVERSE VIEW'], [true, vP, '\ud83d\udcc4 PAPER VIEW']].forEach(function (cfg) {
+    [[false, vU, '\ud83e\ude90 FIELD VIEW'], [true, vP, '\ud83d\udcc4 PAPER VIEW']].forEach(function (cfg) {
       var ov = document.createElement('div');
       ov.className = 'pane-pick';
       ov.innerHTML = '<div class="pp-label">' + cfg[2] + '<span>click to open</span></div>';
@@ -2838,13 +2687,13 @@
     if (vU) vU.className = ''; if (vP) vP.className = '';
     var tabs = $('viewTabs'); if (tabs) tabs.style.display = 'flex';
     setView(paper);
-    try { if (window.gtag) gtag('event', 'view_pick', { view: paper ? 'paper' : 'universe' }); } catch (e) {}
+    try { if (window.gtag) gtag('event', 'view_pick', { view: paper ? 'paper' : 'field' }); } catch (e) {}
   }
 
   // ============================================================
   // v15: SECRET CODES — easter eggs in the scan box.
   // Type certain words instead of an address and the chain answers.
-  // Each egg renders as a PFLASH report (the cream paper). Eggs may
+  // Each egg renders as a PFLASH record (the cream paper). Eggs may
   // carry a comic image (egg.image) once one is blessed.
   // ============================================================
   var PF_EGGS = window.PF_EGGS = {
@@ -2854,7 +2703,7 @@
       html:
         '<div class="paper-doc" style="max-width:760px;margin:24px auto 60px">' +
           '<div class="pd-head"><div><div class="pd-brand">PHANTOM FLASH</div>' +
-          '<div class="pd-sub">WALLET PFLASH REPORT \u2014 SPECIAL RECORD</div></div></div>' +
+          '<div class="pd-sub">WALLET PFLASH \u2014 SPECIAL RECORD</div></div></div>' +
           '<div class="pd-epigraph">\u201cPflashing aligns shapes electromagnetically.\u201d</div>' +
           '<div class="pd-wallet">Scanned: <span class="pd-addr">JESUS</span></div>' +
           '<div class="pd-section">SUMMARY</div>' +
@@ -2889,7 +2738,7 @@
     runScan();                            // scan.html
   } else if ($('demoStage')) {
     // index.html live-demo hero — wait for the deferred i18n layer so
-    // locked-node labels are translated (DOMContentLoaded fires after
+    // labels are translated (DOMContentLoaded fires after
     // deferred scripts execute).
     if (window.PF_I18N_T || document.readyState === 'complete') runDemo();
     else document.addEventListener('DOMContentLoaded', runDemo);

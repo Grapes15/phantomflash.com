@@ -1,7 +1,7 @@
 {
-  "name": "Phantom Flash — This Is the Universe",
+  "name": "Phantom Flash — This Is the Field",
   "short_name": "PFLASH",
-  "description": "This is the universe. You can follow your agents. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds, rendered as an interactive universe.",
+  "description": "This is the field. You can follow your agents in the field. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds, rendered as an interactive 3D system.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",

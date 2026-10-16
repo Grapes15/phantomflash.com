@@ -3,8 +3,9 @@
   'use strict';
   var ADDR = 'rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL';
   var RIPPLE_EPOCH = 946684800;
-  var NAME_AKA = ' a/k/a Pflash';
   var $ = function(id){ return document.getElementById(id); };
+  var STATIC_LICENSES = [{ type:'Attorney at Law', no:'0395439', holder:'Dan Irwin', issuer:'Minnesota', activated:true }];
+  var licenses = STATIC_LICENSES, licOpen = false, syncSpin = function(){};
 
   function esc(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -20,10 +21,46 @@
     }catch(e){ return ''; }
   }
   function shortAddr(a){ return a.length > 12 ? a.slice(0, 6) + '…' + a.slice(-4) : a; }
-  function agentName(v){ return v === 'Phantom Flash' ? v + NAME_AKA : v; }
 
   /* ---------------- ATTRIBUTES ---------------- */
   var attrRows = $('pfAttrRows'), attrNote = $('pfAttrNote');
+
+  /* ---------------- LICENSES (the backpack) ---------------- */
+  var figcol = document.querySelector('.pf-figcol'), tray = $('pfTray');
+
+  function normLicenses(arr){
+    if(!Array.isArray(arr)) return null;
+    return arr.filter(function(x){ return x && typeof x === 'object'; }).slice(0, 6).map(function(x){
+      return { type:String(x.type || ''), no:String(x.no || ''), holder:String(x.holder || ''),
+               issuer:String(x.issuer || ''), activated: x.activated === true };
+    });
+  }
+  function licCountText(list){
+    var a = list.filter(function(l){ return l.activated; }).length;
+    return list.length + ' held · ' + a + ' activated';
+  }
+  function trayHtml(list){
+    return list.map(function(l, i){
+      var line2 = [l.issuer, l.no ? '#' + l.no : ''].filter(Boolean).join(' · ');
+      return '<div class="pf-badge' + (l.activated ? '' : ' off') + '" style="--i:' + i + ';--ord:' + ((Math.floor((list.length - 1) / 2) - Math.floor(i / 2)) * 2 + (i % 2)) + '">' +
+        '<div class="pf-b-type">' + esc(l.type) + '</div>' +
+        '<div class="pf-b-line">' + esc(line2) + '</div>' +
+        '<div class="pf-b-line">held by ' + esc(l.holder) + '</div>' +
+        '<div class="pf-pill ' + (l.activated ? 'on' : 'off') + '">' + (l.activated ? 'ACTIVATED ON THIS AGENT' : 'HELD · NOT ACTIVATED') + '</div></div>';
+    }).join('');
+  }
+  function licBtn(){ return attrRows && attrRows.querySelector('.pf-lic-btn'); }
+  function applyOpen(){
+    if(figcol) figcol.classList.toggle('pf-lic-open', licOpen);
+    if(tray) tray.setAttribute('aria-hidden', licOpen ? 'false' : 'true');
+    var b = licBtn(); if(b) b.setAttribute('aria-expanded', licOpen ? 'true' : 'false');
+    syncSpin();
+  }
+  function setOpen(v){
+    licOpen = !!v && licenses.length > 0;
+    applyOpen();
+  }
+
 
   function row(k, vHtml){
     return '<div class="pf-row"><dt class="pf-k">' + esc(k) + '</dt><dd class="pf-v">' + vHtml + '</dd></div>';
@@ -33,7 +70,8 @@
   }
   function render(d){
     var h = '';
-    h += row('Agent', esc(agentName(d.agent)));
+    h += row('Agent', esc(d.agent));
+    h += row('Alias', esc(d.aka || 'Pflash'));
     var ans = esc(d.answersTo);
     if(d.dest) ans += ' ' + link('https://livenet.xrpl.org/accounts/' + encodeURIComponent(d.dest), shortAddr(d.dest), 'pf-mono');
     h += row('Answers to', ans);
@@ -44,9 +82,15 @@
     h += row('Fingerprint', '<span class="pf-mono" title="' + esc(fp) + '">' + esc(fpShort) + '</span>');
     h += row('Receipts', esc(d.receipts));
     h += row('Permissions', 'All');
+    licenses = d.licenses || STATIC_LICENSES;
+    h += row('Licenses', licenses.length
+      ? '<button type="button" class="pf-lic-btn" aria-expanded="false" aria-controls="pfTray">' + esc(licCountText(licenses)) + '</button>'
+      : 'none on record');
+    if(tray){ tray.innerHTML = trayHtml(licenses); tray.className = 'pf-tray' + (licenses.length > 3 ? ' pf-two' : ''); }
     var dec = d.hash ? link('https://livenet.xrpl.org/transactions/' + encodeURIComponent(d.hash), d.declared) : esc(d.declared);
     h += row('Declared', dec);
     attrRows.innerHTML = h;
+    applyOpen();
   }
 
   var FALLBACK = { agent:'Phantom Flash', answersTo:'Dan Irwin', dest:'', bar:'0395439', rules:'v0.5',
@@ -81,11 +125,12 @@
     var rulesStr = String(d.rules || '');
     var ver = (rulesStr.match(/\bv(\d+(?:\.\d+)*)\b/) || [])[0] || String(d.v || rulesStr);
     return {
-      agent: String(d.agent || ''), answersTo: String(d.answers_to || ''), dest: latest.dest,
+      agent: String(d.agent || ''), aka: d.aka != null ? String(d.aka) : '', answersTo: String(d.answers_to || ''), dest: latest.dest,
       bar: String(d.bar || ''), rules: ver, sha: String(d.rules_sha256 || ''),
       receipts: String(receipts),
       declared: latest.date ? new Date((latest.date + RIPPLE_EPOCH) * 1000).toISOString().slice(0, 10) : '',
-      hash: latest.hash
+      hash: latest.hash,
+      licenses: normLicenses(d.licenses)
     };
   }
 
@@ -111,11 +156,27 @@
   }
   if(attrRows) loadLedger();
 
+  if(attrRows){
+    attrRows.addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('.pf-lic-btn')) setOpen(!licOpen);
+    });
+  }
+  document.addEventListener('click', function(e){
+    if(!licOpen) return;
+    var t = e.target;
+    if((tray && tray.contains(t)) || (t.closest && t.closest('.pf-lic-btn'))) return;
+    setOpen(false);
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && licOpen) setOpen(false);
+  });
+
   /* ---------------- TURNTABLE ---------------- */
   var fig = $('pfFigure'), spin = $('pfSpin'), drag = $('pfDrag');
   if(fig && spin && drag){
     var angle = 0, down = false, lastX = 0, hover = false, cool = null;
-    var sync = function(){ spin.style.animationPlayState = (down || hover || cool) ? 'paused' : 'running'; };
+    var sync = function(){ spin.style.animationPlayState = (down || hover || cool || licOpen) ? 'paused' : 'running'; };
+    syncSpin = sync;
     var rest = function(){
       clearTimeout(cool); cool = setTimeout(function(){ cool = null; sync(); }, 3000); sync();
     };

@@ -22,6 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css?v=20261016h">
+<link rel="stylesheet" href="assets/stage.css?v=3">
 <style>
 /* agents.html only — small additions on top of assets/style.css */
 .agents-hero .fg{padding:72px 20px 56px}
@@ -95,16 +96,19 @@
   <section class="block wrap wide" id="the-agent">
     <h2 class="section-title">The agent</h2>
     <div class="pf-stage">
-      <div class="pf-fig" id="pfFigure" aria-label="Phantom Flash on a turntable. Drag to spin.">
-        <div class="pf-scene">
-          <div class="pf-disc"></div>
-          <div class="pf-spin" id="pfSpin"><div class="pf-drag" id="pfDrag">
-            <div class="pf-face pf-front"><img src="assets/pflash-portrait-v1.jpg" width="900" height="900" alt="Phantom Flash, portrait" draggable="false"></div>
-            <div class="pf-face pf-back"><img src="assets/favicon.svg" alt=""></div>
-          </div></div>
+      <div class="pf-figcol">
+        <div class="pf-fig" id="pfFigure" aria-label="Phantom Flash on a turntable. Drag to spin.">
+          <div class="pf-scene">
+            <div class="pf-disc"></div>
+            <div class="pf-tilt"><div class="pf-spin" id="pfSpin"><div class="pf-drag" id="pfDrag">
+              <div class="pf-face pf-front"><img src="assets/pflash-portrait-v1.jpg" width="900" height="900" alt="Phantom Flash, portrait" draggable="false"></div>
+              <div class="pf-face pf-back"><img src="assets/favicon.svg" alt=""></div>
+            </div></div></div>
+          </div>
+          <model-viewer id="pfModel" camera-controls auto-rotate alt="Phantom Flash, 3D model"></model-viewer>
+          <div class="pf-hint">drag to turn</div>
         </div>
-        <model-viewer id="pfModel" camera-controls auto-rotate alt="Phantom Flash, 3D model"></model-viewer>
-        <div class="pf-hint">drag to turn</div>
+        <div class="pf-tray" id="pfTray" role="region" aria-label="Licenses held by the owner" aria-hidden="true"></div>
       </div>
       <div class="pf-panel pf-attr">
         <h3 class="pf-label">Attributes <em>— what a counterparty reads</em></h3>
@@ -115,7 +119,7 @@
         <h3 class="pf-label">Clothes <em>— notice, not authority</em></h3>
         <dl class="pf-rows">
           <div class="pf-row"><dt class="pf-k">Ray-Bans</dt><dd class="pf-v">on</dd></div>
-          <div class="pf-row"><dt class="pf-k">Agent</dt><dd class="pf-v">Phantom Flash a/k/a Pflash</dd></div>
+          <div class="pf-row"><dt class="pf-k">Agent</dt><dd class="pf-v">Phantom Flash</dd></div>
           <div class="pf-row"><dt class="pf-k">Key</dt><dd class="pf-v">public
             <a class="pf-mono" href="https://phantomflash.com/scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL" target="_blank" rel="noopener">rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL</a>
             <a class="pf-seeher" href="https://phantomflash.com/scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL" target="_blank" rel="noopener">see his record</a></dd></div>
@@ -123,6 +127,7 @@
       </div></div>
     </div>
     <p class="pf-bar">counterparties read the attributes. the clothes are the clothes.</p>
+    <p class="pf-owner">Licenses are the owner's. Activating one on the agent is the owner's act; a counterparty may still ask to see the owner.</p>
   </section>
 
   <!-- WHAT YOU'RE LOOKING AT -->
@@ -205,7 +210,7 @@
 </footer>
 
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
-<script src="assets/stage.js?v=3" defer></script>
+<script src="assets/stage.js?v=7" defer></script>
 <script>
 /* Same submit behavior as index.html's #scanForm: validate lightly, then go to scan.html?addr=<value>. */
 document.getElementById('scanForm').addEventListener('submit', function(e){

@@ -1,0 +1,63 @@
+/* agents.html stage: licenses backpack + owner line. Loaded after style.css; relies on its tokens. */
+
+/* the figure now lives in a column wrapper so the tray can sit beside or under it */
+.pf-figcol{grid-area:fig;position:relative;display:flex;flex-direction:column;min-width:0}
+.pf-figcol .pf-fig{grid-area:auto;flex:1}
+
+/* LICENSES row control */
+.pf-lic-btn{appearance:none;-webkit-appearance:none;background:none;border:0;padding:0;margin:0;
+  font:inherit;font-size:15px;font-weight:400;color:var(--cyan);cursor:pointer;text-align:left;
+  text-decoration:none;text-underline-offset:3px;transition:text-shadow .2s}
+.pf-lic-btn:hover{text-decoration:underline;text-shadow:0 0 12px var(--cyan-glow)}
+.pf-lic-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:3px;text-decoration:underline}
+.pf-lic-btn[aria-expanded="true"]{text-decoration:underline}
+
+/* card tilts toward the viewer while the backpack is open */
+.pf-tilt{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:50% 392px;
+  transition:transform .4s cubic-bezier(.2,.8,.3,1)}
+.pf-lic-open .pf-tilt{transform:rotateX(-8deg) scale(1.04)}
+.pf-disc{transition:box-shadow .4s,border-color .4s}
+.pf-lic-open .pf-disc{border-color:#7ff3ff;
+  box-shadow:0 0 36px var(--cyan),0 0 100px rgba(0,229,255,.5),inset 0 0 56px rgba(0,229,255,.5)}
+
+/* tray: fans out of the lower right of the figure */
+.pf-tray{position:absolute;right:12px;bottom:40px;z-index:5;display:flex;flex-direction:column-reverse;
+  align-items:flex-end;gap:8px;pointer-events:none;visibility:hidden;transition:visibility 0s linear .5s}
+.pf-lic-open .pf-tray{visibility:visible;transition-delay:0s}
+.pf-tray.pf-two{display:grid;grid-template-columns:repeat(2,210px);direction:rtl;align-items:end;justify-items:end;gap:8px}
+.pf-two .pf-badge{direction:ltr;order:var(--ord)}
+.pf-badge{--o:1;width:210px;padding:9px 12px 10px;background:#07161e;border:1px solid var(--cyan);border-radius:8px;
+  box-shadow:0 0 14px var(--cyan-glow),4px 4px 0 rgba(0,0,0,.5);
+  transform-origin:100% 100%;opacity:0;transform:translate(36px,36px) rotate(14deg) scale(.6);
+  transition:transform .25s ease-in,opacity .2s ease-in}
+.pf-badge.off{--o:.55}
+.pf-lic-open .pf-badge{pointer-events:auto;opacity:var(--o);
+  transform:translate(calc(var(--i) * -5px),0) rotate(calc(var(--i) * -1deg));
+  transition:transform .4s cubic-bezier(.2,.9,.3,1.15) calc(var(--i) * 60ms),opacity .3s ease-out calc(var(--i) * 60ms)}
+.pf-b-type{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-variant:small-caps;color:#fff;margin-bottom:5px}
+.pf-b-line{font-size:12.5px;font-weight:400;color:var(--ink);line-height:1.5;overflow-wrap:anywhere}
+.pf-b-line+.pf-b-line{color:var(--muted)}
+.pf-pill{display:inline-block;margin-top:7px;padding:2px 8px;border-radius:999px;font-size:9.5px;letter-spacing:.12em;font-weight:500;border:1px solid}
+.pf-pill.on{color:var(--amber);border-color:var(--amber);background:rgba(242,169,80,.1)}
+.pf-pill.off{color:var(--muted2);border-color:var(--muted2)}
+
+.pf-owner{margin:6px auto 0;max-width:640px;text-align:center;font-size:13px;line-height:1.6;color:var(--muted2)}
+
+@media (max-width:1100px){
+  .pf-badge{width:170px;padding:8px 10px 9px}
+  .pf-tray.pf-two{grid-template-columns:repeat(2,170px)}
+}
+@media (max-width:600px){
+  .pf-tilt{transform-origin:50% 320px}
+  /* phone: a vertical list under the figure, no fan */
+  .pf-tray,.pf-tray.pf-two{position:static;display:flex;flex-flow:column nowrap;direction:ltr;width:auto;align-content:normal;align-items:stretch;gap:8px;
+    max-height:0;overflow:hidden;visibility:hidden;margin-top:0;
+    transition:max-height .4s ease,margin-top .4s ease,visibility 0s linear .45s}
+  .pf-lic-open .pf-tray,.pf-lic-open .pf-tray.pf-two{max-height:900px;margin-top:10px;visibility:visible;transition-delay:0s}
+  .pf-two .pf-badge{order:0}
+  .pf-badge{width:auto;padding:9px 12px 10px;transform:translateY(-8px) scale(.97);transform-origin:50% 0}
+  .pf-lic-open .pf-badge{transform:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .pf-tilt,.pf-badge,.pf-tray,.pf-disc{transition:none!important}
+}

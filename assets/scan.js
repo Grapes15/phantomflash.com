@@ -25,7 +25,8 @@
    ============================================================ */
 (function () {
   'use strict';
-  var T = function(k){ return (window.PF_I18N_T ? window.PF_I18N_T(k) : k); };
+  var T_FALLBACK = { noAddr: 'No address given', noAddrBody: 'Go back to the home page and paste an address to PFLASH it.' };
+  var T = function(k){ var v = window.PF_I18N_T ? window.PF_I18N_T(k) : null; if (v == null || v === k) v = T_FALLBACK[k] || k; return v; };
 
   var SATS = 1e8;
   // ---------- active coin (set per-scan in runScan; BTC by default + demo) ----------

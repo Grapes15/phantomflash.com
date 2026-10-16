@@ -981,3 +981,49 @@ html,body{max-width:100%;overflow-x:hidden}
 #sunAttrib{margin:0 0 18px}
 .node-card .nc-rows .val .att{margin-left:0}
 .paper-doc .att{font-size:9px;padding:1px 5px;margin-left:4px;background:rgba(28,39,51,.08);color:#1c2733;border-color:#b9ac8f}
+
+/* ============================================================
+   v19 — XRP Ledger reader: AGENT ● ON THE RECORD panel + tx badges
+   ============================================================ */
+.att-clothes{background:rgba(242,169,80,.14);color:var(--amber);border-color:rgba(242,169,80,.45)}
+.att-receipt{background:rgba(0,229,255,.12);color:var(--cyan);border-color:rgba(0,229,255,.35)}
+.paper-doc .att-clothes,.paper-doc .att-receipt{background:rgba(28,39,51,.08);color:#1c2733;border-color:#b9ac8f}
+
+.agent-panel{margin:6px 0 28px;padding:20px 22px;border:2px solid var(--edge);border-left:3px solid var(--amber);border-radius:8px;background:rgba(242,169,80,.06);box-shadow:0 0 0 1px var(--line)}
+.agent-panel .ag-title{margin:0 0 14px;font-family:var(--display);font-weight:400;font-size:30px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink)}
+.agent-panel .ag-title span{color:var(--amber);font-size:13px;font-weight:700;letter-spacing:.1em;font-family:var(--sans)}
+.agent-panel .ag-sub{margin:22px 0 8px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.agent-panel .ag-grid{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;align-items:baseline}
+.agent-panel .ag-k{color:var(--muted2);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.agent-panel .ag-v{color:var(--ink);font-size:15px;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+.agent-panel .ag-name{font-weight:800;color:var(--amber);font-size:17px}
+.agent-panel .ag-mono{font-family:var(--mono)}
+.agent-panel .ag-fp{font-size:12.5px;word-break:break-all;color:var(--cyan)}
+.agent-panel .ag-dim{color:var(--muted2)}
+.agent-panel a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan-dim)}
+.agent-panel a:hover{border-bottom-style:solid}
+.agent-panel .ag-earlier{margin-top:6px;font-size:13px;color:var(--muted)}
+.agent-panel .ag-earlier summary{cursor:pointer;color:var(--cyan-dim)}
+.agent-panel .ag-earlier ul{margin:8px 0 0;padding-left:18px}
+.agent-panel .ag-earlier li{margin:3px 0;overflow-wrap:anywhere}
+.agent-panel .ag-empty{margin:0;color:var(--muted);font-size:14px}
+.agent-panel .tx-table-wrap{max-height:300px}
+.agent-panel table.tx.ag-table{min-width:640px}
+.agent-panel .ag-verify{display:flex;flex-direction:column;gap:10px;max-width:640px}
+.agent-panel .ag-file{display:inline-block;color:var(--muted);font-size:13px}
+.agent-panel .ag-file input{display:block;margin-top:6px;color:var(--ink);font-family:var(--sans);font-size:13px;max-width:100%}
+.agent-panel textarea{width:100%;background:var(--bg2);color:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:13px;resize:vertical}
+.agent-panel textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 2px rgba(0,229,255,.18)}
+.agent-panel .ag-verify .btn{align-self:flex-start;min-height:44px}
+.agent-panel .ag-result{padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.agent-panel .ag-result .ag-hash{font-size:11.5px;color:var(--muted);margin-bottom:4px;word-break:break-all}
+.agent-panel .ag-result.ag-match{border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.08);color:var(--ink)}
+.agent-panel .ag-result.ag-match strong{color:var(--green)}
+.agent-panel .ag-result.ag-nomatch{border-color:rgba(255,77,94,.45);background:rgba(255,77,94,.07);color:var(--ink)}
+.agent-panel .ag-result.ag-nomatch strong{color:var(--red)}
+.agent-panel .ag-note{margin:16px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted2)}
+@media (max-width:640px){
+  .agent-panel{padding:16px 14px}
+  .agent-panel .ag-grid{grid-template-columns:1fr;gap:2px}
+  .agent-panel .ag-k{margin-top:10px}
+}

@@ -1,6 +1,7 @@
 /* ============================================================
    PHANTOM FLASH — Free PFLASH scan (v7: character-select creatures)
    Live BTC data: mempool.space (primary), blockchain.info (fallback)
+   v19: XRP Ledger (xrplcluster.com JSON-RPC) + the AGENT panel (DRAO memos)
    3D "solar system" explorer via 3d-force-graph (CDN).
    Locked outer-ring nodes are DECORATIVE ONLY — no real data
    is shipped to the client for hops beyond the first.
@@ -75,6 +76,7 @@
     }
     var v = units / COIN.divisor;
     if (v === 0) return '0 ' + COIN.ticker;
+    if (COIN.chain === 'xrp') return v.toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' XRP';   // drops: 6 decimals, zeros trimmed
     if (v < 0.0001) return v.toFixed(8) + ' ' + COIN.ticker;
     return v.toLocaleString('en-US', { maximumFractionDigits: 5 }) + ' ' + COIN.ticker;
   }
@@ -93,6 +95,9 @@
     var d = new Date(unix * 1000);
     return d.toISOString().slice(0, 10);
   }
+  // v19: XRP history is capped, so its count can be a floor ("400+")
+  function chainName(c) { return c === 'eth' ? 'Ethereum' : c === 'xrp' ? 'XRP Ledger' : 'Bitcoin'; }
+  function fmtTxCount(d) { return d.txCount.toLocaleString('en-US') + (d.truncated ? '+' : ''); }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (m) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
@@ -530,12 +535,14 @@
   // Fetch with retry: data APIs throttle bursts (HTTP 429/5xx or Cloudflare
   // 524 timeouts), which used to surface as a false "No activity" scan. Retry
   // up to 3 times with backoff before giving up.
-  function fetchJson(url, timeoutMs) {
+  function fetchJson(url, timeoutMs, init, tries) {
     function attempt(triesLeft, delayMs) {
       return new Promise(function (resolve, reject) {
         var ctrl = new AbortController();
         var t = setTimeout(function () { ctrl.abort(); }, timeoutMs || 15000);
-        fetch(url, { signal: ctrl.signal })
+        var opts = { signal: ctrl.signal };
+        if (init) for (var k in init) opts[k] = init[k];   // v19: POST support (XRP JSON-RPC)
+        fetch(url, opts)
           .then(function (r) {
             clearTimeout(t);
             if (!r.ok) {
@@ -560,7 +567,7 @@
           });
       });
     }
-    return attempt(3, 700);
+    return attempt(tries == null ? 3 : tries, 700);
   }
 
   // Normalized shape:
@@ -684,9 +691,10 @@
     { symbol: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, usd: 1 }
   ];
 
-  // Which chain does an address belong to? Returns 'btc', 'eth', or null.
+  // Which chain does an address belong to? Returns 'btc', 'eth', 'xrp', or null.
   function detectChain(a) {
     if (/^0x[0-9a-fA-F]{40}$/.test(a)) return 'eth';
+    if (/^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(a)) return 'xrp';
     if (/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(a)) return 'btc';
     return null;
   }
@@ -797,6 +805,286 @@
     return fetchJson('https://eth.blockscout.com/api?module=stats&action=ethprice', 8000)
       .then(function (p) { return (p && p.result) ? parseFloat(p.result.ethusd) : null; })
       .catch(function () { return null; });
+  }
+
+  // ---------- v19: XRP Ledger (public JSON-RPC — keyless, CORS-open) ----------
+  // Classic r-addresses. Amounts are DROPS (1 XRP = 1,000,000 drops), shown as
+  // XRP by fmtBtc via COIN.divisor. Only successful XRP-for-XRP Payments become
+  // rows; token (IOU) amounts, offers, trustlines etc. are not money moving and
+  // are skipped. Everything the account SIGNED is also read for AGENT memos
+  // (readAgentMemos / renderAgentPanel) — incoming transactions never count.
+  // Browser CORS: xrplcluster.com answers the preflight and the POST with
+  // ACAO *. s1/s2.ripple.com are kept as fallbacks, but they send no CORS
+  // headers, so a browser can only use them if that changes.
+  var XRPL_ENDPOINTS = ['https://xrplcluster.com', 'https://s1.ripple.com:51234', 'https://s2.ripple.com:51234'];
+  var XRPL_EPOCH = 946684800;                       // 2000-01-01 → unix seconds
+  var XRPL_NOOWNER = 'rrrrrrrrrrrrrrrrrrrrBZbvji';  // the no-owner address
+  var XRP_PAGE = 200, XRP_MAX_TX = 400;
+  var XRP_ADDR_RE = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
+  var XRPL_SOFT_ERRORS = { slowDown: 1, tooBusy: 1, noNetwork: 1, noCurrent: 1, noClosed: 1, failedToForward: 1 };
+
+  function rpcError(code) {
+    var e = new Error('XRP Ledger ' + code);
+    e.rpc = code;
+    return e;
+  }
+
+  // One JSON-RPC call. Walks the endpoint list. A definitive ledger answer
+  // (including errors such as actNotFound) is returned to the caller as-is; a
+  // transport failure or an overloaded server falls through to the next endpoint.
+  function xrplCall(method, params) {
+    var body = JSON.stringify({ method: method, params: [params] });
+    function at(i, lastErr) {
+      if (i >= XRPL_ENDPOINTS.length) return Promise.reject(lastErr || new Error('XRP Ledger unreachable'));
+      return fetchJson(XRPL_ENDPOINTS[i], 15000, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body
+      }, 1).then(function (r) {
+        var res = r && r.result;
+        if (!res) throw new Error('bad XRP Ledger reply');
+        if (res.error && XRPL_SOFT_ERRORS[res.error]) throw rpcError(res.error);
+        return res;
+      }).catch(function (e) { return at(i + 1, e); });
+    }
+    return at(0);
+  }
+
+  function hexToUtf8(h) {
+    try {
+      if (!h || h.length % 2 || /[^0-9a-fA-F]/.test(h)) return null;
+      var b = new Uint8Array(h.length / 2);
+      for (var i = 0; i < b.length; i++) b[i] = parseInt(h.substr(i * 2, 2), 16);
+      return new TextDecoder('utf-8').decode(b);
+    } catch (e) { return null; }
+  }
+
+  // The agent memos on ONE transaction → { clothes:[obj], receipts:[obj] } (parsed JSON bodies).
+  function readAgentMemos(memos) {
+    var found = { clothes: [], receipts: [] };
+    (memos || []).forEach(function (m) {
+      var mm = m && m.Memo; if (!mm) return;
+      var type = hexToUtf8(mm.MemoType); if (!type) return;
+      type = type.toLowerCase();
+      if (type !== 'phantomflash/clothes' && type !== 'phantomflash/receipt') return;
+      var obj = null;
+      try { obj = JSON.parse(hexToUtf8(mm.MemoData)); } catch (e) { obj = null; }
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+      if (type === 'phantomflash/clothes') found.clothes.push(obj);
+      else if (/^[0-9a-fA-F]{64}$/.test(String(obj.sha256 || ''))) found.receipts.push(obj);
+    });
+    return found;
+  }
+
+  // Raw account_tx rows → the shared normalized shape, plus data.agent when the
+  // account has declared itself. The scanned address is the global `addr`.
+  function normalizeXrp(rows, balance, truncated) {
+    var me = addr;
+    var out = { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: false,
+                balance: balance, truncated: !!truncated, agent: null };
+    var clothes = [], receipts = [], seen = {};
+    rows.forEach(function (t) {
+      if (!t || t.validated === false) return;
+      var x = t.tx || t.tx_json || t;               // API v1 / v2 / flat
+      var meta = t.meta || t.metaData || {};
+      if (meta.TransactionResult !== 'tesSUCCESS') return;
+      var hash = t.hash || x.hash;
+      if (!hash || seen[hash]) return;
+      seen[hash] = 1;
+      var time = x.date != null ? Number(x.date) + XRPL_EPOCH
+               : (t.close_time_iso ? Math.floor(Date.parse(t.close_time_iso) / 1000) : 0);
+
+      // --- agent memos: ONLY acts signed by the scanned account ---
+      var memoKind = null;
+      if (x.Account === me && x.Memos) {
+        var mk = readAgentMemos(x.Memos);
+        mk.clothes.forEach(function (o) { clothes.push({ hash: hash, time: time, dest: x.Destination || null, obj: o }); });
+        mk.receipts.forEach(function (o) { receipts.push({ hash: hash, time: time, dest: x.Destination || null, obj: o }); });
+        memoKind = mk.clothes.length ? 'clothes' : (mk.receipts.length ? 'receipt' : null);
+      }
+
+      // --- money rows: successful XRP-for-XRP payments that touch the account ---
+      if (x.TransactionType !== 'Payment') return;
+      if (x.Account !== me && x.Destination !== me) return;
+      var amt, del = meta.delivered_amount;
+      var nominal = x.Amount != null ? x.Amount : x.DeliverMax;
+      if (typeof del === 'string' && /^\d+$/.test(del)) amt = Number(del);
+      else if (del && typeof del === 'object') return;              // token (IOU) delivered
+      else if (typeof nominal === 'string' && /^\d+$/.test(nominal)) amt = Number(nominal);
+      else return;                                                  // token amount
+      var isOut = x.Account === me;
+      var other = isOut ? x.Destination : x.Account;
+      out.txs.push({
+        txid: hash, time: time, confirmed: true,
+        inSats: isOut ? 0 : amt, outSats: isOut ? amt : 0,
+        direction: isOut ? 'out' : 'in',
+        memoKind: memoKind,
+        counterparties: (other && other !== me) ? [{ addr: other, sats: amt }] : []
+      });
+      if (isOut) out.spentSum += amt; else out.fundedSum += amt;
+    });
+    out.txs.sort(function (a, b) { return b.time - a.time; });
+    out.txCount = out.txs.length;
+    if (clothes.length) {
+      clothes.sort(function (a, b) { return (b.time - a.time) || ((Number(b.obj.ts) || 0) - (Number(a.obj.ts) || 0)); });
+      receipts.sort(function (a, b) { return b.time - a.time; });
+      out.agent = { current: clothes[0], earlier: clothes.slice(1), receipts: receipts, truncated: !!truncated };
+    }
+    return out;
+  }
+
+  function loadDataXrp() {
+    setStatus(T('pflashingLive'));
+    // balance — a missing account is zero; a failed lookup is just "unknown"
+    var infoP = xrplCall('account_info', { account: addr, ledger_index: 'validated' }).then(function (r) {
+      if (r.error === 'actNotFound') return 0;
+      if (r.error) throw rpcError(r.error);
+      var b = Number(r.account_data && r.account_data.Balance);
+      return isNaN(b) ? null : b;
+    }).catch(function (e) {
+      if (e && e.rpc === 'actMalformed') throw e;
+      return null;
+    });
+    // history — newest first, up to XRP_MAX_TX rows. A later page failing keeps what we have.
+    function page(marker, rows) {
+      var p = { account: addr, limit: XRP_PAGE, forward: false };
+      if (marker) p.marker = marker;
+      return xrplCall('account_tx', p).then(function (r) {
+        if (r.error === 'actNotFound') return { rows: rows, truncated: false };
+        if (r.error) throw rpcError(r.error);
+        rows = rows.concat(r.transactions || []);
+        if (r.marker && rows.length < XRP_MAX_TX) return page(r.marker, rows);
+        return { rows: rows, truncated: !!r.marker };
+      }).catch(function (e) {
+        if (marker && !(e && e.rpc === 'actMalformed')) return { rows: rows, truncated: true };
+        throw e;
+      });
+    }
+    return Promise.all([infoP, page(null, [])]).then(function (res) {
+      return normalizeXrp(res[1].rows, res[0], res[1].truncated);
+    }).catch(function (e) {
+      if (e && e.rpc === 'actMalformed') throw new Error('HTTP 400 actMalformed');
+      // endpoint down / overloaded: the existing "data source is busy" path
+      return { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: true, balance: null, truncated: false, agent: null };
+    });
+  }
+
+  // ---------- v19: the AGENT panel ----------
+  // Accounts that operate under "Daniel's Rules of AI Agent Order" announce
+  // themselves with signed memos. Everything shown here is the account's own
+  // declaration read back from the ledger; incoming transactions never count.
+  function explorerTx(h) { return 'https://livenet.xrpl.org/transactions/' + encodeURIComponent(h); }
+  function explorerAcct(a) { return 'https://livenet.xrpl.org/accounts/' + encodeURIComponent(a); }
+  function fmtDateTime(unix) {
+    if (!unix) return 'pending';
+    return new Date(unix * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  }
+  function memoText(v, max) { return typeof v === 'string' || typeof v === 'number' ? String(v).slice(0, max || 120) : ''; }
+  function txLink(h) {
+    return '<a href="' + esc(explorerTx(h)) + '" target="_blank" rel="noopener">' + esc(String(h).slice(0, 10)) + '…</a>';
+  }
+  function acctLink(a) {
+    var label = a === XRPL_NOOWNER ? 'no-owner address' : shortAddr(a);
+    if (!a || !XRP_ADDR_RE.test(a)) return '<span class="ag-mono">' + esc(a || '—') + '</span>';
+    return '<a class="ag-mono" href="' + esc(explorerAcct(a)) + '" target="_blank" rel="noopener" title="' + esc(a) + '">' + esc(label) + '</a>';
+  }
+
+  function renderAgentPanel(data) {
+    var host = $('results'), ag = data && data.agent;
+    var old = $('agentPanel'); if (old) old.parentNode.removeChild(old);
+    if (!host || !ag) return;
+    var cur = ag.current, o = cur.obj;
+    var fp = /^[0-9a-fA-F]{64}$/.test(String(o.rules_sha256 || '')) ? String(o.rules_sha256).toLowerCase() : null;
+    var rules = memoText(o.rules, 140) || memoText(o.v, 40) || '—';
+    var rulesLine = esc(rules) + (o.v && memoText(o.rules, 140) ? ' <span class="ag-dim">(' + esc(memoText(o.v, 40)) + ')</span>' : '');
+    var earlier = ag.earlier.length;
+    var earlierHtml = earlier
+      ? '<div class="ag-k">Correction trail</div><div class="ag-v">' + earlier + ' earlier declaration' + (earlier === 1 ? '' : 's') + ', superseded' +
+        '<details class="ag-earlier"><summary>show</summary><ul>' + ag.earlier.map(function (e) {
+          var eo = e.obj;
+          return '<li>' + esc(fmtDateTime(e.time)) + ' · ' + esc(memoText(eo.v, 40) || memoText(eo.rules, 80) || '—') +
+            (/^[0-9a-fA-F]{64}$/.test(String(eo.rules_sha256 || '')) ? ' · <span class="ag-mono" title="' + esc(eo.rules_sha256) + '">' + esc(String(eo.rules_sha256).slice(0, 12)) + '…</span>' : '') +
+            ' · ' + txLink(e.hash) + '</li>';
+        }).join('') + '</ul></details></div>'
+      : '';
+    var rcRows = ag.receipts.map(function (r) {
+      var sha = String(r.obj.sha256).toLowerCase();
+      return '<tr><td>' + esc(fmtDateTime(r.time)) + '</td>' +
+        '<td class="ag-mono" title="' + esc(sha) + '">' + esc(sha.slice(0, 12)) + '…</td>' +
+        '<td>' + (memoText(r.obj.label, 80) ? esc(memoText(r.obj.label, 80)) : '<span class="ag-dim">—</span>') + '</td>' +
+        '<td>' + (r.dest ? acctLink(r.dest) : '<span class="ag-dim">—</span>') + '</td>' +
+        '<td>' + txLink(r.hash) + '</td></tr>';
+    }).join('');
+    var html =
+      '<section id="agentPanel" class="agent-panel">' +
+        '<h2 class="ag-title">Agent <span>● ON THE RECORD</span></h2>' +
+        '<div class="ag-grid">' +
+          '<div class="ag-k">Agent</div><div class="ag-v ag-name">' + esc(memoText(o.agent, 80) || '—') + '</div>' +
+          '<div class="ag-k">Answers to</div><div class="ag-v">' + esc(memoText(o.answers_to, 80) || '—') +
+            (cur.dest ? ' · ' + acctLink(cur.dest) : '') + '</div>' +
+          '<div class="ag-k">Bar number</div><div class="ag-v ag-mono">' + esc(memoText(o.bar, 40) || '—') + '</div>' +
+          '<div class="ag-k">Rules</div><div class="ag-v">' + rulesLine + '</div>' +
+          '<div class="ag-k">Rules fingerprint</div><div class="ag-v ag-mono ag-fp">' + (fp ? esc(fp) : '<span class="ag-dim">none declared</span>') + '</div>' +
+          '<div class="ag-k">Current declaration</div><div class="ag-v">' + esc(fmtDateTime(cur.time)) + ' · ' + txLink(cur.hash) + '</div>' +
+          earlierHtml +
+        '</div>' +
+        '<h3 class="ag-sub">Receipts <span class="ag-dim">' + ag.receipts.length + '</span></h3>' +
+        (rcRows
+          ? '<div class="tx-table-wrap"><table class="tx ag-table"><thead><tr><th>Date (UTC)</th><th>Fingerprint (sha256)</th><th>Label</th><th>Counterparty</th><th>Tx</th></tr></thead><tbody>' + rcRows + '</tbody></table></div>'
+          : '<p class="ag-empty">No receipts on this agent’s record yet.</p>') +
+        '<h3 class="ag-sub">Verify a document</h3>' +
+        '<div class="ag-verify">' +
+          '<label class="ag-file">Choose a file <input type="file" id="agFile"></label>' +
+          '<textarea id="agText" rows="3" placeholder="…or paste text here" spellcheck="false" aria-label="Text to check"></textarea>' +
+          '<button class="btn ghost" id="agCheck" type="button">Check text</button>' +
+          '<div class="ag-result" id="agResult" role="status" aria-live="polite">Hashed in your browser with SHA-256. Nothing is uploaded.</div>' +
+        '</div>' +
+        '<p class="ag-note">' + (ag.truncated ? 'Only this account\u2019s most recent transactions were searched for memos; older history was not. ' : '') +
+          'This is the account’s own declaration. The ledger proves this key signed it; it does not prove who controls the key.</p>' +
+      '</section>';
+    var wrap = document.createElement('div'); wrap.innerHTML = html;
+    var first = host.querySelector('.stat-row');
+    if (first) host.insertBefore(wrap.firstChild, first); else host.insertBefore(wrap.firstChild, host.firstChild);
+    wireAgentVerify(ag);
+  }
+
+  function sha256Hex(buf) {
+    return crypto.subtle.digest('SHA-256', buf).then(function (d) {
+      var b = new Uint8Array(d), s = '';
+      for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+      return s;
+    });
+  }
+
+  function wireAgentVerify(ag) {
+    var out = $('agResult'), file = $('agFile'), text = $('agText'), btn = $('agCheck');
+    if (!out) return;
+    function show(hex, what) {
+      var hit = null;
+      ag.receipts.forEach(function (r) { if (!hit && String(r.obj.sha256).toLowerCase() === hex) hit = r; });
+      var line = '<div class="ag-mono ag-hash">' + esc(what) + ' · sha256 ' + esc(hex) + '</div>';
+      out.className = 'ag-result ' + (hit ? 'ag-match' : 'ag-nomatch');
+      out.innerHTML = hit
+        ? line + '<strong>Match.</strong> This agent recorded a receipt for it on ' + esc(fmtDateTime(hit.time)) +
+          (memoText(hit.obj.label, 80) ? ' (' + esc(memoText(hit.obj.label, 80)) + ')' : '') + ' · ' + txLink(hit.hash)
+        : line + '<strong>No receipt on this agent matches.</strong>';
+    }
+    function fail(msg) { out.className = 'ag-result ag-nomatch'; out.textContent = msg; }
+    function usable() {
+      if (window.crypto && crypto.subtle && window.TextEncoder) return true;
+      fail('This browser cannot compute SHA-256 on this page (it needs https or localhost).');
+      return false;
+    }
+    if (file) file.addEventListener('change', function () {
+      var f = file.files && file.files[0];
+      if (!f || !usable()) return;
+      if (f.size > 200 * 1024 * 1024) { fail('That file is larger than 200 MB — too big to hash in the page.'); return; }
+      if (f.arrayBuffer) f.arrayBuffer().then(sha256Hex).then(function (h) { show(h, f.name); }, function () { fail('Could not read that file.'); });
+      else fail('This browser cannot read files here.');
+    });
+    if (btn) btn.addEventListener('click', function () {
+      if (!text.value) { fail('Paste some text first, or choose a file.'); return; }
+      if (!usable()) return;
+      sha256Hex(new TextEncoder().encode(text.value)).then(function (h) { show(h, 'pasted text'); }, function () { fail('Could not hash that text.'); });
+    });
   }
 
   // ---------- counterparty aggregation ----------
@@ -1008,7 +1296,7 @@
   function renderStats(data, totalCp, price) {
     $('statIn').textContent = fmtBtc(data.fundedSum);
     $('statOut').textContent = fmtBtc(data.spentSum);
-    $('statTx').textContent = data.txCount.toLocaleString('en-US');
+    $('statTx').textContent = fmtTxCount(data);
     $('statInUsd').textContent = fmtUsd(data.fundedSum, price);
     $('statOutUsd').textContent = fmtUsd(data.spentSum, price);
     $('statCp').textContent = totalCp.toLocaleString('en-US');
@@ -1019,6 +1307,7 @@
       var dmin = fmtDate(min), dmax = fmtDate(max);
       var range = (dmin === dmax) ? dmin : (dmin + ' → ' + dmax);
       if (data.txs.length < data.txCount) range += ' (most recent ' + data.txs.length + ' of ' + data.txCount.toLocaleString('en-US') + ')';
+      else if (data.truncated) range += ' (most recent ' + data.txs.length + ')';
       $('statRange').textContent = range;
     } else {
       $('statRange').textContent = 'unconfirmed only';
@@ -1045,6 +1334,9 @@
         cp = shortAddr(t.counterparties[0].addr) + (t.counterparties.length > 1 ? ' +' + (t.counterparties.length - 1) + ' more' : '');
         badge = attribBadge(t.counterparties[0].addr); // v18: who owns it
       }
+      // v19: this tx was signed by the scanned account and carried an agent memo
+      if (t.memoKind === 'clothes') badge += '<span class="att att-clothes" title="Agent declaration signed by this account">CLOTHES</span>';
+      else if (t.memoKind === 'receipt') badge += '<span class="att att-receipt" title="Document receipt signed by this account">RECEIPT</span>';
       return '<tr>' +
         '<td>' + fmtDate(t.time) + '</td>' +
         '<td class="dir-' + t.direction + '">' + (t.direction === 'in' ? '↓ IN' : '↑ OUT') + '</td>' +
@@ -1059,6 +1351,9 @@
       // history than one fetch returns.
       rows += '<tr class="tx-locked-row"><td colspan="5">+ ' +
         more.toLocaleString('en-US') + ' earlier transactions on-chain \u2014 showing the ' +
+        shown.toLocaleString('en-US') + ' most recent</td></tr>';
+    } else if (data.truncated) {
+      rows += '<tr class="tx-locked-row"><td colspan="5">+ older transactions exist on the ledger \u2014 showing the ' +
         shown.toLocaleString('en-US') + ' most recent</td></tr>';
     }
     $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
@@ -1082,7 +1377,8 @@
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Total received</span><span class="val green">' + esc(fmtBtc(data.fundedSum)) + (price ? ' · ' + esc(fmtUsd(data.fundedSum, price)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Total sent</span><span class="val red">' + esc(fmtBtc(data.spentSum)) + (price ? ' · ' + esc(fmtUsd(data.spentSum, price)) : '') + '</span></div>' +
-      '<div class="r"><span class="k">Transactions</span><span class="val">' + data.txCount.toLocaleString('en-US') + '</span></div>' +
+      '<div class="r"><span class="k">Transactions</span><span class="val">' + fmtTxCount(data) + '</span></div>' +
+      (data.balance != null ? '<div class="r"><span class="k">Balance on ledger</span><span class="val">' + esc(fmtBtc(data.balance)) + '</span></div>' : '') +
       attribRows(curAddr) +
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
@@ -1572,12 +1868,16 @@
       showError(T('invalid'),
         /^0x/i.test(addr)
           ? 'That looks like an Ethereum address but isn\u2019t valid \u2014 it should be 0x followed by 40 hexadecimal characters. Copy it exactly, character for character.'
-          : 'Bitcoin addresses start with 1, 3, or bc1; Ethereum addresses start with 0x. Double-check the address you were given \u2014 copy it exactly, character for character.');
+          : /^r/.test(addr)
+          ? 'That looks like an XRP Ledger address but isn\u2019t valid \u2014 it should start with r and run 25 to 35 letters and numbers. Copy it exactly, character for character.'
+          : 'Bitcoin addresses start with 1, 3, or bc1; Ethereum addresses start with 0x; XRP Ledger addresses start with r. Double-check the address you were given \u2014 copy it exactly, character for character.');
       return;
     }
     // ETH-address scans are multi-asset (ETH + USDT + USDC), so amounts are
     // unified and displayed in USD (divisor 1; values arrive already in dollars).
     if (chain === 'eth') COIN = { chain: 'eth', ticker: 'USD', divisor: 1, usd: true };
+    // XRP Ledger: amounts are drops (1 XRP = 1,000,000 drops), shown as XRP, not USD
+    if (chain === 'xrp') COIN = { chain: 'xrp', ticker: 'XRP', divisor: 1e6, usd: false };
     curChain = chain; LEDGER_SENT = false;
 
     // OPERATOR full-trace view — ?full=1, but ONLY when served from localhost.
@@ -1595,8 +1895,8 @@
     if (unlock2) unlock2.href = curCheckout;
 
     Promise.all([
-      chain === 'eth' ? loadDataEth() : loadData(),
-      chain === 'eth' ? Promise.resolve(null) : loadPrice()
+      chain === 'eth' ? loadDataEth() : chain === 'xrp' ? loadDataXrp() : loadData(),
+      chain === 'btc' ? loadPrice() : Promise.resolve(null)
     ])
       .then(function (res) {
         var data = res[0], price = res[1];
@@ -1609,10 +1909,10 @@
             'Wait about a minute and PFLASH it again.');
           return;
         }
-        if (data.txCount === 0) {
+        if (data.txCount === 0 && !data.agent) {
           showError(T('noActivity'),
             'This address exists in a valid format but has never sent or received ' +
-            (COIN.chain === 'eth' ? 'ETH, USDT or USDC' : 'Bitcoin') + '. ' +
+            (COIN.chain === 'eth' ? 'ETH, USDT or USDC' : COIN.chain === 'xrp' ? 'XRP' : 'Bitcoin') + '. ' +
             'Double-check the address — many platforms issue a fresh address for each deposit. ' +
             'Try the address from your exchange/ATM receipt, or the wallet you sent funds FROM.');
           return;
@@ -1623,7 +1923,7 @@
         // Non-blocking and fail-open by construction: if the Commons is down,
         // absent, or slow, everything below renders exactly as it always has.
         try { if (window.PF_COMMONS) window.PF_COMMONS.run(COIN.chain, addr, data, cps); } catch (e) {}
-        setStatus(T('pflashDonePrefix') + data.txCount.toLocaleString('en-US') + T('pflashDoneSuffix'), true);
+        setStatus(T('pflashDonePrefix') + fmtTxCount(data) + T('pflashDoneSuffix'), true);
         $('results').style.display = 'block';
         // v12: stash the finished scan so the free PDF / paper view can be built on demand
         PDF_STATE = { data: data, cps: cps, price: price, addr: addr, chain: COIN.chain, ticker: COIN.ticker };
@@ -1631,7 +1931,9 @@
         // v10: one split decides what the system AND the table may reveal
         var split = paywallSplit(cps);
         LAST_SPLIT = split; // v18: attribution re-renders the table once labels land
+        if (COIN.chain === 'xrp') { try { renderAgentPanel(data); } catch (e) {} } // v19: AGENT ● ON THE RECORD (fail-open)
         renderStats(data, cps.length, price); // stats stay fully honest — totals are the hook
+        if (COIN.chain === 'xrp' && $('statId')) { $('statId').textContent = '\u2014'; $('statIdSub').textContent = 'no public labels for XRP yet'; } // v19: attribution doesn't run for XRP
         renderTable(data, split.unlockedSet);
         try {
           if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
@@ -1642,8 +1944,8 @@
       })
       .catch(function (err) {
         if (String(err).indexOf('HTTP 400') !== -1 || String(err).indexOf('HTTP 404') !== -1) {
-          showError('That address isn\u2019t recognized on the ' + (COIN.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + ' network.',
-            (COIN.chain === 'eth'
+          showError('That address isn\u2019t recognized on the ' + chainName(COIN.chain) + (COIN.chain === 'xrp' ? '.' : ' network.'),
+            (COIN.chain === 'eth' || COIN.chain === 'xrp'
               ? 'Check for typos — copy it exactly from your wallet, your receipt, or the platform that gave it to you.'
               : 'Check for typos — addresses are case-sensitive after "bc1". Copy it exactly from your wallet, your receipt, or the platform that gave it to you.'));
         } else {
@@ -1752,7 +2054,7 @@
 
     doc.setTextColor(ink[0], ink[1], ink[2]);
     doc.setFont('courier', 'bold'); doc.setFontSize(11);
-    doc.text('Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '):', 40, 146);
+    doc.text('Scanned wallet (' + chainName(st.chain) + '):', 40, 146);
     doc.setFont('courier', 'normal'); doc.setFontSize(10);
     doc.text(st.addr, 40, 162, { maxWidth: W - 80 });
 
@@ -1781,10 +2083,11 @@
       body: [
         ['Total received', pdfSafe(fmtBtc(d.fundedSum) + (priceOk ? '   (' + fmtUsd(d.fundedSum, st.price) + ')' : ''))],
         ['Total sent out', pdfSafe(fmtBtc(d.spentSum) + (priceOk ? '   (' + fmtUsd(d.spentSum, st.price) + ')' : ''))],
-        ['Transactions on-chain', d.txCount.toLocaleString('en-US')],
+        ['Transactions on-chain', fmtTxCount(d)],
+      ].concat(d.balance != null ? [['Balance on ledger', pdfSafe(fmtBtc(d.balance))]] : []).concat([
         ['Counterparties (first hop)', String(st.cps.length)],
         ['Activity window', range]
-      ],
+      ]),
       styles: { fontSize: 9, cellPadding: 5 },
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 170 } }
     }));
@@ -1929,6 +2232,7 @@
       var mn = Math.min.apply(null, times), mx = Math.max.apply(null, times);
       range = fmtDate(mn) + (fmtDate(mn) === fmtDate(mx) ? '' : ' \u2192 ' + fmtDate(mx));
       if (d.txs.length < d.txCount) range += ' (most recent ' + d.txs.length + ' of ' + d.txCount.toLocaleString('en-US') + ')';
+      else if (d.truncated) range += ' (most recent ' + d.txs.length + ')';
     }
     function row(k, v) { return '<div class="pd-row"><span class="pd-k">' + k + '</span><span class="pd-v">' + v + '</span></div>'; }
     var cpRows = st.cps.map(function (c, i) {
@@ -1949,11 +2253,12 @@
           '<button class="btn primary" id="pdfBtn" type="button">\u2b07 Don\u2019t Forget! Take Your Pflash With You!</button>' +
         '</div>' +
         '<div class="pd-epigraph">' + PDF_EPIGRAPH + '</div>' +
-        '<div class="pd-wallet">Scanned wallet (' + (st.chain === 'eth' ? 'Ethereum' : 'Bitcoin') + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +
+        '<div class="pd-wallet">Scanned wallet (' + chainName(st.chain) + '): <span class="pd-addr">' + esc(st.addr) + '</span></div>' +
         '<div class="pd-section">SUMMARY</div>' +
         row('Total received', esc(fmtBtc(d.fundedSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.fundedSum, st.price)) + '</span>' : '')) +
         row('Total sent out', esc(fmtBtc(d.spentSum)) + (priceOk ? ' <span class="pd-usd">' + esc(fmtUsd(d.spentSum, st.price)) + '</span>' : '')) +
-        row('Transactions on-chain', d.txCount.toLocaleString('en-US')) +
+        row('Transactions on-chain', fmtTxCount(d)) +
+        (d.balance != null ? row('Balance on ledger', esc(fmtBtc(d.balance))) : '') +
         row('Counterparties (first hop)', String(st.cps.length)) +
         row('Identified counterparties', idedN + ' of ' + st.cps.length + (idedN ? '' : ' \u2014 no public labels')) +
         row('Activity window', esc(range)) +

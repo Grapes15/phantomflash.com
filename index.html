@@ -81,7 +81,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
 .seednote{margin-top:10px;font-size:13px;color:#9fb7c6;text-align:center;max-width:620px;margin-left:auto;margin-right:auto}
 @media(max-width:640px){ .trustline{gap:10px 16px;font-size:12px} }
 </style>
-<script src="assets/i18n.js?v=20260821a" defer></script>
+<script src="assets/i18n.js?v=20261016a" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
@@ -137,11 +137,11 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
         <div class="sun-dock-label" id="sunDockLabel">Drop your wallet address into the sun</div>
         <form class="scan-box sun-box" id="scanForm" autocomplete="off">
           <input type="text" id="addrInput" inputmode="text" spellcheck="false"
-                 placeholder="Paste a wallet address — BTC (bc1q…, 1A1z…) or ETH (0x…)" aria-label="Bitcoin or Ethereum address">
+                 placeholder="Paste a wallet address — BTC (bc1q…, 1A1z…), ETH (0x…) or XRP (r…)" aria-label="Bitcoin, Ethereum or XRP address">
           <button class="btn primary" type="submit">PFLASH IT ⚡</button>
         </form>
         <div class="scan-error" id="scanError"></div>
-        <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, USDT &amp; USDC</div>
+        <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, XRP, USDT &amp; USDC</div>
         <div class="scan-ledger-note">🔗 Every wallet you scan strengthens the Phantom Flash tracing network.</div>
         <p class="seednote" id="seedNote">We read public blockchains only. <strong>We will never ask for your seed phrase or private keys.</strong></p>
         <div class="trustline" id="trustLine">
@@ -301,7 +301,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
     <div class="faq-list">
       <details class="faq-item" open>
         <summary>What do I put in the box?</summary>
-        <p>A wallet address — a long code that works like an account number. It looks like <span class="faq-code">bc1qxy2kgdyg…</span> or <span class="faq-code">1A1zP1…</span> or <span class="faq-code">3J98t1…</span> (Bitcoin), or <span class="faq-code">0x71C765…</span> (Ethereum). Paste it in, hit PFLASH IT, and you'll see everywhere that address's money went.</p>
+        <p>A wallet address — a long code that works like an account number. It looks like <span class="faq-code">bc1qxy2kgdyg…</span> or <span class="faq-code">1A1zP1…</span> or <span class="faq-code">3J98t1…</span> (Bitcoin), <span class="faq-code">0x71C765…</span> (Ethereum), or <span class="faq-code">rJWiym22…</span> (XRP). Paste it in, hit PFLASH IT, and you'll see everywhere that address's money went.</p>
       </details>
       <details class="faq-item">
         <summary>Whose address can I put in?</summary>
@@ -329,7 +329,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
       </details>
       <details class="faq-item">
         <summary>Which coins does it work with?</summary>
-        <p>Bitcoin and Ethereum, including the USDT and USDC stablecoins on Ethereum — which is how a lot of money travels these days.</p>
+        <p>Bitcoin, Ethereum and the XRP Ledger, including the USDT and USDC stablecoins on Ethereum — which is how a lot of money travels these days.</p>
       </details>
       <details class="faq-item">
         <summary>It says “no activity” — did I do it wrong?</summary>
@@ -396,10 +396,11 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   // light client-side sanity check; scan.html does full validation against the API
   var isEth = /^0x[0-9a-fA-F]{40}$/.test(addr);
   var isBtc = /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr);
-  if(!isEth && !isBtc){
+  var isXrp = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(addr);
+  if(!isEth && !isBtc && !isXrp){
     err.textContent = /^0x/i.test(addr)
       ? 'That looks like an Ethereum address but isn\u2019t valid \u2014 it should be 0x followed by 40 hex characters.'
-      : 'That doesn\u2019t look like a Bitcoin (1, 3, bc1\u2026) or Ethereum (0x\u2026) address.';
+      : 'That doesn\u2019t look like a Bitcoin (1, 3, bc1\u2026), Ethereum (0x\u2026) or XRP (r\u2026) address.';
     return;
   }
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);

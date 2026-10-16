@@ -219,6 +219,9 @@
    */
   function run(chain, subject, data, cps) {
     if (!API) return;
+    // v19: the Commons API only knows btc|eth. XRP scans stay out of the shared
+    // map entirely (no attribution, no gate, no contribute) — nothing to error on.
+    if (chain === 'xrp') return;
     try {
       // ATTRIBUTION — independent of the gate, never blocks the universe.
       // scan.js registers PF_ATTRIB_APPLY and decorates whatever is on screen.

@@ -80,17 +80,40 @@
   .pf-tilt,.pf-badge,.pf-tray,.pf-disc{transition:none!important}
 }
 
-/* 3D noir ink render (assets/stage3d.js): the cyan turntable disc stays; the 2D card gives way to the canvas */
-.pf-3d{position:absolute;inset:0;z-index:1;visibility:hidden;pointer-events:none}
-.pf-fig.pf-has-3d .pf-3d{visibility:visible;pointer-events:auto}
-.pf-fig.pf-has-3d .pf-scene{display:block}
-.pf-fig.pf-has-3d .pf-tilt{display:none}
-.pf-fig.pf-has-3d #pfModel{display:none}
-.pf-fig.pf-has-3d{cursor:grab;
+/* noir turnaround (assets/stage2d.js; the three.js render in stage3d.js is kept in the repo but not loaded):
+   the cyan turntable disc stays; the 2D card gives way to the drawn frames, which stand on the disc */
+/* no z-index on .pf-2d: it must not form its own stacking context, or the frames could not blend with the disc beneath them */
+.pf-2d{position:absolute;inset:0;visibility:hidden;pointer-events:none;touch-action:pan-y}
+.pf-fig.pf-has-2d .pf-2d{visibility:visible;pointer-events:auto}
+/* the frames' near-black ground is lightened against the backdrop (disc and red halo show through) and feathered at the edges */
+.pf-2d-stack{position:absolute;isolation:isolate;mix-blend-mode:lighten;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent),linear-gradient(180deg,transparent,#000 3%,#000 97%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent),linear-gradient(180deg,transparent,#000 3%,#000 97%,transparent);
+  -webkit-mask-composite:source-in;mask-composite:intersect}
+.pf-2d-stack img{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.pf-fig.pf-has-2d .pf-scene{display:block}
+.pf-fig.pf-has-2d .pf-tilt{display:none}
+.pf-fig.pf-has-2d{cursor:grab;
   background:radial-gradient(ellipse 46% 52% at 50% 44%,rgba(190,24,24,.22),rgba(60,6,8,.12) 60%,rgba(0,0,0,0) 78%),linear-gradient(180deg,#0b0809,#040304)}
-.pf-fig.pf-has-3d .pf-hint{z-index:2}
-/* in 3D mode the disc sits at the foot of the (possibly tall) stage so the figure can use the full height */
-.pf-fig.pf-has-3d .pf-scene{perspective-origin:50% calc(100% - 150px)}
-.pf-fig.pf-has-3d .pf-disc{top:auto;bottom:-60px}
-@media (max-width:600px){.pf-fig.pf-has-3d .pf-disc{top:auto;bottom:-70px}.pf-fig.pf-has-3d .pf-scene{perspective-origin:50% calc(100% - 90px)}}
+.pf-fig.pf-has-2d.pf-grab{cursor:grabbing}
+.pf-fig.pf-has-2d .pf-hint{z-index:2}
+/* the disc sits at the foot of the (possibly tall) stage so the figure can use the full height */
+.pf-fig.pf-has-2d .pf-scene{perspective-origin:50% calc(100% - 150px)}
+.pf-fig.pf-has-2d .pf-disc{top:auto;bottom:-60px}
+@media (max-width:600px){.pf-fig.pf-has-2d .pf-disc{top:auto;bottom:-70px}.pf-fig.pf-has-2d .pf-scene{perspective-origin:50% calc(100% - 90px)}}
 .pf-amber{color:var(--amber);font-weight:500;letter-spacing:.04em}
+
+/* STAGE TWO (agents.html#atlas): same stage classes as stage one, so only the section frame and the no-model states live here */
+section.block#the-agent{padding-bottom:20px}
+section.block#atlas{padding:34px 20px 54px;scroll-margin-top:72px}
+.pf-subline{margin:0;font-size:13.5px;letter-spacing:.04em;color:var(--muted)}
+.pf-soon-txt{display:none;position:absolute;left:0;right:0;top:42%;z-index:1;text-align:center;pointer-events:none;
+  font-family:var(--sans);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted2)}
+.pf-fig.pf-soon .pf-soon-txt{display:block}
+.pf-fig.pf-soon{cursor:default}
+.pf-fig.pf-soon .pf-hint,.pf-fig.pf-has-2d .pf-soon-txt{display:none}
+@media (max-width:600px){
+  section.block#atlas{padding:26px 16px 42px}
+  .pf-soon-txt{top:48%}
+}
+#atlas .pf-owner{margin-top:16px}

@@ -1,6 +1,9 @@
-/* agents.html stage: noir ink render of assets/pflash.glb (three.js, toon bands + inverted-hull ink + red rim).
-   Exposes window.PF3D.start(opts) -> Promise<{setPaused, dispose}>. three.js is imported lazily so a CDN failure
-   rejects the promise and stage.js falls back to <model-viewer>. No postprocessing: 2 draws per mesh. */
+/* agents.html stages: noir ink render of a GLB (three.js, toon bands + inverted-hull ink + red rim).
+   Exposes window.PF3D.mount(figEl, glbUrl, extra?) and window.PF3D.start(opts), both -> Promise<{setPaused, dispose}>.
+   Every call builds its own renderer, scene, lights, materials and observers (nothing shared but the imported three.js
+   modules), so any number of turntables can live on one page; each pauses its own rendering while off-screen.
+   three.js is imported lazily so a CDN failure rejects the promise and the caller falls back.
+   No postprocessing: 2 draws per mesh. */
 (function(){
   'use strict';
   var DRACO = 'https://www.gstatic.com/draco/versioned/decoders/1.5.6/';
@@ -202,7 +205,7 @@
     function run(){ var want = visible && !document.hidden && !lost; if(want && !running){ running = true; last = performance.now(); raf = requestAnimationFrame(frame); } else if(!want && running){ running = false; cancelAnimationFrame(raf); } }
     var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(es){ visible = es[es.length - 1].isIntersecting; run(); }) : null;
     if(io) io.observe(fig);
-    document.addEventListener('visibilitychange', run);
+    document.addEventListener('visibilitychange', run);   /* removed in dispose() */
     var ro = ('ResizeObserver' in window) ? new ResizeObserver(function(){ fit(); }) : null;
     if(ro) ro.observe(fig); else window.addEventListener('resize', fit);
     canvas.addEventListener('webglcontextlost', function(e){ e.preventDefault(); lost = true; run(); if(opts.onLost) opts.onLost(); });
@@ -211,14 +214,24 @@
     run();
 
     var api = {
-      THREE: THREE, scene: scene, camera: camera, controls: controls, uniforms: U, lights: { key: key, rimL: rimL, rimR: rimR }, fit: fit,
+      fig: fig, THREE: THREE, scene: scene, camera: camera, controls: controls, uniforms: U, lights: { key: key, rimL: rimL, rimR: rimR }, fit: fit,
       setPaused: function(p){ externalPause = !!p; applySpin(); },
-      dispose: function(){ running = false; cancelAnimationFrame(raf); if(io) io.disconnect(); if(ro) ro.disconnect(); renderer.dispose(); canvas.remove(); }
+      dispose: function(){ var ix = window.PF3D.instances.indexOf(api); if(ix >= 0) window.PF3D.instances.splice(ix, 1); running = false; lost = true; cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', run); if(io) io.disconnect(); if(ro) ro.disconnect(); else window.removeEventListener('resize', fit); clearTimeout(cool); renderer.dispose(); canvas.remove(); }
     };
-    window.PF3D.last = api;
+    window.PF3D.instances.push(api);   /* live instances in mount order; also handy for debugging */
     return api;
   }
 
-  window.PF3D = { start: start };
+  /* mount(fig, url, extra): fig is the .pf-fig container; its .pf-3d child hosts the canvas and its .pf-disc child
+     marks where the feet land. `extra` is merged over the defaults (onLost, tint, spin, ...). */
+  function mount(fig, url, extra){
+    var host = fig.querySelector('.pf-3d');
+    if(!host) return Promise.reject(new Error('no .pf-3d host in figure'));
+    var o = { host: host, fig: fig, disc: fig.querySelector('.pf-disc'), url: url };
+    for(var k in (extra || {})) if(Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k];
+    return start(o);
+  }
+
+  window.PF3D = { start: start, mount: mount, instances: [] };
   document.dispatchEvent(new Event('pf3d-ready'));
 })();

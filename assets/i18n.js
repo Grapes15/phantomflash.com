@@ -15,7 +15,7 @@
   D.en = {
     metaIndex: `This is the field. You can follow your agents in the field. Paste any address on BTC, ETH, or XRP and see every wallet it touched, free, in seconds. Click a transaction, follow the money hop by hop, and leave the field charted for the next person.`,
     metaScan: `A live on-chain scan drawn as an interactive 3D system in the field: the address at the center, every wallet it dealt with in orbit around it. Free, in seconds.`,
-    titleIndex: `Phantom Flash — This is the field. Follow it.`,
+    titleIndex: `Phantom Flash — Trace the field.`,
     titleScan: `The field — Phantom Flash`,
     navHow: `How it works`, navFree: `Free PFLASH`, navHome: `Home`,
     eyebrow: `⚡ Owlchained — Public Ledgers, Drawn as a Field`,

@@ -1025,7 +1025,11 @@
     var cur = ag.current, o = cur.obj;
     var fp = /^[0-9a-fA-F]{64}$/.test(String(o.rules_sha256 || '')) ? String(o.rules_sha256).toLowerCase() : null;
     var rules = memoText(o.rules, 140) || memoText(o.v, 40) || '—';
-    var rulesLine = esc(rules) + (o.v && memoText(o.rules, 140) ? ' <span class="ag-dim">(' + esc(memoText(o.v, 40)) + ')</span>' : '');
+    // Rules row links to the published standard: a rules_url in the memo wins; Daniel's Rules default to irwinlawmn.com.
+    var rulesUrl = /^https:\/\/[^\s"'<>]+$/.test(String(o.rules_url || '')) ? String(o.rules_url)
+      : (/daniel'?s rules/i.test(rules) ? 'https://irwinlawmn.com/rules.html' : null);
+    var rulesLine = (rulesUrl ? '<a href="' + esc(rulesUrl) + '" target="_blank" rel="noopener">' + esc(rules) + '</a>' : esc(rules)) +
+      (o.v && memoText(o.rules, 140) ? ' <span class="ag-dim">(' + esc(memoText(o.v, 40)) + ')</span>' : '');
     var earlier = ag.earlier.length;
     var earlierHtml = earlier
       ? '<div class="ag-k">Correction trail</div><div class="ag-v">' + earlier + ' earlier declaration' + (earlier === 1 ? '' : 's') + ', superseded' +
@@ -1072,62 +1076,13 @@
         (rcRows
           ? '<div class="tx-table-wrap"><table class="tx ag-table"><thead><tr><th>Date (UTC)</th><th>Fingerprint (sha256)</th><th>Label</th><th>Counterparty</th><th>Tx</th></tr></thead><tbody>' + rcRows + '</tbody></table></div>'
           : '<p class="ag-empty">No receipts on this agent’s record yet.</p>') +
-        '<h3 class="ag-sub">Verify a document</h3>' +
-        '<div class="ag-verify">' +
-          '<label class="ag-file">Choose a file <input type="file" id="agFile"></label>' +
-          '<textarea id="agText" rows="3" placeholder="…or paste text here" spellcheck="false" aria-label="Text to check"></textarea>' +
-          '<button class="btn ghost" id="agCheck" type="button">Check text</button>' +
-          '<div class="ag-result" id="agResult" role="status" aria-live="polite">Hashed in your browser with SHA-256. Nothing is uploaded.</div>' +
-        '</div>' +
         '<p class="ag-note">' + (ag.truncated ? 'Only this account\u2019s most recent transactions were searched for memos; older history was not. ' : '') +
           'This is the account’s own declaration. The ledger proves this key signed it; it does not prove who controls the key.</p>' +
       '</section>';
     var wrap = document.createElement('div'); wrap.innerHTML = html;
     var first = host.querySelector('.stat-row');
     if (first) host.insertBefore(wrap.firstChild, first); else host.insertBefore(wrap.firstChild, host.firstChild);
-    wireAgentVerify(ag);
     showAgentPortrait(addr, agentName);
-  }
-
-  function sha256Hex(buf) {
-    return crypto.subtle.digest('SHA-256', buf).then(function (d) {
-      var b = new Uint8Array(d), s = '';
-      for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
-      return s;
-    });
-  }
-
-  function wireAgentVerify(ag) {
-    var out = $('agResult'), file = $('agFile'), text = $('agText'), btn = $('agCheck');
-    if (!out) return;
-    function show(hex, what) {
-      var hit = null;
-      ag.receipts.forEach(function (r) { if (!hit && String(r.obj.sha256).toLowerCase() === hex) hit = r; });
-      var line = '<div class="ag-mono ag-hash">' + esc(what) + ' · sha256 ' + esc(hex) + '</div>';
-      out.className = 'ag-result ' + (hit ? 'ag-match' : 'ag-nomatch');
-      out.innerHTML = hit
-        ? line + '<strong>Match.</strong> This agent recorded a receipt for it on ' + esc(fmtDateTime(hit.time)) +
-          (memoText(hit.obj.label, 80) ? ' (' + esc(memoText(hit.obj.label, 80)) + ')' : '') + ' · ' + txLink(hit.hash)
-        : line + '<strong>No receipt on this agent matches.</strong>';
-    }
-    function fail(msg) { out.className = 'ag-result ag-nomatch'; out.textContent = msg; }
-    function usable() {
-      if (window.crypto && crypto.subtle && window.TextEncoder) return true;
-      fail('This browser cannot compute SHA-256 on this page (it needs https or localhost).');
-      return false;
-    }
-    if (file) file.addEventListener('change', function () {
-      var f = file.files && file.files[0];
-      if (!f || !usable()) return;
-      if (f.size > 200 * 1024 * 1024) { fail('That file is larger than 200 MB — too big to hash in the page.'); return; }
-      if (f.arrayBuffer) f.arrayBuffer().then(sha256Hex).then(function (h) { show(h, f.name); }, function () { fail('Could not read that file.'); });
-      else fail('This browser cannot read files here.');
-    });
-    if (btn) btn.addEventListener('click', function () {
-      if (!text.value) { fail('Paste some text first, or choose a file.'); return; }
-      if (!usable()) return;
-      sha256Hex(new TextEncoder().encode(text.value)).then(function (h) { show(h, 'pasted text'); }, function () { fail('Could not hash that text.'); });
-    });
   }
 
   // ---------- counterparty aggregation ----------

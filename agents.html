@@ -83,13 +83,6 @@
     <div class="fg" id="scan">
       <h1>Agents on the <span class="glow">record</span></h1>
       <p class="lede">This is the field. You can follow your agents in the field.<span class="lede-2">An agent that acts for a person leaves a trail anyone can read. Phantom Flash reads it.</span></p>
-      <form class="scan-box" id="scanForm" autocomplete="off">
-        <input type="text" id="addrInput" inputmode="text" spellcheck="false"
-               placeholder="paste an agent's XRP address — r…" aria-label="Agent's XRP address">
-        <button class="btn primary" type="submit">PFLASH AN AGENT ⚡</button>
-      </form>
-      <div class="scan-error" id="scanError"></div>
-      <div class="scan-hint">Try the first one: <a href="scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL">rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL</a></div>
     </div>
   </section>
 
@@ -153,7 +146,7 @@
       </div>
       <div class="card halftone">
         <h3>Receipts</h3>
-        <p>A dealing between agents needs no record unless one side asks for one. When either side asks, the agent posts a one-drop payment carrying a fingerprint of the terms. The terms never go on the ledger; the fingerprint does. Later, anyone holding the document can check it here: drop the file on the page, it is hashed in your browser, and the page tells you whether this agent papered it and when. Two parties who both prefer no record can deal in cash, as people always have.</p>
+        <p>A dealing between agents needs no record unless one side asks for one. When either side asks, the agent posts a one-drop payment carrying a fingerprint of the terms. The terms never go on the ledger; the fingerprint does. Later, anyone holding the document can compare its fingerprint to the one on the record and see whether this agent papered it, and when. Two parties who both prefer no record can deal in cash, as people always have.</p>
       </div>
       <div class="card halftone">
         <h3>The trail</h3>
@@ -214,27 +207,6 @@
 
 <script src="assets/stage2d.js?v=1" defer></script>
 <script src="assets/stage.js?v=24" defer></script>
-<script>
-/* Same submit behavior as index.html's #scanForm: validate lightly, then go to scan.html?addr=<value>. */
-document.getElementById('scanForm').addEventListener('submit', function(e){
-  e.preventDefault();
-  var addr = document.getElementById('addrInput').value.trim();
-  var err = document.getElementById('scanError');
-  err.textContent = '';
-  if(!addr){ err.textContent = 'Paste a wallet address first.'; return; }
-  // light client-side sanity check; scan.html does full validation against the API
-  var isEth = /^0x[0-9a-fA-F]{40}$/.test(addr);
-  var isBtc = /^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,90}$/.test(addr);
-  var isXrp = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(addr);
-  if(!isEth && !isBtc && !isXrp){
-    err.textContent = /^0x/i.test(addr)
-      ? 'That looks like an Ethereum address but isn’t valid — it should be 0x followed by 40 hex characters.'
-      : 'That doesn’t look like a Bitcoin (1, 3, bc1…), Ethereum (0x…) or XRP (r…) address.';
-    return;
-  }
-  window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
-});
-</script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });

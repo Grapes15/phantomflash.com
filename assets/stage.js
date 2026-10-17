@@ -155,7 +155,7 @@
     applyOpen();
   }
 
-  var FALLBACK = { agent:'Phantom Flash', answersTo:'Dan Irwin', dest:'', bar:'0395439', rules:'v0.5',
+  var FALLBACK = { agent:'Phantom Flash', answersTo:'Dan Irwin', dest:'', bar:'0395439', rules:'v0.6',
                    sha:'850beb…', receipts:'0', declared:'2026-10-16', hash:'' };
 
   function parseLedger(res){

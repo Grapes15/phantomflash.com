@@ -137,7 +137,7 @@
     if(d.dest) ans += ' ' + link('https://livenet.xrpl.org/accounts/' + encodeURIComponent(d.dest), shortAddr(d.dest), 'pf-mono');
     h += row('Answers to', ans);
     h += row('Lawyer', esc(d.answersTo || 'Dan Irwin') + ' <span class="pf-muted">· Minnesota bar no. ' + esc(d.bar) + '</span>');
-    h += row('Rules', link('https://irwinlawmn.com/rules.html', d.rules));
+    h += row('Rules', esc(d.rules));
     var fp = d.sha || '';
     var fpShort = fp.length > 10 ? fp.slice(0, 10) + '…' : fp;
     h += row('Fingerprint', '<span class="pf-mono" title="' + esc(fp) + '">' + esc(fpShort) + '</span>');

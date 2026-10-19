@@ -1027,7 +1027,7 @@
     var rules = memoText(o.rules, 140) || memoText(o.v, 40) || '—';
     // Rules row links to the published standard: a rules_url in the memo wins; Daniel's Rules default to irwinlawmn.com.
     var rulesUrl = /^https:\/\/[^\s"'<>]+$/.test(String(o.rules_url || '')) ? String(o.rules_url)
-      : (/(daniel|irwin)'?s rules/i.test(rules) ? 'https://irwinlawmn.com/rules.html' : null);
+      : null;
     var rulesLine = (rulesUrl ? '<a href="' + esc(rulesUrl) + '" target="_blank" rel="noopener">' + esc(rules) + '</a>' : esc(rules)) +
       (o.v && memoText(o.rules, 140) ? ' <span class="ag-dim">(' + esc(memoText(o.v, 40)) + ')</span>' : '');
     var earlier = ag.earlier.length;

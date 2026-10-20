@@ -347,7 +347,7 @@
       if(x==='Free PFLASH') a.textContent=t('navFree');
       if(x==='Home') a.textContent=t('navHome');
     });
-    document.querySelectorAll('.site-footer .legal p:first-of-type').forEach(function(p){ p.textContent = t('disclaimer'); });
+    document.querySelectorAll('.site-footer .legal p.disclaimer').forEach(function(p){ p.textContent = t('disclaimer'); });
     document.querySelectorAll('.site-footer .legal').forEach(function(f){
       if (f.querySelector('.footer-social')) return;
       var s = document.createElement('p');

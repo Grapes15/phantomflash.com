@@ -28,7 +28,7 @@
 <link rel="alternate" hreflang="pt" href="https://phantomflash.com/?lang=pt">
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
-<link rel="stylesheet" href="assets/style.css?v=20261020c">
+<link rel="stylesheet" href="assets/style.css?v=20261020d">
 <style id="peach-theme">
 /* ===== PEACH DAYLIGHT THEME — same artwork, same fonts, warm palette =====
    Palette ported from Sable's reviewed mockup (mockup-recolor / mockup-peach).
@@ -142,6 +142,12 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
           <button class="btn primary" type="submit">PFLASH IT ⚡</button>
         </form>
         <div class="scan-error" id="scanError"></div>
+        <div class="try-one"><span class="try-label">No address handy? Try one:</span>
+          <a class="try-pill" href="scan.html?addr=1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" title="The Bitcoin genesis address, mined by Satoshi Nakamoto in January 2009">Satoshi's first Bitcoin address</a>
+          <a class="try-pill" href="scan.html?addr=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" title="vitalik.eth, Vitalik Buterin's public Ethereum address">Vitalik Buterin (vitalik.eth)</a>
+          <a class="try-pill" href="scan.html?addr=rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh" title="The XRP Ledger genesis account, the wallet that issued all XRP in 2012">The wallet that issued all XRP</a>
+          <a class="try-pill" href="scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL" title="Phantom Flash, agent no. 1.1, on the record">Pflash, an AI agent</a>
+        </div>
         <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, XRP, USDT &amp; USDC</div>
         <div class="scan-ledger-note">🔗 Every address you scan charts the field for the next visitor.</div>
         <p class="seednote" id="seedNote">We read public blockchains only. <strong>We will never ask for your seed phrase or private keys.</strong></p>

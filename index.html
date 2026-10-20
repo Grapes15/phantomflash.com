@@ -28,7 +28,7 @@
 <link rel="alternate" hreflang="pt" href="https://phantomflash.com/?lang=pt">
 <link rel="alternate" hreflang="fr" href="https://phantomflash.com/?lang=fr">
 <link rel="alternate" hreflang="de" href="https://phantomflash.com/?lang=de">
-<link rel="stylesheet" href="assets/style.css?v=20261020e">
+<link rel="stylesheet" href="assets/style.css?v=20261020f">
 <style id="peach-theme">
 /* ===== PEACH DAYLIGHT THEME — same artwork, same fonts, warm palette =====
    Palette ported from Sable's reviewed mockup (mockup-recolor / mockup-peach).
@@ -81,7 +81,7 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
 .seednote{margin-top:10px;font-size:13px;color:#9fb7c6;text-align:center;max-width:620px;margin-left:auto;margin-right:auto}
 @media(max-width:640px){ .trustline{gap:10px 16px;font-size:12px} }
 </style>
-<script src="assets/i18n.js?v=20261020a" defer></script>
+<script src="assets/i18n.js?v=20261020b" defer></script>
 <script src="https://unpkg.com/3d-force-graph@1.80.0/dist/3d-force-graph.min.js" integrity="sha384-Y7bC2PBKu8ujxtvo5+Z61OeGdSVRzFsYWBK4i5dnL/U6aFDTodk61qOUkTfInaxS" crossorigin="anonymous"></script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7J7GQM0MVP"></script>
@@ -108,8 +108,8 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
 
 <main>
   <!-- HERO v10 — THE FIELD IS THE HOMEPAGE -->
-  <!-- Live demo solar system, auto-orbiting on load. ALL DEMO DATA IS
-       FICTIONAL (wallet "DEMO") — built in assets/scan.js runDemo(). -->
+  <!-- The hero system, auto-orbiting on load: the VERIFICATION WALLET's real
+       first hop on the XRP Ledger, read live (assets/scan.js runLive()). -->
   <section class="hero hero-demo">
     <div class="bg"></div>
     <div class="fg" id="scan">
@@ -120,11 +120,12 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
       </p>
     </div>
 
-    <!-- LIVE DEMO SYSTEM + sun-docked wallet input -->
+    <!-- THE VERIFICATION WALLET SYSTEM + sun-docked wallet input -->
     <div class="demo-stage" id="demoStage">
-      <div class="demo-badge" id="demoBadge">● LIVE DEMO — a fictional wallet and the field around it. Now paste an address:</div>
+      <div class="demo-badge" id="demoBadge">● THE VERIFICATION WALLET — live. Send any amount here from the wallet you want on the record, and it appears. Or paste an address:</div>
       <div class="controls-hint demo-hint-controls">drag to rotate · scroll to zoom · click a wallet for details</div>
       <div id="graph3d" style="position:absolute;inset:0"></div>
+      <div class="vw-hint" id="vwHint" style="display:none">Nothing has arrived yet. Be the first.</div>
 
       <!-- node info card (same machinery as the scan page) -->
       <div class="node-card" id="nodeCard">
@@ -149,6 +150,13 @@ body::after{ background-image:radial-gradient(rgba(43,29,20,.05) 1px, transparen
           <a class="try-pill" href="scan.html?addr=rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL" title="Phantom Flash, agent no. 1.1, on the record">Pflash, an AI agent</a>
         </div>
         <div class="scan-hint" style="font-size:16px;font-weight:700;color:#dbeafe;letter-spacing:.01em">Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, XRP, USDT &amp; USDC</div>
+        <div class="vw-box" id="vwBox">
+          <div class="vw-row">
+            <code class="vw-addr" id="vwAddr">rHuT5c4KNen7PWbhH5WjDRcYtUdxv5uxFF</code>
+            <button type="button" class="btn ghost vw-copy" id="vwCopy" aria-label="Copy the verification wallet address">copy</button>
+          </div>
+          <div class="vw-note">Anything sent here is kept by Phantom Flash. Send dust; the record is the point.</div>
+        </div>
         <div class="scan-ledger-note">🔗 Every address you scan charts the field for the next visitor.</div>
         <p class="seednote" id="seedNote">We read public blockchains only. <strong>We will never ask for your seed phrase or private keys.</strong></p>
         <div class="trustline" id="trustLine">
@@ -417,7 +425,33 @@ document.getElementById('scanForm').addEventListener('submit', function(e){
   window.location.href = 'scan.html?addr=' + encodeURIComponent(addr);
 });
 </script>
-<script src="assets/scan.js?v=20261020d"></script>
+<script>
+/* copy the verification wallet address (navigator.clipboard, with a selection fallback) */
+(function(){
+  var btn=document.getElementById('vwCopy'), a=document.getElementById('vwAddr');
+  if(!btn||!a) return;
+  var t=0;
+  function done(ok){
+    btn.textContent = ok ? 'copied \u2713' : 'press Ctrl/Cmd+C';
+    btn.classList.toggle('copied', ok);
+    clearTimeout(t); t=setTimeout(function(){ btn.textContent='copy'; btn.classList.remove('copied'); }, 2200);
+  }
+  function fallback(){
+    try{
+      var r=document.createRange(); r.selectNodeContents(a);
+      var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      done(!!document.execCommand && document.execCommand('copy'));
+    }catch(e){ done(false); }
+  }
+  btn.addEventListener('click', function(){
+    var v=a.textContent.trim();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(v).then(function(){ done(true); }, fallback);
+    } else fallback();
+  });
+})();
+</script>
+<script src="assets/scan.js?v=20261020e"></script>
 <script>
 /* GA4 key-event wiring */
 (function(){

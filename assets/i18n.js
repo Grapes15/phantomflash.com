@@ -21,7 +21,7 @@
     eyebrow: `⚡ Owlchained — Public Ledgers, Drawn as a Field`,
     hero: `Trace the <span class="glow">field.</span>`,
     lede: `Paste an address. See everything it touched. Follow any hop. <strong>Free.</strong>`,
-    demoBadge: `● LIVE DEMO — a fictional wallet and the field around it. Now paste an address:`,
+    demoBadge: `● THE VERIFICATION WALLET — live. Send any amount here from the wallet you want on the record, and it appears. Or paste an address:`,
     sunDockLabel: `Drop any wallet address into the sun`,
     addrPlaceholder: `Paste a wallet address — BTC (bc1q…, 1A1z…), ETH (0x…) or XRP (r…)`, pflashButton: `PFLASH IT ⚡`,
     hint1: `Free instant PFLASH · live blockchain data · no account needed · Bitcoin, Ethereum, XRP, USDT & USDC`,

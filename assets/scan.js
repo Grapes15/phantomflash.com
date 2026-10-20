@@ -17,8 +17,8 @@
    with a rotating ring, spotlight and name plate. Each planet
    also gets a deterministic "famous for" feature woven into
    its lore.
-   v10: the renderer is reusable — index.html runs it in DEMO
-   mode with injected fictional data (wallet "DEMO").
+   v10: the renderer is reusable — index.html runs it on one real wallet
+   (v23: the verification wallet, its live first hop; see runLive()).
    v22: nothing is paid. Every counterparty the scan fetched is drawn
    (up to MAX_PLANETS, a render-performance cap only) and every fetched
    transaction is listed. Nothing is held back.
@@ -29,7 +29,7 @@
   var T = function(k){ var v = window.PF_I18N_T ? window.PF_I18N_T(k) : null; if (v == null || v === k) v = T_FALLBACK[k] || k; return v; };
 
   var SATS = 1e8;
-  // ---------- active coin (set per-scan in runScan; BTC by default + demo) ----------
+  // ---------- active coin (set per-scan in runScan / runLive; BTC by default) ----------
   // The internal model counts in a coin's smallest practical unit — sats for
   // BTC, wei for ETH. COIN.divisor converts that base unit to a whole coin for
   // display; COIN.ticker is the symbol shown to the user. The field names below
@@ -94,10 +94,12 @@
     });
   }
 
-  // ---------- v10: render context (set by runScan / runDemo) ----------
-  var curAddr = '';                          // wallet shown in cards ('DEMO' in demo mode)
+  // ---------- v10: render context (set by runScan / runLive) ----------
+  var curAddr = '';                          // wallet shown in cards (the sun)
   var curSunTitle = '\u2600 PFLASHED Wallet';
   var curSunSub = 'The sun of this system';
+  var curSunWord = 'scanned wallet';          // what a planet card calls the sun in "Sent to …"
+  var curSunNote = 'The sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.';
 
   // ---------- living lore (v4) ----------
   // Everything below is DETERMINISTIC from the counterparty wallet
@@ -1399,7 +1401,7 @@
     $('txBody').innerHTML = rows || '<tr><td colspan="5">' + T('noTx') + '</td></tr>';
   }
 
-  // ---------- node info card (exists on scan page AND inside the index demo stage) ----------
+  // ---------- node info card (exists on scan page AND inside the index hero stage) ----------
   var nodeCard = $('nodeCard');
   if (nodeCard && $('ncClose')) {
     $('ncClose').addEventListener('click', function () {
@@ -1423,10 +1425,10 @@
       '</div>' +
       '<div class="nc-lore"><div class="nc-lore-label">SYSTEM RECORD</div>' +
       '<p>' + (attribOf(curAddr) ? esc(attribSentence(attribOf(curAddr))) + ' ' : '') +
-      'The sun — every wallet here orbits it. Every transaction below began or ended at this address, and the chain recorded all of it. Phantom Flash just reads it back.</p></div>';
+      esc(curSunNote) + '</p></div>';
   }
 
-  // v20: set by renderSystem on a real scan (never in demo): {followHtml(node)}
+  // v20: set by renderSystem: {followHtml(node)}
   var FOLLOW_UI = null;
   function txExplorerUrl(h) {
     var base = COIN.chain === 'eth' ? 'https://eth.blockscout.com/tx/'
@@ -1455,21 +1457,20 @@
   function showPlanetCard(cp, usdRate, lore, ctx) {
     if (!nodeCard) return;
     nodeCard.className = 'node-card show';
-    var demo = (curAddr === 'DEMO');
     var node = ctx && ctx.node, hopNode = !!(node && node.hop);
-    var from = hopNode ? shortAddr(node.fromAddr) : 'scanned wallet';
+    var from = hopNode ? shortAddr(node.fromAddr) : curSunWord;
     var html =
       ((ctx && ctx.tx) ? txBlockHtml(ctx.tx, node) : '') +
-      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(knownAgent(cp.addr) ? knownAgent(cp.addr).name : (lore ? lore.name : 'First-Hop Wallet')) + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
+      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(knownAgent(cp.addr) ? knownAgent(cp.addr).name : (lore ? lore.name : 'First-Hop Wallet')) + attribKindBadge(cp.addr) + '</h4>' +
       (knownAgent(cp.addr) ? '<div class="nc-sub">Agent no. ' + esc(knownAgent(cp.addr).agent_no) + ' · answers to ' + esc(knownAgent(cp.addr).answers_to) + '</div>' : '') +
-      (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
-      '<div class="nc-addr">' + (demo ? esc(cp.addr) : '<a class="nc-go" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '" title="PFLASH this wallet: open its own system">' + esc(cp.addr) + '</a>') + '</div>' +
+      (lore ? '<div class="nc-sub">' + (hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
+      '<div class="nc-addr">' + '<a class="nc-go" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '" title="PFLASH this wallet: open its own system">' + esc(cp.addr) + '</a>' + '</div>' +
       (knownAgent(cp.addr) ? '<a class="btn primary nc-profile" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '">Open ' + esc(knownAgent(cp.addr).name) + '\u2019s record \u2192</a>' : '') +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (usdRate && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (usdRate && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Shared transactions</span><span class="val">' + cp.txCount + '</span></div>' +
-      (demo ? '' : attribRows(cp.addr)) +
+      attribRows(cp.addr) +
       (lore && lore.bags ? '<div class="r"><span class="k">' + esc(T('bagShare')) + '</span><span class="val nc-bags">' + bagEmojis(lore.bags) + '</span></div>' : '') +
       '</div>' +
       (lore && lore.bags ? '<div class="nc-bagnote">' + esc(T('bagHonesty')) + '</div>' : '');
@@ -1482,8 +1483,8 @@
 
   // ---------- 3D solar system ----------
   // Reusable renderer. opts:
-  //   demo       — fictional injected data (index.html live demo)
-  //   autoOrbit  — slow auto-rotate camera (demo)
+  //   live       — the home-page hero: the verification wallet's real first hop
+  //   autoOrbit  — slow auto-rotate camera (home hero)
   // Everything is drawn for everybody. The only cap is MAX_PLANETS, a pure
   // render-performance ceiling; when a wallet has more counterparties than
   // that, the top ones by volume render and the capNote says so.
@@ -1495,7 +1496,7 @@
 
     var planets = cps.slice(0, MAX_PLANETS);
     var capNote = $('capNote');
-    if (capNote && cps.length > planets.length && !opts.demo) {
+    if (capNote && cps.length > planets.length) {
       capNote.textContent = 'Showing top ' + planets.length.toLocaleString('en-US') + ' by volume.';
       capNote.style.display = 'inline';
     }
@@ -1510,13 +1511,7 @@
     cps.forEach(function (c) { grandTotal += c.total; });
     lore.forEach(function (e, i) {
       e.bags = bagTier(planets[i].total, grandTotal);
-      if (opts.demo && planets[i].demoLore) {
-        // sample tracing supplies real-world forensic text — no space-opera lore
-        if (planets[i].demoName) e.name = planets[i].demoName;
-        e.history = planets[i].demoLore;
-      } else {
-        e.history += ' ' + bagLore(e.bags);
-      }
+      e.history += ' ' + bagLore(e.bags);
     });
 
     var maxTotal = planets.length ? planets[0].total : 1;
@@ -1527,8 +1522,8 @@
 
     var nodes = [{
       id: 'sun', kind: 'sun', val: 26, color: '#00e5ff',
-      labelHtml: opts.demo
-        ? '<b>☀ THE SUN — DEMO WALLET</b><br>this is what any address becomes · click for details'
+      labelHtml: opts.live
+        ? '<b>☀ THE VERIFICATION WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>send here to put your wallet on the record · click for details'
         : '<b>☀ THE SUN — SCANNED WALLET</b><br>' + esc(shortAddr(curAddr)) + '<br>every planet here orbits this address · click for details'
     }];
     var links = [];
@@ -1565,7 +1560,7 @@
     // ---- v20: FOLLOW THE MONEY — state shared by the accessors below ----
     // Link flags (set on the link objects): lit (the bolt) + litDir, dimmed, hover.
     // Node flags: followed / following / followErr / followNote, hop (depth), pathDir.
-    var FOLLOW_ON = !opts.demo;                    // the demo hero keeps its old behaviour exactly
+    var FOLLOW_ON = true;
     var MAX_DEPTH = 3, FOLLOW_TOP = 12;
     var LIT_OUT = '#f2a950', LIT_IN = '#00e5ff', DIM_LINK = '#1b2a3d';
     var origNodes = nodes.slice(), origLinks = links.slice();   // the first-hop system, for "clear trail"
@@ -2011,7 +2006,7 @@
       });
     }
 
-    // dev/demo hook (no extra data exposed — only what's already client-side)
+    // dev hook (no extra data exposed — only what's already client-side)
     window.__pflash = {
       openSun: function () { showSunCard(data, usdRate); },
       openPlanet: function (i) {
@@ -2048,7 +2043,6 @@
     // hover label, and story all pick up the identity; mixers, flagged and
     // sanctioned worlds turn amber.
     function decorateAttrib() {
-      if (opts.demo) return;
       var changed = false;
       ringNodes.forEach(function (nd) {
         if (nd.kind !== 'planet' || nd.attribbed) return;
@@ -2141,11 +2135,17 @@
 
     // initial camera: pull back to see the whole system
     setTimeout(function () {
-      graph.zoomToFit(900, 60);
+      if (planets.length) graph.zoomToFit(900, 60);
+      else {                                    // the sun alone: nothing to fit — park it above the input dock
+        var cam0 = graph.camera && graph.camera(), fov = (cam0 && cam0.fov) || 40;
+        var lift = sunOnlyY(stage), H0 = stage.clientHeight || 600, dist0 = IS_SMALL ? 190 : 300;
+        var ly = -(H0 / 2 - lift) * (2 * dist0 * Math.tan(fov * Math.PI / 360) / H0);   // px above centre → world units
+        graph.cameraPosition({ x: 0, y: ly, z: dist0 }, { x: 0, y: ly, z: 0 }, 900);
+      }
     }, 1200);
 
-    // ---- v10: slow auto-orbit (demo mode) ----
-    // prefers-reduced-motion → static rendered demo, no orbit.
+    // ---- v10: slow auto-orbit (home hero) ----
+    // prefers-reduced-motion → static render, no orbit.
     var reduceMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (opts.autoOrbit && !reduceMotion) {
@@ -2188,76 +2188,68 @@
   }
 
   // ============================================================
-  // v10 — DEMO MODE (index.html hero): a pre-populated fictional
-  // example system, auto-orbiting. ALL DATA BELOW IS FICTIONAL —
-  // "DEMO" wallet, invented amounts, no real addresses anywhere.
+  // v23 — THE HOME HERO: THE VERIFICATION WALLET, LIVE.
+  // The sun is a real XRP Ledger mainnet account the owner controls; the
+  // planets are its real counterparties (the same loadDataXrp /
+  // aggregateCounterparties / renderSystem path scan.html uses). People send
+  // any amount here from the wallet or agent they want on the record, and it
+  // appears. Nothing is invented: no account yet, or no transactions yet, draws
+  // the sun alone with a hint. One fetch per load, cached 60 s in
+  // sessionStorage; any failure fails open to the sun alone. No Commons/API.
   // ============================================================
-  function buildDemoData() {
-    var DAY = 86400, now = Math.floor(Date.now() / 1000);
-    // SAMPLE TRACING - fictional data, synthetic addresses (not real wallets).
-    // Written to read the way a real Phantom Flash tracing reads: each wallet
-    // gets a plain-language finding, the amounts, and - where the chain supports
-    // it - a probable identity. Findings are PROBABILITIES; the flows are facts.
-    // [addr, name, inSats(they->sun), outSats(sun->them), txCount, daysAgo, finding]
-    var rows = [
-      ['bc1qs7g4hf2n8kxr3vd0q9m5aw7czt6ljy4p2u', 'Funding source — likely an exchange', 62000000, 0, 14, 3,
-        'This is where money came IN. About $42,800 in Bitcoin reached the sun wallet from this address across 14 deposits — the pattern looks like withdrawals from a regulated exchange or brokerage (Coinbase, Kraken or similar). Exchanges keep customer records, so an address like this usually belongs to a named company. That identification is a probability read from the flow, not a verdict.'],
-      ['bc1qh3m9x2kf7v0aq5d8s4n6cwltr9zj2y5g8e', 'Collection hub (probable)', 0, 18000000, 6, 5,
-        'The single largest amount OUT of the sun wallet landed here — roughly $12,400. This address receives from at least 31 other wallets, in deposits ranging from a few dollars to tens of thousands. That many-into-one pattern is typical of a collection hub, such as a payment processor or a pooled wallet. The flows are facts; the label is a probability.'],
-      ['bc1q4t8v2n7khf3m0x9s5aq6dwzr2cyl8j3g7u', 'Inbound — recurring payer', 12500000, 0, 9, 8,
-        'About $8,600 came in from this address over 9 transactions, small and regular. That cadence often means a recurring payer or a payout schedule. The chain shows the movement, not the reason; treat the read as a probability.'],
-      ['bc1q9d2s7hf4kx3n8v0mq5awt6czr2yl9j5g3e', 'Pass-through relay', 6200000, 3600000, 11, 2,
-        'A pass-through relay: funds land here and leave again within hours, so money only rested here briefly on its way somewhere else. Following it to the next hop shows where it went next.'],
-      ['bc1qk7h3m9x2f4v8n0s5aqd6wtzr9cyl2j8g4u', 'Secondary funding (probable)', 7400000, 0, 4, 12,
-        'Roughly $5,100 flowed in from here. The pattern is consistent with a second funding source or another wallet under the same control. Probable, not proven.'],
-      ['bc1q2n8v4kf7h3mx0q9s5awt6dzr2cyl8j3g7e', 'Feeder into the hub (probable)', 0, 5200000, 3, 16,
-        'About $3,600 left the sun wallet to this address and did not come back. It sits one hop upstream of the collection hub above — a likely feeder into the same cluster. Probable connection, based on shared counterparties.'],
-      ['bc1qm5x9k2h7f3v8n0d4aqs6wtzr9cyl2j8g5u', 'Low-volume inbound', 4100000, 0, 5, 21,
-        'About $2,800 came in from here over 5 transactions. A low-volume counterparty; on the data so far it doesn’t connect cleanly to the main cluster. Noted, not yet linked.'],
-      ['bc1qf7h3n9x2k4m8v0s5awqd6tzr2cyl9j3g7e', 'Shuffling / mixing service (probable)', 1900000, 1400000, 8, 6,
-        'The busiest address in the first hop — 8 transactions, money in and right back out. High-frequency two-way flow like this is a common signature of a mixing or shuffling service. The chain still records every hop, so the trail stays readable.'],
-      ['bc1q8v2n7kf4h3mx0q9d5awts6zr2cyl8j3g5u', 'Secondary payout path', 0, 2600000, 2, 30,
-        'About $1,800 went out to this wallet. A small outbound leg, probably a secondary payout path branching off the main flow.'],
-      ['bc1q3m9x7k2h4f8v0n5aqds6wtzr9cyl2j8g4e', 'Minor inbound', 1900000, 0, 3, 45,
-        'A minor inbound counterparty (~$1,300). Nothing on-chain ties it to the main cluster yet — included so the picture is complete.'],
-      ['bc1qn8v4k7f2h3mx0q9s5awtd6zr2cyl8j3g7u', 'Dormant / cold wallet', 1200000, 0, 2, 400,
-        'Dormant. About $800 arrived here more than a year ago and nothing has moved since — a cold wallet holding a slice of the funds. Cold doesn’t mean gone; it means parked, and the chain will show the moment it wakes up.'],
-      ['bc1q7k3h9x2m4f8v0n5aqds6wtzr2cyl9j3g5e', 'Small outbound leg', 0, 800000, 1, 60,
-        'A small outbound leg (~$550) — likely a test transfer or a fee payment. Small, but it’s part of the same trail.']
-    ];
-    if (!IS_SMALL) { // perf cap ~12 planets on phones; a couple more on desktop
-      rows.push(['bc1q4v8n2k7f3hmx0q9s5awtd6zr2cyl8j3g7u', 'Trace-level inbound', 450000, 0, 2, 90,
-        'Trace-level inbound (~$310). Small, included for completeness so the map shows everything the wallet touched.']);
-      rows.push(['bc1q9x2k7h3f4m8v0n5aqds6wtzr9cyl2j8g4e', 'Trace-level outbound', 0, 300000, 1, 120,
-        'Trace-level outbound (~$210). Small, included for completeness so the map shows everything the wallet touched.']);
-    }
-    var fundedSum = 0, spentSum = 0, txCount = 0;
-    var cps = rows.map(function (r) {
-      fundedSum += r[2]; spentSum += r[3]; txCount += r[4];
-      return { addr: r[0], demoName: r[1], inSats: r[2], outSats: r[3], txCount: r[4],
-               total: r[2] + r[3], lastSeen: now - r[5] * DAY, demoLore: r[6] };
-    }).sort(function (a, b) { return b.total - a.total; });
-    return {
-      data: { txCount: txCount, fundedSum: fundedSum, spentSum: spentSum, txs: [] },
-      cps: cps,
-      usdRate: 69000 // fixed fictional rate so demo $ figures are stable
-    };
+  // Where (px from the stage top) the lone sun sits: above the input dock, never behind it.
+  function sunOnlyY(stage) {
+    var H = stage.clientHeight || 600, dock = document.querySelector('.sun-dock');
+    var top = dock ? dock.offsetTop : H * 0.6;
+    return Math.max(70, Math.min(H * 0.5, (top + 40) / 2));
   }
-  function runDemo() {
-    curAddr = 'DEMO';
-    curSunTitle = '\u2600 THE DEMO SUN';
-    curSunSub = 'A fictional example — any address takes this seat';
-    var demo = buildDemoData();
+  var VERIFICATION_WALLET = 'rHuT5c4KNen7PWbhH5WjDRcYtUdxv5uxFF';
+  var VW_TTL_MS = 60000;
+  function vwCacheGet(a) {
     try {
-      if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
-      renderSystem(demo.data, demo.cps, demo.usdRate, {
-        demo: true,
-        autoOrbit: true
-      });
-    } catch (e) {
-      var st = $('demoStage');
-      if (st) st.classList.add('demo-fallback');
+      var o = JSON.parse(sessionStorage.getItem('pf_vw:' + a) || 'null');
+      if (o && o.data && Date.now() - o.t < VW_TTL_MS) return o.data;
+    } catch (e) {}
+    return null;
+  }
+  function vwCachePut(a, data) {
+    try { sessionStorage.setItem('pf_vw:' + a, JSON.stringify({ t: Date.now(), data: data })); } catch (e) {}
+  }
+  function loadVerificationWallet(a) {
+    var hit = vwCacheGet(a);
+    if (hit) return Promise.resolve(hit);
+    return loadDataXrp(a).then(function (d) {
+      if (!d.sourceFailed) vwCachePut(a, d);        // never cache a failure
+      return d;
+    }).catch(function () {
+      return { txCount: 0, fundedSum: 0, spentSum: 0, txs: [], sourceFailed: true, balance: null, truncated: false, agent: null };
+    });
+  }
+  function runLive() {
+    var a = VERIFICATION_WALLET;
+    COIN = { chain: 'xrp', ticker: 'XRP', divisor: 1e6, usd: false };
+    curChain = 'xrp'; LEDGER_SENT = true;          // LEDGER_SENT: the home page never logs a scan
+    curAddr = a;
+    curSunWord = 'the verification wallet';
+    curSunTitle = '☀ THE VERIFICATION WALLET';
+    curSunSub = 'The wallet people send to, to put a wallet or agent on the record';
+    curSunNote = 'The sun. Send any amount here from the wallet you want on the record, and it appears as a planet. Every transaction is on the XRP Ledger; Phantom Flash just reads it back.';
+    var st = $('demoStage'), hint = $('vwHint');
+    function draw(data) {
+      var cps = aggregateCounterparties(data);
+      stampLastSeen(data, cps);
+      if (hint) {
+        hint.style.display = cps.length ? 'none' : 'block';
+        if (!cps.length && st) hint.style.top = Math.round(sunOnlyY(st) + 62) + 'px';
+      }
+      try {
+        if (typeof ForceGraph3D === 'undefined') throw new Error('3D library unavailable');
+        renderSystem(data, cps, null, { live: true, autoOrbit: true });
+      } catch (e) {
+        if (st) st.classList.add('demo-fallback');
+      }
     }
+    loadVerificationWallet(a).then(draw);
   }
 
   // ============================================================
@@ -2770,10 +2762,10 @@
   if ($('addrChip')) {
     runScan();                            // scan.html
   } else if ($('demoStage')) {
-    // index.html live-demo hero — wait for the deferred i18n layer so
+    // index.html hero — wait for the deferred i18n layer so
     // labels are translated (DOMContentLoaded fires after
     // deferred scripts execute).
-    if (window.PF_I18N_T || document.readyState === 'complete') runDemo();
-    else document.addEventListener('DOMContentLoaded', runDemo);
+    if (window.PF_I18N_T || document.readyState === 'complete') runLive();
+    else document.addEventListener('DOMContentLoaded', runLive);
   }
 })();

@@ -1452,7 +1452,7 @@
       ((ctx && ctx.tx) ? txBlockHtml(ctx.tx, node) : '') +
       '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
       (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
-      '<div class="nc-addr">' + esc(cp.addr) + '</div>' +
+      '<div class="nc-addr">' + (demo ? esc(cp.addr) : '<a class="nc-go" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '" title="PFLASH this wallet: open its own system">' + esc(cp.addr) + '</a>') + '</div>' +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (usdRate && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (usdRate && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, usdRate)) : '') + '</span></div>' +
@@ -1760,7 +1760,7 @@
       if (!nodeCard) return;
       nodeCard.className = 'node-card show';
       $('ncBody').innerHTML = txBlockHtml(tx, null) +
-        '<div class="nc-addr">' + esc(cpAddr) + '</div>' +
+        '<div class="nc-addr"><a class="nc-go" href="scan.html?addr=' + encodeURIComponent(cpAddr) + '" title="PFLASH this wallet: open its own system">' + esc(cpAddr) + '</a></div>' +
         '<div class="nc-lore"><div class="nc-lore-label">NOT ON THE MAP</div><p>This counterparty is outside the ' +
         MAX_PLANETS + ' largest wallets drawn here, so it has no planet to light up.</p></div>';
     }

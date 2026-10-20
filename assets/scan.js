@@ -1000,6 +1000,20 @@
         var fig = document.createElement('div'); fig.className = 'ag-portrait';
         img.alt = name; img.decoding = 'async';
         fig.appendChild(img);
+        fig.title = 'Click to enlarge'; fig.setAttribute('role', 'button'); fig.tabIndex = 0;
+        // click to enlarge: a plain overlay with the full image, so it can be right-clicked and copied or saved
+        function openLightbox() {
+          var box = document.createElement('div'); box.className = 'ag-lightbox';
+          var big = document.createElement('img'); big.src = img.src; big.alt = name;
+          var cap = document.createElement('div'); cap.className = 'ag-lightbox-cap'; cap.textContent = name + ' \u00b7 click anywhere to close';
+          box.appendChild(big); box.appendChild(cap); document.body.appendChild(box);
+          function close() { box.remove(); document.removeEventListener('keydown', onKey); }
+          function onKey(e) { if (e.key === 'Escape') close(); }
+          box.addEventListener('click', function (e) { if (e.target !== big) close(); });
+          document.addEventListener('keydown', onKey);
+        }
+        fig.addEventListener('click', openLightbox);
+        fig.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(); } });
         body.insertBefore(fig, body.firstChild);
         body.classList.add('has-portrait');
       };

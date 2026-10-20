@@ -1156,3 +1156,9 @@ section.block#the-agent{padding-left:20px;padding-right:20px}
 
 .foot-links{margin:0 0 14px;font-size:14px}
 .foot-links a{color:var(--cyan)}
+
+/* portrait lightbox */
+.agent-panel .ag-portrait{cursor:zoom-in}
+.ag-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(4,8,12,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.ag-lightbox img{max-height:86vh;max-width:92vw;height:auto;width:auto;border:2px solid var(--edge);border-radius:8px;background:#140f0b;cursor:default;box-shadow:0 0 40px rgba(0,229,255,.18)}
+.ag-lightbox-cap{margin-top:12px;color:var(--muted);font-size:13px;letter-spacing:.06em;text-transform:uppercase}

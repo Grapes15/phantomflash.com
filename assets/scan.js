@@ -1166,7 +1166,6 @@
   // on every planet, row, and card without anyone having to click into it.
   var KNOWN_AGENTS = {
     'rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL': { name: 'Phantom Flash', agent_no: '1.1', answers_to: 'Dan Irwin' },
-    'rETFTRPcSWdijHvNegHWahzutrMXhMbhvc': { name: 'Atlas', agent_no: '2', answers_to: 'Steven Atneosen' },
     'rJAi9JJF4oDfjw5Uimw3NVNzpFQi4LVTA6': { name: 'Irwin Law Office', agent_no: '3', answers_to: 'Irwin Law Office PLC' }
   };
   function knownAgent(a) { return KNOWN_AGENTS[String(a)] || null; }

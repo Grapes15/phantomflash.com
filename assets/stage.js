@@ -283,8 +283,7 @@
      skipped (a set with only 000.jpg stands still). If no frame loads, stage one keeps its 2D card; Atlas shows "model coming". */
   var ALL_ANGLES = ['000', '045', '090', '135', '180', '225', '270', '315'];
   var TURN = {
-    pflash: ['000'],   /* Dan 10/16: no spinning; straight on. The other seven frames stay in assets/turn/pflash/ if ever wanted. */
-    atlas: ['000']   /* one frame so far, so it stands still (and no 404s in the console); add '045' ... as the frames arrive in assets/turn/atlas/ */
+    pflash: ['000']   /* straight on, no spin */
   };
   var FRAME_VER = '20261016-16';   /* bump whenever a frame image is replaced, so browsers refetch it */
   function frameUrls(dir){ return TURN[dir].map(function(a){ return 'assets/turn/' + dir + '/' + a + '.jpg?v=' + FRAME_VER; }); }
@@ -305,23 +304,4 @@
   }
 
   /* ---------------- STAGE TWO: ATLAS (agent no. 2, static until it has a key) ---------------- */
-  var atlasRows = $('atlasAttrRows'), afig = $('atlasFigure');
-  if(atlasRows){
-    var dash = '<span class="pf-dash" aria-label="blank">—</span>';
-    atlasRows.innerHTML =
-      row('Agent #', '<span class="pf-amber">2</span>') +
-      row('Agent', esc('Atlas')) +
-      row('Alias', dash) +
-      row('Answers to', esc('Steven Atneosen')) +
-      row('Lawyer', 'Steven Atneosen <span class="pf-muted">· bar no. to be posted</span>') +
-      row('Rules', dash + '<div class="pf-sub">adopts a standard when its captain posts one</div>') +
-      row('Fingerprint', dash) +
-      row('Receipts', dash) +
-      row('Permissions', dash) +
-      row('Licenses', esc('none on record')) +
-      row('Declared', esc('not yet'));
-  }
-  if(afig && afig.querySelector('.pf-2d')){
-    mount2d({ fig: afig, dir: 'atlas', fail: function(){ afig.classList.add('pf-soon'); }, ready: function(){} });
-  }
 })();

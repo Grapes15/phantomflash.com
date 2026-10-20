@@ -1157,8 +1157,18 @@
     mixer:      { word: 'MIXER',     cls: 'att-mixer',    blurb: 'A known mixing service, which blends funds from many senders so individual paths are harder to read.' },
     sanctioned: { word: 'SANCTIONED', cls: 'att-flag',    blurb: 'On a government sanctions list. Transacting with it is a legal event in itself.' },
     flagged:    { word: 'FLAGGED',   cls: 'att-flag',     blurb: 'Carries a public warning tag from a labeling source (exploit or phishing lists).' },
-    named:      { word: 'NAMED',     cls: 'att-named',    blurb: 'A publicly named address.' }
+    named:      { word: 'NAMED',     cls: 'att-named',    blurb: 'A publicly named address.' },
+    agent:      { word: 'AGENT',     cls: 'att-agent',    blurb: 'An AI agent on the record: it has posted a declaration from its own key naming who answers for it.' }
   };
+  // Agents on the record whose declarations this site has read. Seeded so a known agent shows its name
+  // on every planet, row, and card without anyone having to click into it.
+  var KNOWN_AGENTS = {
+    'rJWiym22YxSLSsRCVLZAGjPQ2eLYgRG4uL': { name: 'Phantom Flash', agent_no: '1.1', answers_to: 'Dan Irwin' },
+    'rETFTRPcSWdijHvNegHWahzutrMXhMbhvc': { name: 'Atlas', agent_no: '2', answers_to: 'Steven Atneosen' },
+    'rJAi9JJF4oDfjw5Uimw3NVNzpFQi4LVTA6': { name: 'Irwin Law Office', agent_no: '3', answers_to: 'Irwin Law Office PLC' }
+  };
+  function knownAgent(a) { return KNOWN_AGENTS[String(a)] || null; }
+  Object.keys(KNOWN_AGENTS).forEach(function (k) { ATTRIB[k] = { name: KNOWN_AGENTS[k].name, entity: KNOWN_AGENTS[k].answers_to, kind: 'agent', source: 'record', conf: 1 }; });
   function attribKey(a) { return curChain === 'eth' ? String(a).toLowerCase() : String(a); }
   function attribOf(a) {
     var n = ATTRIB[attribKey(a)];
@@ -1166,7 +1176,7 @@
   }
   function attribLabel(n) { return n.name || (KIND_META[n.kind] ? KIND_META[n.kind].word : 'NAMED'); }
   function attribSource(n) {
-    return n.source === 'blockscout' ? 'Blockscout public labels'
+    return n.source === 'record' ? 'declaration on the public ledger' : n.source === 'blockscout' ? 'Blockscout public labels'
          : n.source === 'walletexplorer' ? 'walletexplorer.com'
          : n.source === 'curated' ? 'Phantom Flash curated labels' : String(n.source || '');
   }
@@ -1450,9 +1460,11 @@
     var from = hopNode ? shortAddr(node.fromAddr) : 'scanned wallet';
     var html =
       ((ctx && ctx.tx) ? txBlockHtml(ctx.tx, node) : '') +
-      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(lore ? lore.name : 'First-Hop Wallet') + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
+      '<h4>' + (lore ? '' : '<span class="nc-glyph">🪐</span> ') + esc(knownAgent(cp.addr) ? knownAgent(cp.addr).name : (lore ? lore.name : 'First-Hop Wallet')) + (demo ? '' : attribKindBadge(cp.addr)) + '</h4>' +
+      (knownAgent(cp.addr) ? '<div class="nc-sub">Agent no. ' + esc(knownAgent(cp.addr).agent_no) + ' · answers to ' + esc(knownAgent(cp.addr).answers_to) + '</div>' : '') +
       (lore ? '<div class="nc-sub">' + (demo ? 'First-hop wallet · sample tracing' : hopNode ? 'Hop ' + node.hop + ' wallet · reached from ' + esc(from) : 'First-hop wallet') + '</div>' : '') +
       '<div class="nc-addr">' + (demo ? esc(cp.addr) : '<a class="nc-go" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '" title="PFLASH this wallet: open its own system">' + esc(cp.addr) + '</a>') + '</div>' +
+      (knownAgent(cp.addr) ? '<a class="btn primary nc-profile" href="scan.html?addr=' + encodeURIComponent(cp.addr) + '">Open ' + esc(knownAgent(cp.addr).name) + '\u2019s record \u2192</a>' : '') +
       '<div class="nc-rows">' +
       '<div class="r"><span class="k">Sent to ' + esc(from) + '</span><span class="val green">' + esc(fmtBtc(cp.inSats)) + (usdRate && cp.inSats ? ' · ' + esc(fmtUsd(cp.inSats, usdRate)) : '') + '</span></div>' +
       '<div class="r"><span class="k">Received from it</span><span class="val red">' + esc(fmtBtc(cp.outSats)) + (usdRate && cp.outSats ? ' · ' + esc(fmtUsd(cp.outSats, usdRate)) : '') + '</span></div>' +
